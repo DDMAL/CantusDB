@@ -470,6 +470,45 @@ class ChantRangePersistenceTest(TestCase):
                 record.refresh_from_db()
                 self.assertEqual(record.chant_range, "1-d-h-4")
 
+    def test_stale_partial_melody_save_rechecks_persisted_range(self) -> None:
+        """Partial saves reconcile newer melodies/blank ranges but keep legacy ranges."""
+        for factory in (make_fake_chant, make_fake_sequence):
+            for melody, stored_range, expected_range in (
+                ("2---d--h---4", "2-d-h-4", "1-c-g-4"),
+                ("1---c--g---4", "", "1-c-g-4"),
+                ("1---c--g---4", "1-a-b-4", "1-a-b-4"),
+            ):
+                with self.subTest(model=factory.__name__, stored_range=stored_range):
+                    record = factory()
+                    records = type(record).objects
+                    records.filter(pk=record.pk).update(
+                        volpiano="1---c--g---4", chant_range="1-c-g-4"
+                    )
+                    stale = records.get(pk=record.pk)
+                    # Another writer changes the row after this instance was loaded.
+                    records.filter(pk=record.pk).update(
+                        volpiano=melody,
+                        chant_range=stored_range,
+                        indexing_notes="Another editor's notes",
+                    )
+                    stale.indexing_notes = "An unsaved edit"
+                    stale.save(update_fields=["volpiano"])
+                    record.refresh_from_db()
+                    self.assertEqual(record.volpiano, "1---c--g---4")
+                    self.assertEqual(record.chant_range, expected_range)
+                    self.assertEqual(record.indexing_notes, "Another editor's notes")
+                    self.assertEqual(
+                        [
+                            v.field_dict["chant_range"]
+                            for v in Version.objects.get_for_object(record)
+                        ],
+                        (
+                            [expected_range, stored_range]
+                            if expected_range != stored_range
+                            else []
+                        ),
+                    )
+
     def test_backfill_records_old_and_new_ranges(self) -> None:
         for factory in (make_fake_chant, make_fake_sequence):
             with self.subTest(model=factory.__name__):

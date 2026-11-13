@@ -87,6 +87,7 @@ class BaseChant(BaseModel):
         )
         matching_range = (
             derived
+            and (fields is None or "chant_range" in fields)
             and derived == self.chant_range
             and derived == getattr(self, "_loaded_chant_range", models.DEFERRED)
         )

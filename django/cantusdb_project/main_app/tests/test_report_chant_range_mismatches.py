@@ -103,6 +103,27 @@ class TestReportChantRangeMismatches(TestCase):
         mismatch.refresh_from_db()
         self.assertEqual(mismatch.chant_range, "1-a-b-4")
 
+    def test_blank_ranges_are_excluded_without_mutating_either_model(self):
+        """Blank ranges await backfilling, while nonblank formatting errors are reported."""
+        records = []
+        for factory in (make_fake_chant, make_fake_sequence):
+            for blank in (None, "", " ", "\t", "\r\n", " \t\r\n "):
+                record = factory()
+                type(record).objects.filter(pk=record.pk).update(
+                    volpiano="1---c--g---4", chant_range=blank
+                )
+                records.append((record, blank))
+        formatting = self._make_mismatched_chant("1---c--g---4", " 1-c-g-4\t")
+
+        rows = self._run_report()
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[1][0:2], ["chant", str(formatting.pk)])
+        self.assertEqual(rows[1][6], "formatting")
+        for record, blank in records:
+            with self.subTest(model=type(record).__name__, blank=repr(blank)):
+                record.refresh_from_db()
+                self.assertEqual(record.chant_range, blank)
+
     def test_report_mutates_no_chant_in_a_diverse_population(self):
         # Every category the report can encounter must come through untouched:
         # each mismatch type, a matching row, a no-volpiano row, and a blank row.

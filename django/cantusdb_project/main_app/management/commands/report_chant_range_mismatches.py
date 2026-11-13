@@ -98,7 +98,9 @@ class Command(BaseCommand):
                 # never writes.
                 records = (
                     model.objects.filter(Q(volpiano__isnull=False) & ~Q(volpiano=""))
-                    .exclude(Q(chant_range__isnull=True) | Q(chant_range=""))
+                    .exclude(
+                        Q(chant_range__isnull=True) | Q(chant_range__regex=r"^\s*$")
+                    )
                     .only("id", "source", "folio", "chant_range", "volpiano")
                 )
                 for record in records.iterator(chunk_size=500):
