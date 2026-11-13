@@ -58,6 +58,7 @@ class SourceAdmin(BaseModelAdmin):
         "provenance_notes",
         "name",
         "identifiers__identifier",
+        "notation__name",
     )
     readonly_fields = READ_ONLY + (
         "number_of_chants",
