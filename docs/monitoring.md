@@ -74,7 +74,8 @@ gunicorn -c gunicorn.conf.py cantusdb.wsgi:application --bind :8000 --bind :9464
 | `cantusdb_objects_updated` | `model`, `window` | Objects saved within the window. This also counts newly created objects |
 | `cantusdb_revisions` | `window` | django-reversion revisions, i.e. saved edits |
 | `cantusdb_active_editors` | `window` | Distinct users with a revision. Revisions from management commands have no user and don't count |
-| `cantusdb_data_check_last_completed_timestamp_seconds` | | Start time of the latest completed data check. Not reported if no check has ever completed |
+| `cantusdb_data_check_last_run_timestamp_seconds` | | When the scheduled data checks last ran, from `DataCheckConfig.last_run`. That is the start time of the last run whose checks all finished. It is not the `DataCheckReport.completed` checkbox, which staff tick after reviewing a report |
+| `cantusdb_data_check_interval_seconds` | | How often the data checks are configured to run (`DataCheckConfig.frequency`: daily, weekly or monthly). For alerting, compare the time since the last run with this interval |
 | `cantusdb_users` | `is_active` | User accounts |
 | `cantusdb_users_logged_in` | `window` (`30d`) | Users who logged in within the window |
 | `cantusdb_indexers` | | Users with `is_indexer` |
@@ -82,6 +83,8 @@ gunicorn -c gunicorn.conf.py cantusdb.wsgi:application --bind :8000 --bind :9464
 | `cantusdb_business_metrics_up` | | 1 if the metrics were computed, 0 if computing them failed. A failure never fails the scrape |
 | `cantusdb_business_metrics_compute_seconds` | | How long the last computation took |
 | `cantusdb_business_metrics_computed_timestamp_seconds` | | When the snapshot being served was computed |
+
+The two data check metrics are only reported where the checks are enabled (`DATA_CHECKS_ENABLED`, on in production only) and have run at least once. Staging runs on a copy of the production database. If it reported production's `last_run`, which never advances on staging, it would look permanently stale.
 
 Computing these metrics scans whole tables. The result is therefore cached for 5 minutes in the `metrics` cache alias (Redis database 1, separate from the Celery broker on database 0) and shared by all gunicorn workers. If Redis is unavailable, the metrics are computed on every scrape instead.
 
