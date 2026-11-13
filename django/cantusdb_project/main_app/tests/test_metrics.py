@@ -20,7 +20,8 @@ from main_app.metrics import (
     BusinessMetricsCollector,
     compute_business_metrics,
 )
-from main_app.models import Chant, DataCheckReport, Source
+from main_app.models import Chant, DataCheckConfig, DataCheckReport, Source
+from main_app.tasks import FREQUENCY_DELTAS
 from main_app.tests.make_fakes import (
     make_fake_chant,
     make_fake_sequence,
@@ -171,27 +172,54 @@ class ActivityMetricsTest(BusinessMetricsTestCase):
         self.assertEqual(metrics[("cantusdb_active_editors", "24h")], 1)
         self.assertEqual(metrics[("cantusdb_active_editors", "7d")], 2)
 
-    def test_data_check_timestamp_uses_latest_completed_report(self) -> None:
-        self.assertNotIn(
-            ("cantusdb_data_check_last_completed_timestamp_seconds",), self.metrics()
+
+@override_settings(DATA_CHECKS_ENABLED=True)
+class DataCheckMetricsTest(BusinessMetricsTestCase):
+    LAST_RUN = ("cantusdb_data_check_last_run_timestamp_seconds",)
+    INTERVAL = ("cantusdb_data_check_interval_seconds",)
+
+    def test_reports_last_run_and_interval_of_latest_config(self) -> None:
+        last_run = timezone.now() - timedelta(days=2)
+        DataCheckConfig.objects.create(
+            frequency=DataCheckConfig.Frequency.DAILY,
+            last_run=last_run - timedelta(days=30),
         )
-        now = timezone.now()
-        completed = DataCheckReport.objects.create(completed=True)
-        DataCheckReport.objects.filter(pk=completed.pk).update(
-            created_at=now - timedelta(days=1)
+        # run_data_checks uses the most recently created configuration.
+        DataCheckConfig.objects.create(
+            frequency=DataCheckConfig.Frequency.WEEKLY, last_run=last_run
         )
-        older = DataCheckReport.objects.create(completed=True)
-        DataCheckReport.objects.filter(pk=older.pk).update(
-            created_at=now - timedelta(days=2)
-        )
-        # An incomplete (failed or running) check does not count.
-        DataCheckReport.objects.create(completed=False)
         metrics = self.metrics()
-        self.assertAlmostEqual(
-            metrics[("cantusdb_data_check_last_completed_timestamp_seconds",)],
-            (now - timedelta(days=1)).timestamp(),
-            places=3,
-        )
+        self.assertAlmostEqual(metrics[self.LAST_RUN], last_run.timestamp(), places=3)
+        self.assertEqual(metrics[self.INTERVAL], timedelta(weeks=1).total_seconds())
+
+    def test_interval_follows_configured_frequency(self) -> None:
+        config = DataCheckConfig.objects.create(last_run=timezone.now())
+        for frequency, interval in FREQUENCY_DELTAS.items():
+            with self.subTest(frequency=frequency):
+                config.frequency = frequency
+                config.save()
+                self.assertEqual(
+                    self.metrics()[self.INTERVAL], interval.total_seconds()
+                )
+
+    def test_staff_review_checkbox_does_not_count_as_a_run(self) -> None:
+        # DataCheckReport.completed means "reviewed by staff", not "ran".
+        DataCheckReport.objects.create(completed=True)
+        DataCheckConfig.objects.create()
+        metrics = self.metrics()
+        self.assertNotIn(self.LAST_RUN, metrics)
+        self.assertNotIn(self.INTERVAL, metrics)
+
+    def test_omitted_without_configuration(self) -> None:
+        self.assertNotIn(self.LAST_RUN, self.metrics())
+
+    @override_settings(DATA_CHECKS_ENABLED=False)
+    def test_omitted_when_checks_are_disabled(self) -> None:
+        # Staging has production's configuration but never runs the checks.
+        DataCheckConfig.objects.create(last_run=timezone.now())
+        metrics = self.metrics()
+        self.assertNotIn(self.LAST_RUN, metrics)
+        self.assertNotIn(self.INTERVAL, metrics)
 
 
 class UserMetricsTest(BusinessMetricsTestCase):

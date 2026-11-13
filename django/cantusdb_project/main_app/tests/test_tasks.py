@@ -3,6 +3,7 @@ import io
 import shutil
 import tempfile
 import zipfile
+from datetime import timedelta
 from typing import List, Dict, Any
 from unittest.mock import patch, DEFAULT
 
@@ -43,7 +44,9 @@ from main_app.models import (
     Source,
 )
 from main_app.forms import BrowseChantsBulkEditFormset
+from main_app.metrics import compute_business_metrics
 from main_app.storage import private_media_storage
+from main_app.tests.test_metrics import as_samples
 
 
 class SaveBrowseChantsFormsetTest(TestCase):
@@ -671,6 +674,28 @@ class RunDataChecksTest(TempMediaRootMixin, TestCase):
         report = DataCheckReport.objects.first()
         self.assertTrue(report.file.name)
         self.assertFalse(report.completed)
+
+    def test_successful_run_is_reported_to_monitoring(self) -> None:
+        """The last-run metric follows the task's own run time, although the
+        new report stays unreviewed (completed=False)."""
+        config = DataCheckConfig.objects.create(
+            frequency=DataCheckConfig.Frequency.DAILY
+        )
+        config.recipients.add(make_fake_user(is_superuser=True))
+
+        self._patch_checks()
+        run_data_checks.apply().get()
+
+        config.refresh_from_db()
+        metrics = as_samples(compute_business_metrics())
+        self.assertEqual(
+            metrics[("cantusdb_data_check_last_run_timestamp_seconds",)],
+            config.last_run.timestamp(),
+        )
+        self.assertEqual(
+            metrics[("cantusdb_data_check_interval_seconds",)],
+            timedelta(days=1).total_seconds(),
+        )
 
 
 class DataCheckReportAdminTest(TempMediaRootMixin, TestCase):
