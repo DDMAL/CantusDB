@@ -98,6 +98,10 @@ class DependencyCollector(Collector):
 BUSINESS_METRICS_CACHE_ALIAS = "metrics"
 BUSINESS_METRICS_CACHE_KEY = "cantusdb:business-metrics:v1"
 BUSINESS_METRICS_TTL_SECONDS = 300
+# Total time all business metrics queries may take together. A blocked or slow
+# query then reports the business metrics as unavailable instead of holding
+# the scrape past Prometheus's 10s timeout and losing every other metric.
+BUSINESS_METRICS_BUDGET_SECONDS = 4
 
 ACTIVITY_WINDOWS: tuple[tuple[str, timedelta], ...] = (
     ("24h", timedelta(hours=24)),
@@ -327,16 +331,51 @@ def _user_families(now: datetime, today: date) -> list[FamilySpec]:
     ]
 
 
+class BusinessMetricsTimeout(Exception):
+    """The business metrics queries used up their time budget."""
+
+
+class _QueryDeadline:
+    """
+    Database execute wrapper that bounds every query by what is left of a
+    shared budget, so the queries together cannot exceed it. PostgreSQL 14
+    has no transaction_timeout, so the limit is set per statement.
+    """
+
+    def __init__(self, seconds: float) -> None:
+        self.deadline = time.monotonic() + seconds
+
+    def __call__(self, execute, sql, params, many, context):
+        remaining_ms = int((self.deadline - time.monotonic()) * 1000)
+        # A statement_timeout of 0 would disable the limit.
+        if remaining_ms <= 0:
+            raise BusinessMetricsTimeout("Business metrics time budget used up")
+        # The raw DB-API cursor: Django's cursor would run this wrapper again.
+        context["cursor"].cursor.execute(
+            f"SET LOCAL statement_timeout = {remaining_ms}"
+        )
+        return execute(sql, params, many, context)
+
+
 def compute_business_metrics() -> list[FamilySpec]:
-    """Query the database for all business metrics."""
+    """
+    Query the database for all business metrics, within
+    BUSINESS_METRICS_BUDGET_SECONDS. Raises if the budget runs out.
+    """
     started = time.perf_counter()
     now = timezone.now()
-    content, window_counts = _content_families(now)
-    families = (
-        content
-        + _activity_families(now, window_counts)
-        + _user_families(now, date.today())
-    )
+    with transaction.atomic(), connection.execute_wrapper(
+        _QueryDeadline(BUSINESS_METRICS_BUDGET_SECONDS)
+    ):
+        content, window_counts = _content_families(now)
+        families = (
+            content
+            + _activity_families(now, window_counts)
+            + _user_families(now, date.today())
+        )
+        # SET LOCAL lasts until the transaction ends. Rolling back (the
+        # queries are read-only) also undoes it inside an outer atomic block.
+        transaction.set_rollback(True)
     families += [
         (
             "cantusdb_business_metrics_compute_seconds",
