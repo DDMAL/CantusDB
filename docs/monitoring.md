@@ -20,6 +20,7 @@ The checks are bounded so they finish before the probe and scrape timeouts:
 - Connecting to PostgreSQL times out after 3 seconds. This is `connect_timeout` in `DATABASES`, and it applies to the whole app. A `PGCONNECT_TIMEOUT` set in the environment takes precedence.
 - The database query times out after 1 second (`statement_timeout`).
 - Redis calls time out after 1 second.
+- The business metrics queries share a 4 second budget, described under Metrics below.
 
 ### `/metrics` (internal only)
 
@@ -82,7 +83,9 @@ gunicorn -c gunicorn.conf.py cantusdb.wsgi:application --bind :8000 --bind :9464
 | `cantusdb_business_metrics_compute_seconds` | | How long the last computation took |
 | `cantusdb_business_metrics_computed_timestamp_seconds` | | When the snapshot being served was computed |
 
-Computing these metrics scans whole tables. The result is therefore cached for 5 minutes in the `metrics` cache alias (Redis database 1, separate from the Celery broker on database 0) and shared by all gunicorn workers. If Redis is unavailable, the metrics are computed on every scrape instead. A failed computation is not cached.
+Computing these metrics scans whole tables. The result is therefore cached for 5 minutes in the `metrics` cache alias (Redis database 1, separate from the Celery broker on database 0) and shared by all gunicorn workers. If Redis is unavailable, the metrics are computed on every scrape instead.
+
+All the business metrics queries together get 4 seconds (`BUSINESS_METRICS_BUDGET_SECONDS`). Before each query, `statement_timeout` is set to whatever is left of that budget. If a query runs out of time, for example because a migration is locking a table, the business metrics are reported as unavailable (`cantusdb_business_metrics_up 0`). The request and dependency metrics are still served, because the scrape finishes well within Prometheus's 10 second timeout. A failed computation is not cached, so the next scrape tries again.
 
 ## Configuration
 
