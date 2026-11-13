@@ -146,3 +146,24 @@ class MetricsViewTest(TestCase):
     @override_settings(DEBUG=True)
     def test_served_without_gunicorn_in_debug(self, _redis_is_up: MagicMock) -> None:
         self.assertEqual(self.get_metrics().status_code, 200)
+
+    def test_non_standard_methods_share_one_label(
+        self, _redis_is_up: MagicMock
+    ) -> None:
+        # Arbitrary method names must not each add metric series.
+        for method in ("REVIEWAAA", "REVIEWBBB", "REVIEWCCC"):
+            self.client.generic(method, reverse("health"))
+        with override_settings(CANTUSDB_METRICS_PORT=self.listener_port):
+            body = self.get_metrics(**{"gunicorn.socket": self.listener})
+        body = body.content.decode()
+        self.assertNotIn("REVIEW", body)
+        self.assertIn(
+            "django_http_requests_latency_seconds_by_view_method_count"
+            '{method="<invalid method>",view="health"}',
+            body,
+        )
+        self.assertIn(
+            "django_http_requests_total_by_view_transport_method_total"
+            '{method="<invalid method>",transport="http",view="health"}',
+            body,
+        )
