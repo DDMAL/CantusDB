@@ -11,7 +11,6 @@ from django.db.models import (
     When,
     Value,
 )
-from django.db.models.functions import Coalesce
 from django.views.generic import ListView
 from django.views.generic.list import MultipleObjectMixin
 from django.utils import timezone
@@ -223,20 +222,16 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
         sort_param = self.request.GET.get("sort", "asc")
         sort_prefix = "-" if sort_param == "desc" else ""
 
-        # Mirror Browse Sources: coalesce NULL holding_institution__siglum to ""
-        # so private collectors sort consistently regardless of DB NULL ordering.
-        siglum_coalesced = Coalesce("holding_institution__siglum", Value(""))
-
-        if order_param == "country":
-            ordering_fields = [
-                f"{sort_prefix}holding_institution__country",
-                siglum_coalesced.desc() if sort_prefix else siglum_coalesced.asc(),
-                f"{sort_prefix}shelfmark",
-            ]
-            return queryset.order_by(*ordering_fields)
-
         # Updated sort_mapping to use annotated fields
         sort_mapping = {
+            # Country (also the default for missing or unrecognized orders)
+            # mirrors Browse Sources' country sort. PostgreSQL puts NULL sigla
+            # (private collectors) last ascending, first descending.
+            "country": [
+                "holding_institution__country",
+                "holding_institution__siglum",
+                "shelfmark",
+            ],
             "city_institution": [
                 "holding_institution__city",
                 "holding_institution__name",
@@ -286,21 +281,15 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
             ],
         }
 
-        primary_sort_fields = sort_mapping.get(order_param, [])
+        primary_sort_fields = sort_mapping.get(order_param, sort_mapping["country"])
 
         if not isinstance(primary_sort_fields, list):
             primary_sort_fields = [primary_sort_fields]
 
         ordering_fields = [f"{sort_prefix}{field}" for field in primary_sort_fields]
 
-        # Fallback if somehow ordering_fields is empty (should not happen with default in .get)
-        if not ordering_fields:
-            ordering_fields = [
-                f"{sort_prefix}holding_institution__country",
-                siglum_coalesced.desc() if sort_prefix else siglum_coalesced.asc(),
-                f"{sort_prefix}shelfmark",
-            ]
-
+        # Break ties in every sort mode so pagination stays consistent.
+        ordering_fields.append(f"{sort_prefix}id")
         return queryset.order_by(*ordering_fields)
 
     def get_context_data(self, **kwargs):

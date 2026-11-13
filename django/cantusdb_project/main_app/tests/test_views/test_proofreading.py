@@ -1,4 +1,5 @@
 import random
+from unittest.mock import patch
 
 from django.conf import settings
 from django.test import TestCase
@@ -144,17 +145,11 @@ class ProofreadingOverviewViewTest(TestCase):
     def test_ordering(self):
         """
         Order on the Proofreading Overview should mirror Browse Sources for the
-        shared sort modes: by country (with NULL sigla coalesced to "") and by
-        institution siglum + shelfmark.
+        shared sort modes: by country (with NULL sigla — private collectors —
+        sorted after institutions within a country group) and by institution
+        siglum + shelfmark.
         """
         sources = []
-        # A source from a private collector (NULL siglum).
-        private_collector = make_fake_institution(is_private_collector=True)
-        sources.append(
-            make_fake_source(
-                holding_institution=private_collector, segment=[self.cantus_segment]
-            )
-        )
         # A handful of other sources with distinct institutions.
         inst = None
         for _ in range(10):
@@ -177,6 +172,16 @@ class ProofreadingOverviewViewTest(TestCase):
         sources.append(
             make_fake_source(holding_institution=inst, segment=[self.cantus_segment])
         )
+        # Share a country with an institution with a siglum so NULL ordering is
+        # always exercised, rather than depending on random countries matching.
+        private_collector = make_fake_institution(
+            is_private_collector=True, country=inst.country
+        )
+        sources.append(
+            make_fake_source(
+                holding_institution=private_collector, segment=[self.cantus_segment]
+            )
+        )
         for s in sources:
             make_fake_chant(source=s)
 
@@ -186,8 +191,10 @@ class ProofreadingOverviewViewTest(TestCase):
                 sources,
                 key=lambda s: (
                     s.holding_institution.country,
+                    s.holding_institution.siglum is None,
                     s.holding_institution.siglum or "",
                     s.shelfmark,
+                    s.id,  # mirror the view's final `id` tiebreaker
                 ),
             )
             self.assertEqual(expected, list(response.context["sources"]))
@@ -199,6 +206,19 @@ class ProofreadingOverviewViewTest(TestCase):
                 list(reversed(expected)), list(response_desc.context["sources"])
             )
 
+            for order in (None, "does_not_exist", ""):
+                for sort in ("asc", "desc"):
+                    with self.subTest(order=order, sort=sort):
+                        params = {"sort": sort}
+                        if order is not None:
+                            params["order"] = order
+                        response = self.client.get(self.url, params)
+                        self.assertEqual(response.status_code, 200)
+                        self.assertEqual(
+                            expected if sort == "asc" else list(reversed(expected)),
+                            list(response.context["sources"]),
+                        )
+
         with self.subTest("Order by source_siglum"):
             # source_siglum sorts by institution siglum then shelfmark, without
             # COALESCE — so NULL sigla (private collectors) land last in asc.
@@ -209,9 +229,64 @@ class ProofreadingOverviewViewTest(TestCase):
                     s.holding_institution.siglum is None,
                     s.holding_institution.siglum or "",
                     s.shelfmark,
+                    s.id,
                 ),
             )
             self.assertEqual(expected, list(response.context["sources"]))
+
+    @patch.object(ProofreadView, "paginate_by", 2)
+    def test_ordering_ties_across_pages(self):
+        """Every sort mode orders tied sources by ID across page boundaries.
+
+        Tied rows already come back in ID order without a tiebreaker, so only
+        the descending cases fail if the `id` tiebreaker is dropped.
+        """
+        inst = make_fake_institution()
+        sources = []
+        for _ in range(3):
+            source = make_fake_source(
+                holding_institution=inst,
+                shelfmark="Same shelfmark",
+                published=True,
+                segment=[self.cantus_segment],
+            )
+            make_fake_chant(
+                source=source,
+                volpiano="1---a---4",
+                manuscript_full_text="Same text",
+                manuscript_full_text_std_spelling="Same text",
+            )
+            sources.append(source)
+
+        for order in (
+            "country",
+            "city_institution",
+            "source_siglum",
+            "shelfmark",
+            "published",
+            "volpiano",
+            "ms_text",
+            "ms_text_std",
+            "other",
+            "needing_proof",
+            "total_chants",
+            "percent_complete",
+            "does_not_exist",
+        ):
+            for sort in ("asc", "desc"):
+                with self.subTest(order=order, sort=sort):
+                    expected = sorted(
+                        sources, key=lambda source: source.id, reverse=sort == "desc"
+                    )
+                    for page in (1, 2):
+                        response = self.client.get(
+                            self.url, {"order": order, "sort": sort, "page": page}
+                        )
+                        self.assertEqual(response.status_code, 200)
+                        self.assertEqual(
+                            expected[(page - 1) * 2 : page * 2],
+                            list(response.context["sources"]),
+                        )
 
     def test_pagination(self):
         paginate_by = ProofreadView.paginate_by
