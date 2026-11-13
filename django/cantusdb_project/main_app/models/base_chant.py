@@ -24,6 +24,25 @@ class BaseChant(BaseModel):
     class Meta:
         abstract = True
 
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        """Remember the persisted range for the save fast path."""
+        instance = super().from_db(db, field_names, values)
+        # Only use this snapshot to skip work for an already matching range.
+        # Missing/deferred values take the database comparison path below.
+        instance._loaded_chant_range = instance.__dict__.get(
+            "chant_range", models.DEFERRED
+        )
+        return instance
+
+    def refresh_from_db(self, using=None, fields=None, from_queryset=None):
+        """Keep the range snapshot current after explicit or deferred refreshes."""
+        if fields is not None:
+            fields = tuple(fields)
+        super().refresh_from_db(using=using, fields=fields, from_queryset=from_queryset)
+        if fields is None or "chant_range" in fields:
+            self._loaded_chant_range = self.__dict__.get("chant_range", models.DEFERRED)
+
     def save(
         self,
         force_insert: bool = False,
@@ -31,7 +50,11 @@ class BaseChant(BaseModel):
         using: Optional[str] = None,
         update_fields: Optional[Iterable[str]] = None,
     ) -> None:
-        """Store the derived range with the melody, including in revision history."""
+        """Derive ranges for new/changed melodies or blank ranges, retaining history.
+
+        Unchanged melodies keep nonblank legacy ranges until an explicit
+        populate_chant_ranges --overwrite reconciles them.
+        """
         fields = set(update_fields) if update_fields is not None else None
         derived = ""
         if fields is None or fields.intersection({"volpiano", "chant_range"}):
@@ -47,20 +70,21 @@ class BaseChant(BaseModel):
                 )
             # Match TextField coercion, normally performed by full_clean below.
             derived = generate_chant_range(str(volpiano or ""))
-            if derived:
-                self.chant_range = derived
-                if fields is not None:
-                    fields.add("chant_range")
         save_kwargs = dict(
             force_insert=force_insert,
             force_update=force_update,
             using=using,
             update_fields=fields,
         )
-        if derived and self.pk is not None and not force_insert:
-            # Even an unrelated save can replace a legacy range that has never
-            # had a revision. Keep the original and the saved row atomically,
-            # including when a request or command already opened a revision.
+        matching_range = (
+            derived
+            and derived == self.chant_range
+            and derived == getattr(self, "_loaded_chant_range", models.DEFERRED)
+        )
+        if derived and self.pk is not None and not force_insert and not matching_range:
+            # Keep automatic changes and their before/after history atomic.
+            # The fast path above requires a previously loaded/saved match, so
+            # assigning the derived value by hand cannot hide a legacy baseline.
             from main_app.range_revisions import record_range_baseline
 
             active_revision = reversion.is_active()
@@ -70,11 +94,31 @@ class BaseChant(BaseModel):
             with transaction.atomic(using=database):
                 previous = (
                     records.select_for_update()
-                    .only("pk", "chant_range")
+                    .only("pk", "chant_range", "volpiano")
                     .filter(pk=self.pk)
                     .first()
                 )
-                changed = previous is not None and previous.chant_range != derived
+                melody_changed = previous is None or (
+                    (fields is None or "volpiano" in fields)
+                    and (previous.volpiano or "") != str(volpiano or "")
+                )
+                saved_range = (
+                    previous.chant_range
+                    if previous is not None
+                    and fields is not None
+                    and "chant_range" not in fields
+                    else self.chant_range
+                )
+                derive_range = melody_changed or not str(saved_range or "").strip()
+                if derive_range:
+                    self.chant_range = derived
+                    if fields is not None:
+                        fields.add("chant_range")
+                changed = (
+                    derive_range
+                    and previous is not None
+                    and previous.chant_range != derived
+                )
                 if changed:
                     # Only load large text columns and relations when a range
                     # actually changes and a complete snapshot is needed.
@@ -102,8 +146,14 @@ class BaseChant(BaseModel):
                         reversion.add_to_revision(
                             records.get(pk=self.pk), model_db=database
                         )
+            if fields is None or "chant_range" in fields:
+                self._loaded_chant_range = self.chant_range
             return
+        if derived and (self.pk is None or force_insert):
+            self.chant_range = derived
         super().save(**save_kwargs)
+        if fields is None or "chant_range" in fields:
+            self._loaded_chant_range = self.chant_range
 
     # The "visible_status" field corresponds to the "status" field on old Cantus
     visible_status = models.CharField(max_length=1, blank=True, null=True)

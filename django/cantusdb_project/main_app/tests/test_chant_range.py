@@ -1,16 +1,23 @@
 """Range persistence and form transitions for chants and sequences."""
 
 from io import StringIO
+import json
 from unittest.mock import patch
 
 import reversion
 from reversion.models import Version
 from django.core.management import call_command
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.forms.models import model_to_dict
 
 from main_app.forms import ChantEditForm, AdminChantForm, AdminSequenceForm
-from main_app.tests.make_fakes import make_fake_chant, make_fake_sequence
+from main_app.tests.make_fakes import (
+    make_fake_chant,
+    make_fake_sequence,
+    make_fake_user,
+)
 
 
 class ChantRangePersistenceTest(TestCase):
@@ -24,13 +31,16 @@ class ChantRangePersistenceTest(TestCase):
                 (v.field_dict["cantus_id"], v.field_dict["chant_range"])
                 for v in versions
             ],
-            [("new-id", "1-c-g-4"), ("old-id", "1-a-b-4")],
+            [("new-id", "1-a-b-4")],
         )
+        chant.refresh_from_db()
+        self.assertEqual(chant.chant_range, "1-a-b-4")
 
     def test_outer_revision_failure_rolls_back_baseline_and_range(self) -> None:
         chant = make_fake_chant(volpiano="1---c--g---4")
         type(chant).objects.filter(pk=chant.pk).update(chant_range="1-a-b-4")
         chant.refresh_from_db()
+        chant.volpiano = "2---c--g---4"
         with self.assertRaises(RuntimeError):
             with reversion.create_revision():
                 chant.save()
@@ -39,7 +49,7 @@ class ChantRangePersistenceTest(TestCase):
         self.assertEqual(chant.chant_range, "1-a-b-4")
         self.assertFalse(Version.objects.get_for_object(chant).exists())
 
-    def test_active_revision_preserves_legacy_range_before_first_edit(self) -> None:
+    def test_active_revision_preserves_legacy_range_before_melody_edit(self) -> None:
         for factory in (make_fake_chant, make_fake_sequence):
             with self.subTest(model=factory.__name__):
                 record = factory()
@@ -49,13 +59,14 @@ class ChantRangePersistenceTest(TestCase):
                 record.refresh_from_db()
                 self.assertFalse(Version.objects.get_for_object(record).exists())
                 with reversion.create_revision():
+                    record.volpiano = "2---c--g---4"
                     record.indexing_notes = "An unrelated edit"
                     record.save()
                     reversion.set_comment("Updated indexing notes")
                 versions = Version.objects.get_for_object(record)
                 self.assertEqual(
                     [v.field_dict["chant_range"] for v in versions],
-                    ["1-c-g-4", "1-a-b-4"],
+                    ["2-c-g-4", "1-a-b-4"],
                 )
                 self.assertEqual(
                     versions.first().revision.comment, "Updated indexing notes"
@@ -110,7 +121,7 @@ class ChantRangePersistenceTest(TestCase):
                         data = model_to_dict(record)
                         data["volpiano"] = melody
                         if omitted:
-                            # Browsers omit the field disabled by chant_range.js.
+                            # Preserve omitted inputs as well as unchanged ones.
                             data.pop("chant_range")
                         form = form_class(instance=record, data=data)
                         self.assertTrue(form.is_valid(), form.errors)
@@ -120,44 +131,74 @@ class ChantRangePersistenceTest(TestCase):
                         self.assertEqual(record.volpiano, melody)
                         self.assertEqual(record.chant_range, "1-c-d-4")
 
-    def test_maintenance_save_records_before_and_after_ranges(self) -> None:
+    def test_underivable_melodies_allow_manual_range_edits(self) -> None:
+        for factory, form_class in (
+            (make_fake_chant, ChantEditForm),
+            (make_fake_chant, AdminChantForm),
+            (make_fake_sequence, AdminSequenceForm),
+        ):
+            for melody in ("1---c--2---d---4", "1---3---4"):
+                for initial_melody in ("", melody, "1---c--g---4"):
+                    with self.subTest(
+                        form=form_class, melody=melody, initial=initial_melody
+                    ):
+                        record = factory()
+                        type(record).objects.filter(pk=record.pk).update(
+                            volpiano=initial_melody, chant_range="1-c-g-4"
+                        )
+                        record.refresh_from_db()
+                        if initial_melody == melody:
+                            self.assertFalse(
+                                form_class(instance=record)
+                                .fields["chant_range"]
+                                .disabled
+                            )
+                        data = model_to_dict(record)
+                        data.update(volpiano=melody, chant_range="1-d-h-4")
+                        form = form_class(instance=record, data=data)
+                        self.assertFalse(form.fields["chant_range"].disabled)
+                        self.assertTrue(form.is_valid(), form.errors)
+                        self.assertIn("chant_range", form.changed_data)
+                        form.save()
+                        record.refresh_from_db()
+                        self.assertEqual(record.volpiano, melody)
+                        self.assertEqual(record.chant_range, "1-d-h-4")
+
+    def test_filling_blank_ranges_records_before_and_after(self) -> None:
         for factory in (make_fake_chant, make_fake_sequence):
             with self.subTest(model=factory.__name__):
                 record = factory()
                 type(record).objects.filter(pk=record.pk).update(
-                    volpiano="1---c--g---4", chant_range="1-a-b-4"
+                    volpiano="1---c--g---4", chant_range=""
                 )
                 record.refresh_from_db()
                 record.save()
                 versions = Version.objects.get_for_object(record)
                 self.assertEqual(
                     [v.field_dict["chant_range"] for v in versions],
-                    ["1-c-g-4", "1-a-b-4"],
+                    ["1-c-g-4", ""],
                 )
                 versions.last().revision.revert()
                 record.refresh_from_db()
-                self.assertEqual(record.chant_range, "1-a-b-4")
+                self.assertEqual(record.chant_range, "")
 
-    def test_touch_all_chants_range_changes_are_audited(self) -> None:
+    def test_touch_all_chants_preserves_legacy_disagreements(self) -> None:
         chant = make_fake_chant(volpiano="1---c--g---4")
         type(chant).objects.filter(pk=chant.pk).update(chant_range="1-a-b-4")
         call_command("touch_all_chants", stdout=StringIO())
-        self.assertEqual(
-            [
-                v.field_dict["chant_range"]
-                for v in Version.objects.get_for_object(chant)
-            ],
-            ["1-c-g-4", "1-a-b-4"],
-        )
+        chant.refresh_from_db()
+        self.assertEqual(chant.chant_range, "1-a-b-4")
+        self.assertFalse(Version.objects.get_for_object(chant).exists())
 
     def test_failed_maintenance_save_rolls_back_range_and_revisions(self) -> None:
         chant = make_fake_chant(volpiano="1---c--g---4")
         type(chant).objects.filter(pk=chant.pk).update(chant_range="1-a-b-4")
         chant.refresh_from_db()
+        chant.volpiano = "2---c--g---4"
         original_add = reversion.add_to_revision
 
         def fail_after_write(record, **kwargs):
-            if record.chant_range == "1-c-g-4":
+            if record.chant_range == "2-c-g-4":
                 raise RuntimeError("revision write failed")
             original_add(record, **kwargs)
 
@@ -167,6 +208,101 @@ class ChantRangePersistenceTest(TestCase):
         chant.refresh_from_db()
         self.assertEqual(chant.chant_range, "1-a-b-4")
         self.assertFalse(Version.objects.get_for_object(chant).exists())
+
+    def test_ordinary_saves_preserve_nonblank_legacy_ranges(self) -> None:
+        for factory in (make_fake_chant, make_fake_sequence):
+            for update_fields in (None, ["volpiano"], ["chant_range"]):
+                with self.subTest(model=factory.__name__, fields=update_fields):
+                    record = factory()
+                    type(record).objects.filter(pk=record.pk).update(
+                        volpiano="1---c--g---4", chant_range="1-a-b-4"
+                    )
+                    record.refresh_from_db()
+                    record.indexing_notes = "Unrelated edit"
+                    record.save(update_fields=update_fields)
+                    record.refresh_from_db()
+                    self.assertEqual(record.chant_range, "1-a-b-4")
+                    self.assertFalse(Version.objects.get_for_object(record).exists())
+
+    def test_matching_ranges_skip_locked_reads_and_extra_range_reads(self) -> None:
+        for factory in (make_fake_chant, make_fake_sequence):
+            record = factory()
+            record.volpiano = "1---c--g---4"
+            record.save()
+            for record in (record, type(record).objects.get(pk=record.pk)):
+                with self.subTest(model=factory.__name__):
+                    with CaptureQueriesContext(connection) as queries:
+                        record.indexing_notes = "Unrelated edit"
+                        record.save()
+                    self.assertFalse(
+                        any("FOR UPDATE" in query["sql"] for query in queries)
+                    )
+                    self.assertFalse(
+                        any(
+                            query["sql"].startswith("SELECT")
+                            and '"chant_range"' in query["sql"]
+                            and record._meta.db_table in query["sql"]
+                            for query in queries
+                        )
+                    )
+
+    def test_preassigned_derived_range_still_keeps_baseline_on_melody_change(self):
+        record = make_fake_chant(volpiano="1---c--g---4")
+        record.volpiano = "2---d--h---4"
+        record.chant_range = "2-d-h-4"
+        record.save()
+        self.assertEqual(
+            [
+                v.field_dict["chant_range"]
+                for v in Version.objects.get_for_object(record)
+            ],
+            ["2-d-h-4", "1-c-g-4"],
+        )
+
+    def test_refreshed_legacy_range_is_audited_when_melody_changes(self):
+        record = make_fake_chant(volpiano="1---c--g---4")
+        type(record).objects.filter(pk=record.pk).update(chant_range="1-a-b-4")
+        record.refresh_from_db(fields=["chant_range"])
+        record.volpiano = "1---c--e--g---4"
+        record.chant_range = "1-c-g-4"
+        record.save()
+        self.assertEqual(
+            [
+                v.field_dict["chant_range"]
+                for v in Version.objects.get_for_object(record)
+            ],
+            ["1-c-g-4", "1-a-b-4"],
+        )
+
+    def test_blank_range_is_filled_even_when_melody_is_unchanged(self):
+        for blank in (None, "", " \t"):
+            for update_fields in (None, ["volpiano"], ["chant_range"]):
+                with self.subTest(blank=blank, fields=update_fields):
+                    record = make_fake_chant(volpiano="1---c--g---4")
+                    type(record).objects.filter(pk=record.pk).update(chant_range=blank)
+                    record.refresh_from_db()
+                    record.save(update_fields=update_fields)
+                    record.refresh_from_db()
+                    self.assertEqual(record.chant_range, "1-c-g-4")
+
+    def test_deferred_melody_edit_derives_range_and_preserves_baseline(self):
+        for factory in (make_fake_chant, make_fake_sequence):
+            record = factory()
+            type(record).objects.filter(pk=record.pk).update(
+                volpiano="1---c--g---4", chant_range="1-a-b-4"
+            )
+            record = type(record).objects.only("pk").get(pk=record.pk)
+            record.volpiano = "2---d--h---4"
+            record.save(update_fields=["volpiano"])
+            record.refresh_from_db()
+            self.assertEqual(record.chant_range, "2-d-h-4")
+            self.assertEqual(
+                [
+                    v.field_dict["chant_range"]
+                    for v in Version.objects.get_for_object(record)
+                ],
+                ["2-d-h-4", "1-a-b-4"],
+            )
 
     def test_unchanged_and_unrelated_partial_saves_do_not_create_revisions(
         self,
@@ -254,11 +390,51 @@ class ChantRangePersistenceTest(TestCase):
     def test_partial_range_save_uses_the_persisted_melody(self) -> None:
         chant = make_fake_chant(volpiano="1---c--g---4")
         chant.volpiano = "2---d--h---4"
-        chant.chant_range = "1-a-b-4"
+        chant.chant_range = ""
         chant.save(update_fields=["chant_range"])
         chant.refresh_from_db()
         self.assertEqual(chant.volpiano, "1---c--g---4")
         self.assertEqual(chant.chant_range, "1-c-g-4")
+
+    def test_partial_melody_save_does_not_use_unsaved_blank_range(self):
+        chant = make_fake_chant(volpiano="1---c--g---4")
+        type(chant).objects.filter(pk=chant.pk).update(chant_range="1-a-b-4")
+        chant.refresh_from_db()
+        chant.chant_range = ""
+        chant.save(update_fields=["volpiano"])
+        chant.refresh_from_db()
+        self.assertEqual(chant.chant_range, "1-a-b-4")
+
+    def test_baseline_serialization_matches_reversion(self):
+        from main_app.range_revisions import record_range_baseline
+
+        user = make_fake_user()
+        for factory in (make_fake_chant, make_fake_sequence):
+            with self.subTest(model=factory.__name__):
+                record = factory()
+                record.proofread_by.add(user)
+                record.refresh_from_db()
+                with reversion.create_revision(manage_manually=True):
+                    reversion.set_user(user)
+                    record_range_baseline(record, "default")
+                    baseline = Version.objects.get_for_object(record).get()
+                    reversion.add_to_revision(record)
+                standard = Version.objects.get_for_object(record).first()
+                self.assertNotEqual(baseline.pk, standard.pk)
+                self.assertEqual(
+                    json.loads(baseline.serialized_data),
+                    json.loads(standard.serialized_data),
+                )
+                for field in (
+                    "content_type_id",
+                    "object_id",
+                    "object_repr",
+                    "format",
+                    "db",
+                ):
+                    self.assertEqual(getattr(baseline, field), getattr(standard, field))
+                self.assertEqual(baseline.field_dict, standard.field_dict)
+                self.assertEqual(baseline.revision.user, standard.revision.user)
 
     def test_dry_run_and_matching_ranges_create_no_revisions(self) -> None:
         chant = make_fake_chant(volpiano="1---c--g---4")
@@ -333,7 +509,8 @@ class AdminChantRangeTest(TestCase):
                 )
                 self.assertContains(response, 'src="/static/js/chant_range.js"')
                 self.assertContains(
-                    response, "Clear Volpiano to enter a range by hand."
+                    response,
+                    "Enter a range by hand if Volpiano is blank or its range cannot be calculated.",
                 )
 
     def test_admin_cannot_override_melody_but_can_clear_it_for_manual_entry(

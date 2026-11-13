@@ -40,3 +40,34 @@ test("an existing melody can be cleared to enter a manual range in the same edit
     page.type("2---d--h---4");
     assert.equal(page.chantRange.disabled, true);
 });
+
+test("mixed-clef and pitchless melodies allow manual range editing", () => {
+    for (const melody of ["1---c--2---d---4", "2---d--1---c---4", "1---3---4", "|[]*", "1---i--y--z---4"]) {
+        const page = form(melody, "1-c-g-4", true);
+        assert.equal(page.chantRange.disabled, false, melody);
+        assert.equal(page.chantRange.value, "1-c-g-4");
+        assert.equal(page.note.hidden, true);
+    }
+});
+
+test("switching between derivable and underivable melodies preserves the manual value", () => {
+    const page = form("1---c--g---4", "1-c-g-4", true);
+    page.type("1---c--2---g---4");
+    assert.equal(page.chantRange.disabled, false);
+    page.chantRange.value = "1-d-h-4";
+    page.type("2---c--g---4");
+    assert.equal(page.chantRange.disabled, true);
+    assert.equal(page.note.hidden, false);
+    page.type("1---3---4");
+    assert.equal(page.chantRange.disabled, false);
+    assert.equal(page.chantRange.value, "1-d-h-4");
+    assert.equal(page.note.hidden, true);
+});
+
+test("recognized pitches lock the range with implicit clefs and liquescents", () => {
+    for (const melody of ["---C--G---4", "1---)---4", "2---9---4", "---s---", "1---c--1---g---4"]) {
+        const page = form(melody, "");
+        assert.equal(page.chantRange.disabled, true, melody);
+        assert.equal(page.note.hidden, false);
+    }
+});

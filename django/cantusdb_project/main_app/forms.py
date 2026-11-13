@@ -35,6 +35,7 @@ from .models import (
     Sequence,
 )
 from .models.url_field import NormalizedURLFormField
+from .chant_range import generate_chant_range
 from .widgets import (
     TextInputWidget,
     VolpianoInputWidget,
@@ -66,14 +67,11 @@ PROOFREAD_CHOICES = [
 
 
 class DerivedChantRangeMixin:
-    """Enforces that a chant carries either volpiano or a hand-entered range.
+    """Allow manual ranges when a melody's range cannot be calculated.
 
-    ``chant_range`` is recomputed from ``volpiano`` on every save (see
-    ``BaseChant.save``), so a hand-entered range that accompanies
-    a melody would be discarded without the user ever being told. Rather than
-    overwrite it silently, the two are made mutually exclusive: enter a melody
-    and the range is derived, or leave the melody blank and enter the range by
-    hand. Agreed with @annamorphism on #2081; see also #1176.
+    Derivable melodies lock the range field; changing a melody or filling a
+    blank range calculates it on save. Nonblank legacy disagreements survive
+    unrelated edits. Mixed-clef and pitchless melodies allow manual entry.
 
     Mix in *before* ``forms.ModelForm`` so that a subclass's own ``clean()``
     reaches this one through ``super()``.
@@ -90,8 +88,8 @@ class DerivedChantRangeMixin:
             else self.instance.volpiano
         )
         self.fields["chant_range"].help_text += (
-            " With Volpiano, the range is calculated automatically when saved."
-            " Clear Volpiano to enter a range by hand."
+            " The range is calculated when the melody changes or the range is blank."
+            " Enter a range by hand if Volpiano is blank or its range cannot be calculated."
         )
         range_key = self.add_prefix("chant_range")
         stored_range = self.initial.get("chant_range") or ""
@@ -102,7 +100,8 @@ class DerivedChantRangeMixin:
             self.is_bound and self.instance.pk and range_key not in self.data
         )
         if omitted_range or (
-            (self.instance.volpiano or preserved_range) and (volpiano or "").strip()
+            (self.instance.volpiano or preserved_range)
+            and generate_chant_range(volpiano or "")
         ):
             # The melody already decides the range, so the field is closed for
             # editing. Django ignores data posted for a disabled field and falls
@@ -125,16 +124,15 @@ class DerivedChantRangeMixin:
             # from failing validation on an edit that never touched either field.
             return cleaned_data
         if (
-            cleaned_data.get("volpiano")
+            generate_chant_range(cleaned_data.get("volpiano") or "")
             and (cleaned_data.get("chant_range") or "").strip()
         ):
             self.add_error(  # type: ignore[attr-defined]
                 "chant_range",
                 ValidationError(
-                    "A chant can have either volpiano or a hand-entered range, "
-                    "not both. The range is derived from the volpiano "
-                    "automatically, so leave this blank — or clear the volpiano "
-                    "to enter a range by hand.",
+                    "This melody's range can be calculated automatically. "
+                    "Leave the range blank when adding the melody. Manual ranges "
+                    "are allowed when Volpiano is blank or its range cannot be calculated.",
                     code="chant-range-with-volpiano",
                 ),
             )

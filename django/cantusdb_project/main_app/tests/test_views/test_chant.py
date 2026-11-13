@@ -714,6 +714,39 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
         chant.refresh_from_db()
         self.assertEqual(chant.chant_range, "1-c-d-4")
 
+    def test_editor_can_correct_mixed_clef_range_without_removing_melody(self):
+        self.client.force_login(self.users["user"])
+        source = make_fake_source(published=False, current_editors=[self.users["user"]])
+        melody = "1---c--2---d---4"
+        chant = make_fake_chant(
+            source=source,
+            folio="001r",
+            c_sequence=1,
+            volpiano=melody,
+            chant_range="1-c-g-4",
+            manuscript_full_text_std_spelling="lorem ipsum",
+            other_fields_proofread=True,
+        )
+        url = reverse("source-edit-chants", args=[source.pk])
+        response = self.client.get(url, {"pk": chant.pk})
+        self.assertContains(response, 'id="id_chant_range"')
+        response = self.client.post(
+            url,
+            {
+                "pk": chant.pk,
+                "folio": "001r",
+                "c_sequence": 1,
+                "volpiano": melody,
+                "chant_range": "1-d-h-4",
+                "manuscript_full_text_std_spelling": "lorem ipsum",
+            },
+        )
+        self.assertRedirects(response, url)
+        chant.refresh_from_db()
+        self.assertEqual(chant.volpiano, melody)
+        self.assertEqual(chant.chant_range, "1-d-h-4")
+        self.assertIs(chant.other_fields_proofread, False)
+
     def test_proofreader_cannot_override_a_derived_chant_range(self):
         # Once a chant has volpiano its range is derived data, so the form
         # disables the field and Django ignores anything posted for it. Even a
@@ -806,7 +839,8 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
         errors = response.context["form"].errors
         self.assertIn("chant_range", errors)
         self.assertIn(
-            "either volpiano or a hand-entered range", errors["chant_range"][0]
+            "This melody's range can be calculated automatically",
+            errors["chant_range"][0],
         )
         chant.refresh_from_db()
         self.assertIsNone(chant.volpiano)
@@ -4430,7 +4464,7 @@ class ValidateChantTextViewTest(TestCase):
 
 
 class ChantCreateRangeDerivationTest(CustomAccessTestMixin, TestCase):
-    """A chant carries either volpiano or a hand-entered range, never both.
+    """Derivable melodies reject a competing manual range on creation.
 
     The range is derived from the melody on save, so accepting both would mean
     silently discarding what the user typed. Agreed with @annamorphism on #2081;
@@ -4465,7 +4499,8 @@ class ChantCreateRangeDerivationTest(CustomAccessTestMixin, TestCase):
         errors = response.context["form"].errors
         self.assertIn("chant_range", errors)
         self.assertIn(
-            "either volpiano or a hand-entered range", errors["chant_range"][0]
+            "This melody's range can be calculated automatically",
+            errors["chant_range"][0],
         )
         self.assertFalse(Chant.objects.filter(source=self.source).exists())
 
@@ -4474,6 +4509,16 @@ class ChantCreateRangeDerivationTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(response.status_code, 302)
         chant = Chant.objects.get(source=self.source)
         self.assertEqual(chant.chant_range, "1-c-d-4")
+
+    def test_underivable_melody_and_manual_range_are_accepted(self):
+        for position, melody in enumerate(("1---c--2---d---4", "1---3---4"), start=1):
+            with self.subTest(melody=melody):
+                response = self._create(
+                    volpiano=melody, chant_range="1-e-f-4", c_sequence=str(position)
+                )
+                self.assertEqual(response.status_code, 302)
+                chant = Chant.objects.get(source=self.source, volpiano=melody)
+                self.assertEqual(chant.chant_range, "1-e-f-4")
 
     def test_range_alone_is_accepted(self):
         # No melody to derive from, so a hand-entered range is the only source

@@ -443,16 +443,13 @@ class VolpianoClefTest(TestCase):
 
 class ChantRangeSaveTest(TestCase):
     # testing range derivation in BaseChant.save():
-    # whenever a chant has volpiano, saving it recomputes chant_range from that
-    # volpiano and overwrites whatever was stored. A stored range that disagrees
-    # with the melody is an error, not ground truth. See #2081 / #1176.
+    # New/changed melodies and blank ranges derive automatically. Existing
+    # disagreements await review and explicit backfilling. See #2081 / #1176.
     def test_blank_range_is_filled_from_volpiano(self):
         chant = make_fake_chant(volpiano="1---c--d--e--f--g---4", chant_range="")
         self.assertEqual(chant.chant_range, "1-c-g-4")
 
-    def test_existing_range_is_overwritten(self):
-        # the headline behaviour: the melody wins over a hand-entered value even
-        # when the melody itself did not change on this save
+    def test_range_supplied_at_creation_is_overwritten(self):
         chant = make_fake_chant(volpiano="1---c--d--e--f--g---4", chant_range="1-a-b-4")
         self.assertEqual(chant.chant_range, "1-c-g-4")
 
@@ -486,22 +483,20 @@ class ChantRangeSaveTest(TestCase):
         chant.refresh_from_db()
         self.assertEqual(chant.chant_range, "1-k-m-4")
 
-    def test_range_is_corrected_by_a_save_that_does_not_touch_the_melody(self):
-        # A mismatch introduced behind the ORM's back (or predating this feature)
-        # is repaired by the next save of any kind — the range is derived data,
-        # so it does not need the melody to have changed to be recomputed.
+    def test_unrelated_save_preserves_legacy_range(self):
+        # An ordinary edit must not bypass the review before --overwrite.
         chant = make_fake_chant(volpiano="1---c--d---4", chant_range="")
         Chant.objects.filter(pk=chant.pk).update(chant_range="1-a-b-4")
         chant.refresh_from_db()
         chant.manuscript_full_text_std_spelling = "edited elsewhere"
         chant.save()
         chant.refresh_from_db()
-        self.assertEqual(chant.chant_range, "1-c-d-4")
+        self.assertEqual(chant.chant_range, "1-a-b-4")
 
     def test_clef_change_alone_recomputes_the_range(self):
         # Editing only the clef leaves the notes identical, so the old
-        # change-detection approach missed it. Deriving unconditionally means the
-        # range's clef now follows the melody's.
+        # change-detection approach missed it. Compare the full melody so the
+        # range's clef follows the melody's.
         chant = make_fake_chant(volpiano="1---c--d---4", chant_range="")
         self.assertEqual(chant.chant_range, "1-c-d-4")
         chant.volpiano = "2---c--d---4"
@@ -549,7 +544,7 @@ class ChantRangeSaveTest(TestCase):
         self.assertEqual(chant.chant_range, "")
 
     def test_underivable_range_leaves_a_stored_value_alone(self):
-        # The one case where a stored range survives a chant that has volpiano:
+        # A stored range also survives a new melody when
         # the melody yields nothing to derive from, so it says nothing about the
         # ambitus and blanking the stored value would only destroy information.
         # A mid-melody clef change and a pitchless volpiano are the two ways in.
