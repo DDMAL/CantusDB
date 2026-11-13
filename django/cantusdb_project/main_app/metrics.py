@@ -15,6 +15,7 @@ from collections.abc import Iterator
 from datetime import date, datetime, timedelta
 from typing import Any
 
+import django_prometheus.middleware
 import redis
 from django.conf import settings
 from django.core.cache import caches
@@ -89,6 +90,22 @@ class DependencyCollector(Collector):
         gauge.add_metric(["postgres"], float(database_is_up()))
         gauge.add_metric(["redis"], float(redis_is_up()))
         yield gauge
+
+
+class PrometheusAfterMiddleware(django_prometheus.middleware.PrometheusAfterMiddleware):
+    """
+    django-prometheus's PrometheusAfterMiddleware with a bounded method label.
+
+    django-prometheus 2.5.0 maps non-standard HTTP methods to
+    "<invalid method>" for its counters, but labels its latency histogram with
+    the raw request method. Every new method name sent by a client would then
+    add histogram series. Normalize the method label on every metric.
+    """
+
+    def label_metric(self, metric, request, response=None, **labels):
+        if "method" in labels:
+            labels["method"] = self._method(request)
+        return super().label_metric(metric, request, response, **labels)
 
 
 ## Business metrics ###########################################################

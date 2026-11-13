@@ -90,7 +90,8 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.contrib.flatpages.middleware.FlatpageFallbackMiddleware",
     "reversion.middleware.RevisionMiddleware",
-    "django_prometheus.middleware.PrometheusAfterMiddleware",
+    # Bounds the method label of django-prometheus's latency histogram.
+    "main_app.metrics.PrometheusAfterMiddleware",
 ]
 
 ROOT_URLCONF = "cantusdb.urls"
