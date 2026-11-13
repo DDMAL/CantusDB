@@ -2,12 +2,13 @@
 
 from io import StringIO
 import json
+from contextlib import nullcontext
 from unittest.mock import patch
 
 import reversion
 from reversion.models import Version
 from django.core.management import call_command
-from django.db import connection
+from django.db import connection, transaction
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 from django.forms.models import model_to_dict
@@ -224,11 +225,131 @@ class ChantRangePersistenceTest(TestCase):
                     self.assertEqual(record.chant_range, "1-a-b-4")
                     self.assertFalse(Version.objects.get_for_object(record).exists())
 
+    def test_form_whitespace_normalization_preserves_legacy_range(self):
+        for factory, form_class in (
+            (make_fake_chant, ChantEditForm),
+            (make_fake_chant, AdminChantForm),
+            (make_fake_sequence, AdminSequenceForm),
+        ):
+            for melody in (
+                " 1---c--g---4",
+                "1---c--g---4 \t",
+                "1---c--\ng---4",
+                "1---c--\rg---4",
+            ):
+                with self.subTest(form=form_class, melody=repr(melody)):
+                    record = factory()
+                    type(record).objects.filter(pk=record.pk).update(
+                        volpiano=melody, chant_range="1-a-b-4"
+                    )
+                    record.refresh_from_db()
+                    data = model_to_dict(record)
+                    data["volpiano"] = melody.replace("\r", "\n").replace("\n", "\r\n")
+                    data["indexing_notes"] = "An unrelated edit"
+                    form = form_class(instance=record, data=data)
+                    self.assertTrue(form.is_valid(), form.errors)
+                    form.save()
+                    record.refresh_from_db()
+                    self.assertEqual(record.chant_range, "1-a-b-4")
+                    self.assertEqual(record.indexing_notes, "An unrelated edit")
+                    self.assertFalse(Version.objects.get_for_object(record).exists())
+
+    def test_retry_after_rollback_retains_original_range_history(self):
+        for factory in (make_fake_chant, make_fake_sequence):
+            for active_revision in (False, True):
+                with self.subTest(
+                    model=factory.__name__, active_revision=active_revision
+                ):
+                    record = factory()
+                    type(record).objects.filter(pk=record.pk).update(
+                        volpiano="1---c--g---4", chant_range="1-a-b-4"
+                    )
+                    record.refresh_from_db()
+                    record.volpiano = "2---c--g---4"
+                    with self.assertRaises(RuntimeError):
+                        with transaction.atomic():
+                            with (
+                                reversion.create_revision()
+                                if active_revision
+                                else nullcontext()
+                            ):
+                                record.save()
+                            raise RuntimeError("Later work failed")
+                    self.assertFalse(Version.objects.get_for_object(record).exists())
+                    # Retry the same object, whose field values were not rolled back.
+                    record.save()
+                    record.refresh_from_db()
+                    self.assertEqual(record.chant_range, "2-c-g-4")
+                    self.assertEqual(
+                        [
+                            v.field_dict["chant_range"]
+                            for v in Version.objects.get_for_object(record)
+                        ],
+                        ["2-c-g-4", "1-a-b-4"],
+                    )
+
+    def test_underivable_to_derivable_rejects_new_manual_range(self):
+        for factory, form_class in (
+            (make_fake_chant, ChantEditForm),
+            (make_fake_chant, AdminChantForm),
+            (make_fake_sequence, AdminSequenceForm),
+        ):
+            for melody in ("1---c--2---d---4", "1---3---4"):
+                for prefix in (None, "review"):
+                    with self.subTest(form=form_class, melody=melody, prefix=prefix):
+                        record = factory()
+                        type(record).objects.filter(pk=record.pk).update(
+                            volpiano=melody, chant_range="1-e-f-4"
+                        )
+                        record.refresh_from_db()
+                        self.assertFalse(
+                            form_class(instance=record).fields["chant_range"].disabled
+                        )
+                        data = model_to_dict(record)
+                        data.update(volpiano="1---c--g---4", chant_range="1-d-h-4")
+                        if prefix:
+                            data = {
+                                f"{prefix}-{key}": value for key, value in data.items()
+                            }
+                        form = form_class(instance=record, data=data, prefix=prefix)
+                        self.assertFalse(form.is_valid())
+                        self.assertIn("chant_range", form.errors)
+                        self.assertEqual(form["chant_range"].value(), "1-d-h-4")
+                        record.refresh_from_db()
+                        self.assertEqual(record.volpiano, melody)
+                        self.assertEqual(record.chant_range, "1-e-f-4")
+
+    def test_underivable_to_derivable_accepts_preserved_or_empty_range(self):
+        for factory, form_class in (
+            (make_fake_chant, ChantEditForm),
+            (make_fake_chant, AdminChantForm),
+            (make_fake_sequence, AdminSequenceForm),
+        ):
+            for submitted_range in (None, "", "1-e-f-4"):
+                with self.subTest(form=form_class, submitted_range=submitted_range):
+                    record = factory()
+                    type(record).objects.filter(pk=record.pk).update(
+                        volpiano="1---c--2---d---4", chant_range="1-e-f-4"
+                    )
+                    record.refresh_from_db()
+                    data = model_to_dict(record)
+                    data["volpiano"] = "1---c--g---4"
+                    if submitted_range is None:
+                        data.pop("chant_range")
+                    else:
+                        data["chant_range"] = submitted_range
+                    form = form_class(instance=record, data=data)
+                    self.assertTrue(form.is_valid(), form.errors)
+                    form.save()
+                    record.refresh_from_db()
+                    self.assertEqual(record.chant_range, "1-c-g-4")
+
     def test_matching_ranges_skip_locked_reads_and_extra_range_reads(self) -> None:
         for factory in (make_fake_chant, make_fake_sequence):
-            record = factory()
-            record.volpiano = "1---c--g---4"
-            record.save()
+            with self.captureOnCommitCallbacks(execute=True):
+                record = factory()
+                record.volpiano = "1---c--g---4"
+                record.save()
             for record in (record, type(record).objects.get(pk=record.pk)):
                 with self.subTest(model=factory.__name__):
                     with CaptureQueriesContext(connection) as queries:
@@ -421,6 +542,7 @@ class ChantRangePersistenceTest(TestCase):
                     reversion.add_to_revision(record)
                 standard = Version.objects.get_for_object(record).first()
                 self.assertNotEqual(baseline.pk, standard.pk)
+                self.assertEqual(standard.revision.version_set.count(), 1)
                 self.assertEqual(
                     json.loads(baseline.serialized_data),
                     json.loads(standard.serialized_data),

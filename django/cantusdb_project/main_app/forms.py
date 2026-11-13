@@ -100,13 +100,13 @@ class DerivedChantRangeMixin:
             self.is_bound and self.instance.pk and range_key not in self.data
         )
         if omitted_range or (
-            (self.instance.volpiano or preserved_range)
+            (generate_chant_range(self.instance.volpiano or "") or preserved_range)
             and generate_chant_range(volpiano or "")
         ):
-            # The melody already decides the range, so the field is closed for
-            # editing. Django ignores data posted for a disabled field and falls
-            # back to the stored value, which makes this a real guarantee rather
-            # than a cosmetic one.
+            # Ignore posted overrides only if the original melody already made
+            # the range read-only. An editable range submitted with a newly
+            # derivable melody must reach clean() so a conflicting edit gets
+            # a validation error instead of being silently discarded.
             # This also covers adding a melody to a manual range: JS omits the
             # disabled input, while without JS an unchanged value is submitted.
             # Preserve that value if the new melody has no derivable range.

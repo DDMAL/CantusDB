@@ -5,6 +5,7 @@ import reversion
 from django.db import models, router, transaction
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.search import SearchVectorField
+from django.utils.text import normalize_newlines
 
 from main_app.chant_range import generate_chant_range
 from main_app.models.url_field import NormalizedURLField
@@ -42,6 +43,14 @@ class BaseChant(BaseModel):
         super().refresh_from_db(using=using, fields=fields, from_queryset=from_queryset)
         if fields is None or "chant_range" in fields:
             self._loaded_chant_range = self.__dict__.get("chant_range", models.DEFERRED)
+
+    def _remember_committed_range(self):
+        """Only promote a saved range to the fast path after its write commits."""
+        saved_range = self.chant_range
+        transaction.on_commit(
+            lambda: setattr(self, "_loaded_chant_range", saved_range),
+            using=self._state.db,
+        )
 
     def save(
         self,
@@ -100,7 +109,10 @@ class BaseChant(BaseModel):
                 )
                 melody_changed = previous is None or (
                     (fields is None or "volpiano" in fields)
-                    and (previous.volpiano or "") != str(volpiano or "")
+                    # Forms strip edge whitespace; browsers normalize textarea
+                    # newlines. Neither changes the melody during an unrelated edit.
+                    and normalize_newlines(previous.volpiano or "").strip()
+                    != normalize_newlines(str(volpiano or "")).strip()
                 )
                 saved_range = (
                     previous.chant_range
@@ -147,13 +159,13 @@ class BaseChant(BaseModel):
                             records.get(pk=self.pk), model_db=database
                         )
             if fields is None or "chant_range" in fields:
-                self._loaded_chant_range = self.chant_range
+                self._remember_committed_range()
             return
         if derived and (self.pk is None or force_insert):
             self.chant_range = derived
         super().save(**save_kwargs)
         if fields is None or "chant_range" in fields:
-            self._loaded_chant_range = self.chant_range
+            self._remember_committed_range()
 
     # The "visible_status" field corresponds to the "status" field on old Cantus
     visible_status = models.CharField(max_length=1, blank=True, null=True)
