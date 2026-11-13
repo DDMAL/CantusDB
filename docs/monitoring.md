@@ -53,7 +53,7 @@ gunicorn -c gunicorn.conf.py cantusdb.wsgi:application --bind :8000 --bind :9464
 | `django_http_requests_latency_seconds_by_view_method` | `view`, `method` | Latency histogram per view |
 | `django_http_exceptions_total_by_type_total` | `type` | Unhandled exceptions |
 
-`view` is the URL pattern name from `main_app/urls.py`. nginx answers some requests without ever reaching Django, so they never appear in these metrics. Examples are 429s from the search concurrency limit and 502s while Django is down. The health probe catches outages.
+`view` is the URL pattern name from `main_app/urls.py`. `method` is one of the standard HTTP methods, or `<invalid method>` for any other method name, so clients can't add series by inventing methods. django-prometheus 2.5.0 does this for its counters but not its latency histogram, so `settings.MIDDLEWARE` uses the subclass `main_app.metrics.PrometheusAfterMiddleware`, which applies it to every metric. nginx answers some requests without ever reaching Django, so they never appear in these metrics. Examples are 429s from the search concurrency limit and 502s while Django is down. The health probe catches outages.
 
 **Dependencies**, from `main_app/metrics.py`, checked on every scrape:
 
