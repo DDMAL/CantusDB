@@ -20,7 +20,7 @@ import redis
 from django.conf import settings
 from django.core.cache import caches
 from django.db import connection, transaction
-from django.db.models import Count, Max, Q
+from django.db.models import Count, Q
 from django.utils import timezone
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
@@ -33,7 +33,8 @@ from prometheus_client.core import GaugeMetricFamily, Metric
 from prometheus_client.registry import Collector
 from reversion.models import Revision
 
-from main_app.models import Chant, DataCheckReport, Sequence, Source
+from main_app.models import Chant, DataCheckConfig, Sequence, Source
+from main_app.tasks import FREQUENCY_DELTAS
 from users.models import Group, User
 
 logger = logging.getLogger(__name__)
@@ -236,7 +237,7 @@ def _content_families(now: datetime) -> tuple[list[FamilySpec], dict[str, dict]]
 def _activity_families(
     now: datetime, window_counts: dict[str, dict]
 ) -> list[FamilySpec]:
-    """Recent editing activity and the last completed data check."""
+    """Recent editing activity and the data check schedule."""
     created: list[Sample] = []
     updated: list[Sample] = []
     for model, counts in window_counts.items():
@@ -284,17 +285,42 @@ def _activity_families(
         ),
     ]
 
-    last_check = DataCheckReport.objects.filter(completed=True).aggregate(
-        latest=Max("created_at")
-    )["latest"]
-    # Omitted, not zero, when no data check has ever completed.
-    if last_check is not None:
+    return families + _data_check_families()
+
+
+def _data_check_families() -> list[FamilySpec]:
+    """
+    When the scheduled data checks last ran, and how often they should run.
+
+    Omitted when the checks are disabled in this environment: staging runs on
+    a copy of the production database, so it would report production's
+    last_run, which never advances there. Also omitted when the checks have
+    never run.
+    """
+    if not settings.DATA_CHECKS_ENABLED:
+        return []
+    # The same configuration run_data_checks uses. The task sets last_run to
+    # its start time once all checks have finished. DataCheckReport.completed
+    # is unrelated: staff tick it after reviewing a report.
+    config = DataCheckConfig.objects.order_by("-id").first()
+    if config is None or config.last_run is None:
+        return []
+    families: list[FamilySpec] = [
+        (
+            "cantusdb_data_check_last_run_timestamp_seconds",
+            "Unix time at which the most recent full run of the data checks started.",
+            (),
+            [((), config.last_run.timestamp())],
+        )
+    ]
+    interval = FREQUENCY_DELTAS.get(config.frequency)
+    if interval is not None:
         families.append(
             (
-                "cantusdb_data_check_last_completed_timestamp_seconds",
-                "Unix time at which the most recent completed data check started.",
+                "cantusdb_data_check_interval_seconds",
+                "How often the data checks are configured to run.",
                 (),
-                [((), last_check.timestamp())],
+                [((), interval.total_seconds())],
             )
         )
     return families
