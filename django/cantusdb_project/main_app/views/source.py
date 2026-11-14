@@ -1104,7 +1104,7 @@ class SourceIIIFMappingView(CustomAccessMixin, SingleObjectMixin, View):  # type
             return HttpResponseRedirect(redirect_url)
         return self.render_mapping(manifest)
 
-    def render_mapping(self, manifest: dict) -> HttpResponse:
+    def render_mapping(self, manifest: object) -> HttpResponse:
         """Download the same CSV for a fetched or uploaded manifest."""
         canvases = extract_canvases(manifest)
         if not canvases:

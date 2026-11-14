@@ -5,6 +5,7 @@ Tests for main_app.iiif_utils (IIIF manifest parsing and folio matching).
 import csv
 import io
 import json
+from copy import deepcopy
 from unittest.mock import patch, MagicMock
 
 import requests
@@ -801,6 +802,57 @@ class SourceIIIFMappingViewTest(CustomAccessTestMixin, TestCase):
                 ("001v", "https://example.com/v3/image/2/full/max/0/default.jpg"),
                 ("002r", ""),
             ],
+        )
+
+    @patch("main_app.views.source.fetch_manifest")
+    def test_non_string_label_values_remain_unmatched_in_csv(
+        self, mock_fetch: MagicMock
+    ) -> None:
+        url = reverse("source-iiif-mapping", args=[self.source.id])
+        original_links = list(self.source.chant_set.values_list("id", "image_link"))
+        for value in ({"x": "y"}, {}, ["f. 1r"], 1, True, None):
+            manifest = deepcopy(SAMPLE_MANIFEST_V2)
+            canvases = manifest["sequences"][0]["canvases"]
+            canvases[0]["label"] = [{"@value": value}]
+            canvases[1]["label"] = [{"@value": "f. 1v"}]
+            mock_fetch.return_value = manifest
+            for method in ("get", "post"):
+                with self.subTest(value=value, method=method):
+                    response = (
+                        self.client.get(url)
+                        if method == "get"
+                        else self.client.post(
+                            url,
+                            {
+                                "manifest": SimpleUploadedFile(
+                                    "manifest.json", json.dumps(manifest).encode()
+                                )
+                            },
+                        )
+                    )
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(response["Content-Type"], "text/csv")
+                    rows = list(csv.DictReader(io.StringIO(response.content.decode())))
+                    self.assertEqual(
+                        [(row["folio"], row["image_link"]) for row in rows],
+                        [
+                            ("", "https://example.com/image/1/full/max/0/default.jpg"),
+                            (
+                                "001v",
+                                "https://example.com/image/2/full/max/0/default.jpg",
+                            ),
+                            (
+                                "002r",
+                                "https://example.com/image/3/full/max/0/default.jpg",
+                            ),
+                            ("001r", ""),
+                        ],
+                    )
+                    self.assertEqual(rows[0]["notes"], "No matching folio in source")
+                    self.assertIn("@value", rows[0]["canvas_label"])
+                    self.assertEqual(rows[1]["canvas_label"], "f. 1v")
+        self.assertEqual(
+            list(self.source.chant_set.values_list("id", "image_link")), original_links
         )
 
     def test_upload_errors_render_on_add_image_links_page(self) -> None:
