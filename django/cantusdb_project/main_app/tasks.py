@@ -18,14 +18,17 @@ from django.conf import settings
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
+from django.db import transaction
 from django.db.models import Count, Q
 from django.utils import timezone
 
 from cantusindex import get_json_from_ci_api
-from main_app.models import Chant, Sequence
+from main_app.models import Chant, Sequence, Source
 from main_app.models.data_check_config import DataCheckConfig
 from main_app.models.data_check_report import DataCheckReport
 from main_app.forms import BrowseChantsBulkEditFormset
+from main_app.permissions import CustomAccessMixin, user_is_editor
+from users.models import User
 
 CI_WORKERS = 10
 CI_REQUEST_DELAY = 0.2  # seconds between requests per worker, so we don't hammer CI
@@ -565,21 +568,71 @@ def run_data_checks() -> None:
         logger.error("Failed to send data check report email.", exc_info=True)
 
 
+PROOFREADING_LOCKED_BULK_EDIT_ERROR = (
+    "This source was submitted for proofreading before your changes were "
+    "saved, so they were not applied."
+)
+
+
+def _bulk_edit_locked_out(
+    source_id: int, user_id: Optional[int], chant_ids: List[int]
+) -> bool:
+    """
+    Re-check the proofreading lock when a queued bulk edit finally runs.
+
+    The view authorises the edit when the request arrives, but the task can
+    sit in the queue while the source is submitted and an editor corrects it;
+    applying the stale edit then would overwrite those corrections (issue
+    #1962). Must be called inside a transaction: the row lock taken here is
+    held until the edit commits, so a submission racing the task waits
+    behind it rather than slipping in between this check and the save.
+    """
+    # Lock the chants before the source. A single-chant edit locks its chant
+    # and then the source (via the chant-count signal), so taking the source
+    # first here would let the two deadlock; ordering by id keeps two bulk
+    # edits from deadlocking on each other.
+    list(
+        Chant.objects.select_for_update()
+        .filter(id__in=chant_ids)
+        .order_by("id")
+        .values_list("id", flat=True)
+    )
+    source = Source.objects.select_for_update().only("source_status").get(pk=source_id)
+    if not CustomAccessMixin.source_locked_for_proofreading(source):
+        return False
+    user = User.objects.filter(pk=user_id).first()
+    return user is None or not user_is_editor(user)
+
+
 @shared_task(name="cantusdb.save_browse_chants_formset", bind=True)
 def save_browse_chants_formset(
-    self: Task, data: Dict[str, Any], chant_ids: List[int]
+    self: Task,
+    data: Dict[str, Any],
+    chant_ids: List[int],
+    source_id: Optional[int] = None,
+    user_id: Optional[int] = None,
 ) -> Dict[str, Any]:
     self.update_state(state="PROCESSING")
     chants = Chant.objects.filter(id__in=chant_ids)
     formset = BrowseChantsBulkEditFormset(data=data, queryset=chants)
     text_warnings: list[dict[str, Any]] = []
-    if formset.is_valid():
-        formset.save()
-        text_warnings = [
-            {"form_num": form_num, **problem}
-            for form_num, form in enumerate(formset.forms)
-            for problem in form.text_problems
-        ]
+    with transaction.atomic():
+        if source_id is not None and _bulk_edit_locked_out(
+            source_id, user_id, chant_ids
+        ):
+            return {
+                "non_form_errors": [{"message": PROOFREADING_LOCKED_BULK_EDIT_ERROR}],
+                "form_errors": [],
+                "error_count": 1,
+                "text_warnings": [],
+            }
+        if formset.is_valid():
+            formset.save()
+            text_warnings = [
+                {"form_num": form_num, **problem}
+                for form_num, form in enumerate(formset.forms)
+                for problem in form.text_problems
+            ]
     non_form_errors = formset.non_form_errors().get_json_data(escape_html=True)
     form_errors = []
     for form_num, errors in enumerate(formset.errors):

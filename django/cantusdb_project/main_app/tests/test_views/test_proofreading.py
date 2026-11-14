@@ -11,6 +11,7 @@ from main_app.tests.make_fakes import (
     make_fake_segment,
     make_fake_institution,
 )
+from main_app.models import Source
 from main_app.views.proofreading import ProofreadView
 from users.models import Group
 
@@ -137,6 +138,65 @@ class ProofreadingOverviewViewTest(TestCase):
         self.assertIn(proofread_unpublished_source, sources)
         self.assertNotIn(needs_proofread_unpublished_source, sources)
         self.assertNotIn(proofread_published_source, sources)
+
+    def test_submitted_for_proofreading_filter(self):
+        # Editors need a way to find sources an indexer has handed over
+        # (issue #1962).
+        submitted_source = make_fake_source(
+            published=False, segment=[self.cantus_segment]
+        )
+        make_fake_chant(source=submitted_source)
+        submitted_source.submit_for_proofreading(self.project_manager_user)
+
+        other_source = make_fake_source(published=False, segment=[self.cantus_segment])
+        make_fake_chant(source=other_source)
+        Source.objects.filter(pk=other_source.pk).update(
+            source_status="Unpublished / Indexing process"
+        )
+
+        response = self.client.get(self.url, {"inactive": "submitted"})
+        sources = list(response.context["sources"])
+        self.assertIn(submitted_source, sources)
+        self.assertNotIn(other_source, sources)
+        self.assertContains(response, "Submitted</span>")
+        self.assertContains(
+            response, reverse("browse-chants", args=[submitted_source.pk])
+        )
+        self.assertNotContains(response, ">No chants</span>")
+
+        # Without the filter both show, but only the submitted one is flagged.
+        response = self.client.get(self.url)
+        flagged = {
+            source.pk: source.locked_for_proofreading
+            for source in response.context["sources"]
+        }
+        self.assertTrue(flagged[submitted_source.pk])
+        self.assertFalse(flagged[other_source.pk])
+
+    def test_submitted_filter_includes_sources_outside_the_overview_scope(self):
+        # The overview normally lists only Cantus sources with chants, but any
+        # source can be submitted, so the filter must not drop the others.
+        bower_source = make_fake_source(published=False, segment=[self.other_segment])
+        bower_source.submit_for_proofreading(self.project_manager_user)
+        empty_source = make_fake_source(published=False, segment=[self.cantus_segment])
+        Source.objects.filter(pk=empty_source.pk).update(number_of_chants=0)
+        empty_source.submit_for_proofreading(self.project_manager_user)
+
+        response = self.client.get(self.url, {"inactive": "submitted"})
+        self.assertEqual(response.status_code, 200)
+        sources = list(response.context["sources"])
+        self.assertIn(bower_source, sources)
+        self.assertIn(empty_source, sources)
+        # Browse Chants is a 404 for a source without chants, so no link to it.
+        for source in (bower_source, empty_source):
+            self.assertNotContains(response, reverse("browse-chants", args=[source.pk]))
+        self.assertContains(response, ">No chants</span>", count=2)
+
+        # The default view keeps its Cantus-only, has-chants scope.
+        response = self.client.get(self.url)
+        sources = list(response.context["sources"])
+        self.assertNotIn(bower_source, sources)
+        self.assertNotIn(empty_source, sources)
 
     def test_sortable_headers(self):
         response = self.client.get(self.url, {"order": "country"})

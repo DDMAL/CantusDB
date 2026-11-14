@@ -37,8 +37,9 @@ class SourceAdmin(BaseModelAdmin):
     # `convert_html_to_markdown` treats "not null" as "already converted", so a
     # blank save from this form would both destroy the backup and corrupt that
     # sentinel ('' is not None). Keep them out of the form entirely (#1239).
+    # `source_status` stays editable: submitting for proofreading locks a
+    # source and nothing in the app can move it back. See issue #1962.
     exclude = EXCLUDE + (
-        "source_status",
         "segment",
         "title",
         "siglum",

@@ -10,13 +10,15 @@ from django.db.models import (
     Case,
     When,
     Value,
+    Exists,
+    OuterRef,
 )
 from django.views.generic import ListView
 from django.views.generic.list import MultipleObjectMixin
 from django.utils import timezone
 
-from main_app.models import Source
-from main_app.permissions import CustomAccessMixin
+from main_app.models import Chant, Source
+from main_app.permissions import CustomAccessMixin, annotate_proofreading_lock
 
 
 class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
@@ -31,9 +33,20 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
     def get_queryset(self):
         user = self.request.user
 
-        queryset = Source.objects.filter(
-            Q(segment_m2m__id=settings.CANTUS_SEGMENT_ID) & Q(number_of_chants__gt=0)
-        ).select_related("holding_institution")
+        inactive_filter = self.request.GET.get("inactive", None)
+        if inactive_filter == "submitted":
+            # Any source can be submitted for proofreading (issue #1962),
+            # including Bower sources and sources without chants, so the
+            # Cantus-only, has-chants scope below would hide some handoffs.
+            queryset = Source.objects.filter(
+                source_status=Source.PROOFREAD_PENDING_STATUS
+            )
+        else:
+            queryset = Source.objects.filter(
+                Q(segment_m2m__id=settings.CANTUS_SEGMENT_ID)
+                & Q(number_of_chants__gt=0)
+            )
+        queryset = queryset.select_related("holding_institution")
 
         if not user.is_superuser:
             queryset = queryset.filter(
@@ -54,7 +67,12 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
             queryset = queryset.filter(search_filter)
 
         # Inactive Source Filtering
-        inactive_filter = self.request.GET.get("inactive", None)
+        queryset = annotate_proofreading_lock(queryset)
+        # The Submitted filter can list sources without chants, whose Browse
+        # Chants page is a 404, so the template hides the link for them.
+        queryset = queryset.annotate(
+            has_chants=Exists(Chant.objects.filter(source=OuterRef("pk")))
+        )
         if inactive_filter:
             today = timezone.now()
             if inactive_filter == "3":

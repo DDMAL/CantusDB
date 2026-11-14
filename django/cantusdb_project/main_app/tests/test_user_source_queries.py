@@ -4,12 +4,12 @@ from django.test import RequestFactory, TestCase
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from main_app.models import Chant, Sequence
+from main_app.models import Chant, Sequence, Source
 from main_app.templatetags.helper_tags import (
     get_user_created_source_pagination,
     get_user_source_pagination,
 )
-from main_app.tests.make_fakes import make_fake_source, make_fake_user
+from main_app.tests.make_fakes import make_fake_source, make_fake_user, make_groups
 
 
 class UserSourceQueriesTest(TestCase):
@@ -80,3 +80,51 @@ class UserSourceQueriesTest(TestCase):
                 for pk, heading, has_chants in rows:
                     self.assertIn("Named", heading)
                     self.assertEqual(has_chants, pk == sources[-1].pk)
+
+
+class HomepageProofreadingLockTest(TestCase):
+    """
+    The homepage's "My sources" cards offer chant-editing links, which a
+    source submitted for proofreading refuses to anyone but an editor
+    (issue #1962).
+    """
+
+    def render_homepage(self, user) -> str:
+        request = RequestFactory().get("/")
+        request.user = user
+        return render_to_string(
+            "flatpages/default.html", {"user": user}, request=request
+        )
+
+    def make_submitted_source(self, user):
+        source = make_fake_source(created_by=user, current_editors=[user])
+        Chant.objects.create(source=source)
+        source.submit_for_proofreading(user)
+        return source
+
+    def test_submitter_is_not_offered_links_that_403(self) -> None:
+        user = make_fake_user()
+        source = self.make_submitted_source(user)
+        html = self.render_homepage(user)
+        self.assertIn("Submitted for proofreading", html)
+        self.assertNotIn(reverse("chant-create", args=[source.pk]), html)
+        self.assertNotIn(reverse("source-edit-chants", args=[source.pk]), html)
+
+    def test_editor_keeps_links_and_sees_the_submission(self) -> None:
+        editor = make_fake_user(groups=[(make_groups()["editor"], None)])
+        source = self.make_submitted_source(editor)
+        html = self.render_homepage(editor)
+        self.assertIn("Submitted for proofreading", html)
+        self.assertIn(reverse("chant-create", args=[source.pk]), html)
+        self.assertIn(reverse("source-edit-chants", args=[source.pk]), html)
+
+    def test_unlocked_source_keeps_its_links(self) -> None:
+        user = make_fake_user()
+        source = make_fake_source(created_by=user, current_editors=[user])
+        Chant.objects.create(source=source)
+        Source.objects.filter(pk=source.pk).update(
+            source_status="Unpublished / Indexing process"
+        )
+        html = self.render_homepage(user)
+        self.assertNotIn("Submitted for proofreading", html)
+        self.assertIn(reverse("chant-create", args=[source.pk]), html)
