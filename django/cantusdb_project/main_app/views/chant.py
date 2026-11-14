@@ -94,6 +94,8 @@ class ValidateChantTextView(LoginRequiredMixin, View):  # type: ignore[type-arg]
                 for problem in find_chant_text_problems(
                     request.POST[field_name],
                     text_presyllabified=spec["text_presyllabified"],
+                    disallowed_chars=spec["disallowed_chars"],
+                    tolerated_chars=spec["tolerated_chars"],
                 )
             )
         return JsonResponse({"problems": problems})
