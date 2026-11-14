@@ -3,15 +3,16 @@
 from io import StringIO
 import json
 from contextlib import nullcontext
+from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 
 import reversion
 from reversion.models import Version
 from django.core.management import call_command
 from django.db import connection, transaction
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
-from django.forms.models import model_to_dict
+from django.forms.models import model_to_dict, modelform_factory
 
 from main_app.forms import ChantEditForm, AdminChantForm, AdminSequenceForm
 from main_app.tests.make_fakes import (
@@ -643,7 +644,136 @@ class ChantRangePersistenceTest(TestCase):
                 self.assertEqual(count, int(overwrite))
 
 
+class ConcurrentChantRangeTest(TransactionTestCase):
+    def test_partial_range_save_uses_melody_committed_before_lock(self):
+        for factory in (make_fake_chant, make_fake_sequence):
+            for old_melody, new_melody, expected in (
+                ("1---c--g---4", "2---d--h---4", "2-d-h-4"),
+                (None, "2---d--h---4", "2-d-h-4"),
+                ("1---c--g---4", "1---c--2---g---4", ""),
+                ("1---c--g---4", None, ""),
+            ):
+                with self.subTest(
+                    model=factory.__name__, old=old_melody, new=new_melody
+                ):
+                    record = factory()
+                    model = type(record)
+                    model.objects.filter(pk=record.pk).update(
+                        volpiano=old_melody, chant_range="1-a-b-4"
+                    )
+                    record.refresh_from_db()
+                    record.chant_range = ""
+                    edited = False
+
+                    def edit_melody():
+                        # This connection must commit independently of save().
+                        try:
+                            with connection.cursor() as cursor:
+                                cursor.execute("SET lock_timeout = '3s'")
+                            model.objects.filter(pk=record.pk).update(
+                                volpiano=new_melody
+                            )
+                        finally:
+                            connection.close()
+
+                    def interleave_edit(execute, sql, params, many, context):
+                        nonlocal edited
+                        if (
+                            not edited
+                            and sql.startswith("SELECT")
+                            and f'FROM "{model._meta.db_table}"' in sql
+                        ):
+                            edited = True
+                            if "FOR UPDATE" in sql:
+                                # The fixed path reads the melody under its lock.
+                                # Commit the other writer just before it acquires it.
+                                worker.submit(edit_melody).result(timeout=10)
+                            else:
+                                # Reproduce the old race: read the old melody,
+                                # then commit a change before save() locks the row.
+                                result = execute(sql, params, many, context)
+                                worker.submit(edit_melody).result(timeout=10)
+                                return result
+                        return execute(sql, params, many, context)
+
+                    with ThreadPoolExecutor(max_workers=1) as worker:
+                        with connection.execute_wrapper(interleave_edit):
+                            record.save(update_fields=["chant_range"])
+                    self.assertTrue(edited)
+                    record.refresh_from_db()
+                    self.assertEqual(record.volpiano, new_melody)
+                    self.assertEqual(record.chant_range, expected)
+                    self.assertEqual(
+                        [
+                            (v.field_dict["volpiano"], v.field_dict["chant_range"])
+                            for v in Version.objects.get_for_object(record)
+                        ],
+                        (
+                            [(new_melody, expected), (new_melody, "1-a-b-4")]
+                            if expected
+                            else []
+                        ),
+                    )
+
+
 class AdminChantRangeTest(TestCase):
+    def test_admin_view_without_change_permission(self):
+        from django.contrib import admin
+        from django.urls import reverse
+
+        # The user model requires staff to be superusers. Override the admin
+        # change permission to exercise Django's view-only form construction.
+        self.client.force_login(make_fake_user(is_superuser=True))
+        for factory in (make_fake_chant, make_fake_sequence):
+            with self.subTest(model=factory.__name__):
+                record = factory()
+                record.volpiano = "1---c--g---4"
+                record.save()
+                url = reverse(
+                    f"admin:main_app_{record._meta.model_name}_change",
+                    args=[record.pk],
+                )
+                with patch.object(
+                    admin.site._registry[type(record)],
+                    "has_change_permission",
+                    return_value=False,
+                ):
+                    response = self.client.get(url)
+                    self.assertEqual(response.status_code, 200)
+                    self.assertNotIn(
+                        "chant_range", response.context["adminform"].form.fields
+                    )
+                    self.assertContains(response, "1-c-g-4")
+                    self.assertEqual(
+                        self.client.post(url, {"chant_range": "1-a-b-4"}).status_code,
+                        403,
+                    )
+                record.refresh_from_db()
+                self.assertEqual(record.chant_range, "1-c-g-4")
+
+    def test_form_excluding_range_can_validate_and_save_other_fields(self):
+        for factory, form_class in (
+            (make_fake_chant, AdminChantForm),
+            (make_fake_sequence, AdminSequenceForm),
+        ):
+            with self.subTest(model=factory.__name__):
+                record = factory()
+                record.volpiano = "1---c--g---4"
+                record.save()
+                restricted_form = modelform_factory(
+                    type(record), form=form_class, fields=["indexing_notes"]
+                )
+                form = restricted_form(
+                    data={**model_to_dict(record), "indexing_notes": "Updated notes"},
+                    instance=record,
+                )
+                self.assertNotIn("chant_range", form.fields)
+                self.assertTrue(form.is_valid(), form.errors)
+                form.save()
+                record.refresh_from_db()
+                self.assertEqual(record.indexing_notes, "Updated notes")
+                self.assertEqual(record.chant_range, "1-c-g-4")
+
     def test_admin_uses_the_range_rule_and_includes_its_script(self) -> None:
         from django.contrib.auth import get_user_model
         from django.urls import reverse

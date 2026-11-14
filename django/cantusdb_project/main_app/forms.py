@@ -83,6 +83,9 @@ class DerivedChantRangeMixin:
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)  # type: ignore[call-arg]
+        if "chant_range" not in self.fields:
+            # Django admin excludes editable fields for view-only staff.
+            return
         volpiano = (
             self.data.get(self.add_prefix("volpiano"), "")
             if self.is_bound
@@ -118,6 +121,8 @@ class DerivedChantRangeMixin:
 
     def clean(self) -> dict[str, Any]:
         cleaned_data: dict[str, Any] = super().clean()  # type: ignore[misc]
+        if "chant_range" not in self.fields:
+            return cleaned_data
         if self.fields["chant_range"].disabled:  # type: ignore[attr-defined]
             # Nothing the user typed reached cleaned_data - it holds the stored
             # value Django substituted - so there is nothing to reject. This also

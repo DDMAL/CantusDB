@@ -65,18 +65,18 @@ class BaseChant(BaseModel):
         populate_chant_ranges --overwrite reconciles them.
         """
         fields = set(update_fields) if update_fields is not None else None
+        range_without_melody = (
+            fields is not None
+            and "chant_range" in fields
+            and "volpiano" not in fields
+            and self.pk is not None
+            and not force_insert
+        )
         derived = ""
-        if fields is None or fields.intersection({"volpiano", "chant_range"}):
+        if not range_without_melody and (
+            fields is None or fields.intersection({"volpiano", "chant_range"})
+        ):
             volpiano = self.volpiano
-            if fields is not None and "volpiano" not in fields and self.pk:
-                # A partial range update must describe the persisted melody,
-                # rather than a melody changed only on this Python instance.
-                volpiano = (
-                    type(self)
-                    .objects.using(using or self._state.db)
-                    .values_list("volpiano", flat=True)
-                    .get(pk=self.pk)
-                )
             # Match TextField coercion, normally performed by full_clean below.
             derived = generate_chant_range(str(volpiano or ""))
         save_kwargs = dict(
@@ -91,7 +91,11 @@ class BaseChant(BaseModel):
             and derived == self.chant_range
             and derived == getattr(self, "_loaded_chant_range", models.DEFERRED)
         )
-        if derived and self.pk is not None and not force_insert and not matching_range:
+        if (
+            self.pk is not None
+            and not force_insert
+            and (range_without_melody or (derived and not matching_range))
+        ):
             # Keep automatic changes and their before/after history atomic.
             # The fast path above requires a previously loaded/saved match, so
             # assigning the derived value by hand cannot hide a legacy baseline.
@@ -108,6 +112,15 @@ class BaseChant(BaseModel):
                     .filter(pk=self.pk)
                     .first()
                 )
+                if range_without_melody:
+                    if previous is None:
+                        raise type(self).DoesNotExist(
+                            f"{type(self).__name__} matching query does not exist."
+                        )
+                    # Read and derive only after locking: a concurrent melody
+                    # edit must not leave this range describing an older melody.
+                    volpiano = previous.volpiano
+                    derived = generate_chant_range(str(volpiano or ""))
                 melody_changed = previous is None or (
                     (fields is None or "volpiano" in fields)
                     # Forms strip edge whitespace; browsers normalize textarea
@@ -122,7 +135,9 @@ class BaseChant(BaseModel):
                     and "chant_range" not in fields
                     else self.chant_range
                 )
-                derive_range = melody_changed or not str(saved_range or "").strip()
+                derive_range = bool(derived) and (
+                    melody_changed or not str(saved_range or "").strip()
+                )
                 if derive_range:
                     self.chant_range = derived
                     if fields is not None:
