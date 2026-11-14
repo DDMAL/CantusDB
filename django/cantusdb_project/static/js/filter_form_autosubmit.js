@@ -21,13 +21,13 @@
 
     const INSTANT_SELECTOR = 'input[type="radio"], select';
 
-    function isRadio(element) {
-        return element.tagName === "INPUT" && element.type === "radio";
-    }
+    // How long keyboard input must pause before a choice made with it is
+    // applied. Chromium resets dropdown type-ahead after one second, so a
+    // shorter pause would submit a half-typed option name.
+    const KEYBOARD_SETTLE_MS = 1000;
 
-    function isSelect(element) {
-        return element.tagName === "SELECT";
-    }
+    // Keys that confirm the focused control's current choice.
+    const CONFIRM_KEYS = ["Enter", " "];
 
     function shouldSubmit(form, control) {
         if (!control.matches || !control.matches(INSTANT_SELECTOR)) {
@@ -43,21 +43,56 @@
         return true;
     }
 
+    function isCheckable(control) {
+        return control.type === "radio" || control.type === "checkbox";
+    }
+
+    function sameRadioGroup(a, b) {
+        return Boolean(
+            a && b &&
+            a.type === "radio" && b.type === "radio" &&
+            a.name === b.name && a.form === b.form
+        );
+    }
+
+    function snapshotControls(form) {
+        return Array.prototype.map.call(form.elements, function (control) {
+            return {
+                control: control,
+                value: control.value,
+                checked: control.checked,
+            };
+        });
+    }
+
     function enableInstantFilter(form) {
         // Navigation has already started by the time a second change event
         // could arrive, so ignore everything after the first submission. This
         // also covers dropdowns that fire change both natively and via jQuery.
         let submitted = false;
-        // Set while the arrow keys are walking a radio group or cycling a
-        // dropdown's value (see below).
-        let arrowKeyNavigating = false;
-        let deferredControl = null;
+        // A keyboard-made choice waiting to be applied (see handleChange).
+        let pending = false;
+        // Counts keyboard changes, so a delayed check can tell whether the
+        // pending choice is still the one it was scheduled for.
+        let pendingChoice = 0;
+        let settleTimer = null;
+        // The key whose default action is still running. A change event fired
+        // while this is set was caused by that key on a closed control.
+        let currentKey = null;
+        let pointerDown = false;
+        let pointerOpensList = false;
+        let restoring = false;
+        // The values that match this page's URL and results, after the page
+        // scripts have restored them from the query string.
+        const loadedState = snapshotControls(form);
 
         function submitForm() {
             if (submitted) {
                 return;
             }
             submitted = true;
+            pending = false;
+            clearTimeout(settleTimer);
             if (typeof form.requestSubmit === "function") {
                 form.requestSubmit();
             } else {
@@ -65,55 +100,97 @@
             }
         }
 
+        function waitForKeyboardToSettle() {
+            pending = true;
+            pendingChoice += 1;
+            clearTimeout(settleTimer);
+            settleTimer = setTimeout(submitForm, KEYBOARD_SETTLE_MS);
+        }
+
         function handleChange(event) {
-            if (submitted || !shouldSubmit(form, event.target)) {
+            if (restoring || submitted || !shouldSubmit(form, event.target)) {
                 return;
             }
-            // Arrow keys move through a radio group one option at a time, and
-            // on Windows/Linux Chrome, they also change a closed dropdown's
-            // value one option at a time — firing a change event at every
-            // stop either way. Submitting on each of those would make the
-            // control impossible to traverse with the keyboard, so wait for
-            // the choice to settle — the browser submits on Enter, and focus
-            // leaving the control is handled below.
-            if (arrowKeyNavigating && (isRadio(event.target) || isSelect(event.target))) {
-                deferredControl = event.target;
+            // Arrow keys walk a radio group one option at a time. On a closed
+            // dropdown, arrow keys and typed letters (type-ahead) also change
+            // the value as they go, firing a change event at every stop.
+            // Submitting on each of those would make the control impossible
+            // to traverse with the keyboard, so wait until the keys stop.
+            // Changes made with the mouse, or by confirming an option in an
+            // open dropdown list, are final and apply immediately.
+            if (currentKey !== null && CONFIRM_KEYS.indexOf(currentKey) === -1) {
+                waitForKeyboardToSettle();
                 return;
             }
             submitForm();
         }
 
         form.addEventListener("keydown", function (event) {
-            arrowKeyNavigating = event.key.indexOf("Arrow") === 0;
-        });
-        form.addEventListener("pointerdown", function () {
-            arrowKeyNavigating = false;
-        });
-
-        // A deferred choice is submitted once focus actually settles outside
-        // its control's group — not at the instant focus is reported as
-        // leaving. Clicking a sibling radio's label, for instance, blurs the
-        // previously-focused radio before the browser has decided which
-        // control the label's click will check, so relatedTarget isn't known
-        // yet here; acting on it immediately would submit the stale,
-        // pre-click selection instead of the one the user just picked.
-        // Waiting a frame lets that click — and the change event it
-        // produces — land first.
-        form.addEventListener("focusout", function () {
-            if (!deferredControl) {
+            if (pending && CONFIRM_KEYS.indexOf(event.key) !== -1) {
+                // Apply the choice now rather than letting Enter open the
+                // dropdown or Space do nothing.
+                event.preventDefault();
+                submitForm();
                 return;
             }
-            const control = deferredControl;
-            requestAnimationFrame(function () {
-                if (submitted || deferredControl !== control) {
-                    return;
+            currentKey = event.key;
+            setTimeout(function () {
+                currentKey = null;
+            }, 0);
+            if (pending) {
+                // Still choosing: keep waiting.
+                waitForKeyboardToSettle();
+            }
+        });
+
+        // Clicking a label blurs the focused control before the click selects
+        // the label's radio. Hold a pending choice until the button is
+        // released, so the submission includes what the click selected.
+        form.addEventListener("pointerdown", function (event) {
+            pointerDown = true;
+            pointerOpensList = Boolean(
+                event.target.closest && event.target.closest("select")
+            );
+            clearTimeout(settleTimer);
+        });
+        document.addEventListener("pointerup", function () {
+            if (!pointerDown) {
+                return;
+            }
+            pointerDown = false;
+            if (pointerOpensList) {
+                // Pressing on a dropdown opens its list. Picking an option
+                // applies it; otherwise leaving the control or Enter does.
+                return;
+            }
+            if (!pending) {
+                return;
+            }
+            // The click, and the change it causes, are dispatched after
+            // pointerup. If that change already submitted, this does nothing.
+            // Only a choice already pending now is applied: browsers can run
+            // input events before this timer, and a key pressed in between
+            // starts its own wait.
+            const choice = pendingChoice;
+            setTimeout(function () {
+                if (pending && pendingChoice === choice) {
+                    submitForm();
                 }
-                const active = document.activeElement;
-                if (isRadio(control) && isRadio(active) && active.name === control.name) {
-                    return;
-                }
-                submitForm();
-            });
+            }, 0);
+        });
+
+        // Leaving the control with Tab applies a pending keyboard choice
+        // without waiting for the pause. An arrow key in a radio group moves
+        // focus to the next radio before checking it; that move is a focusout
+        // too, but stays within the choice being made.
+        form.addEventListener("focusout", function (event) {
+            if (!pending || pointerDown) {
+                return;
+            }
+            if (sameRadioGroup(event.target, event.relatedTarget)) {
+                return;
+            }
+            submitForm();
         });
 
         form.addEventListener("change", handleChange);
@@ -124,15 +201,36 @@
             window.jQuery(form).on("change", handleChange);
         }
 
-        // Chrome restores this page from the back/forward cache on History
-        // navigation without re-running "load", so without this, a page that
-        // already submitted once would keep its guard stuck on and ignore
-        // every filter change made after the user navigates Back to it.
+        // On Back, Chrome restores this page from the back/forward cache
+        // without re-running "load". It keeps the choice that navigated away,
+        // which no longer matches the restored URL and results, so choosing
+        // that option again would fire no change event. Restore the values
+        // the page loaded with, and clear the submission guard.
         window.addEventListener("pageshow", function (event) {
-            if (event.persisted) {
-                submitted = false;
-                arrowKeyNavigating = false;
-                deferredControl = null;
+            if (!event.persisted) {
+                return;
+            }
+            submitted = false;
+            pending = false;
+            pointerDown = false;
+            currentKey = null;
+            clearTimeout(settleTimer);
+            restoring = true;
+            try {
+                loadedState.forEach(function (state) {
+                    if (isCheckable(state.control)) {
+                        state.control.checked = state.checked;
+                    } else {
+                        state.control.value = state.value;
+                    }
+                    if (window.jQuery && state.control.tagName === "SELECT") {
+                        // Redraw a Select2 widget without notifying change
+                        // listeners; plain dropdowns ignore this event.
+                        window.jQuery(state.control).trigger("change.select2");
+                    }
+                });
+            } finally {
+                restoring = false;
             }
         });
     }
@@ -140,6 +238,8 @@
     // Deliberately on "load" rather than "DOMContentLoaded": widgets that
     // initialise themselves earlier can fire a change event while setting up
     // their initial value, and binding afterwards keeps those out of the way.
+    // Page scripts restore their filters from the URL on "load" too, and are
+    // included before this file, so their listeners run first.
     window.addEventListener("load", function () {
         document
             .querySelectorAll("form[data-instant-filter]")
