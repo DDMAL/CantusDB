@@ -275,6 +275,67 @@ class SequenceDetailViewTest(SequencePermissionsTestCase):
         concordances = response.context["concordances"]
         self.assertIn(sequence_with_same_cantus_id, concordances)
 
+    def test_concordances_only_from_visible_sources(self):
+        # #2274: a concordance in an unpublished source is listed only to users
+        # who can see that source
+        cantus_id = "900001"
+        sequence = make_fake_sequence(
+            source=make_fake_source(published=True), cantus_id=cantus_id
+        )
+        hidden = make_fake_sequence(
+            source=make_fake_source(
+                published=False, current_editors=[self.users["user"]]
+            ),
+            cantus_id=cantus_id,
+        )
+        url = reverse("sequence-detail", args=[sequence.id])
+        expected = {
+            "anonymous user": False,
+            "editor": False,  # not assigned to the hidden sequence's source
+            "user": True,  # assigned to it
+            "global viewer": True,
+            "superuser": True,
+        }
+        for user, sees_hidden in expected.items():
+            with self.subTest(user=user):
+                if user == "anonymous user":
+                    self.client.logout()
+                else:
+                    self.client.force_login(self.users[user])
+                response = self.client.get(url)
+                concordances = response.context["concordances"]
+                self.assertIn(sequence, concordances)
+                self.assertEqual(hidden in concordances, sees_hidden)
+                self.assertEqual(
+                    reverse("sequence-detail", args=[hidden.id])
+                    in response.content.decode(),
+                    sees_hidden,
+                )
+
+    def test_concordances_of_sequence_in_unpublished_source(self):
+        # a user viewing a sequence in their own unpublished source sees it and
+        # published concordances, but not other unpublished sources (#2274)
+        cantus_id = "900002"
+        own = make_fake_sequence(
+            source=make_fake_source(
+                published=False, current_editors=[self.users["user"]]
+            ),
+            cantus_id=cantus_id,
+        )
+        published = make_fake_sequence(
+            source=make_fake_source(published=True), cantus_id=cantus_id
+        )
+        other_unpublished = make_fake_sequence(
+            source=make_fake_source(published=False), cantus_id=cantus_id
+        )
+        self.client.force_login(self.users["user"])
+        response = self.client.get(reverse("sequence-detail", args=[own.id]))
+        self.assertEqual(response.status_code, 200)
+        concordances = list(response.context["concordances"])
+        self.assertIn(own, concordances)
+        self.assertIn(published, concordances)
+        self.assertNotIn(other_unpublished, concordances)
+
     def test_concordances_ordering(self):
         # Concordances are ordered by the heading each row displays — the
         # source's current siglum and shelfmark — not the frozen
