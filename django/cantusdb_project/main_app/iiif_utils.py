@@ -19,6 +19,10 @@ import requests
 # response would be read into memory in full.
 MAX_MANIFEST_BYTES = 50 * 1024 * 1024
 
+# Uploaded files must fit under nginx's default 1 MiB request limit, including
+# the multipart form fields. Remote downloads do not pass through that limit.
+MAX_MANIFEST_UPLOAD_BYTES = 900 * 1024
+
 # Some IIIF hosts (e.g. IRHT/Biblissima's api.irht.cnrs.fr) sit behind an
 # anti-bot guard that serves HTTP 403 to the default python-requests
 # User-Agent. We identify honestly as CantusDB using the conventional
