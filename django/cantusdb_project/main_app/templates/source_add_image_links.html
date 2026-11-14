@@ -85,9 +85,14 @@
                             <a href="{{ iiif_manifest_link.url }}"
                                target="_blank"
                                rel="noopener noreferrer">open this source's manifest</a>
-                            in your browser and save it as a JSON file. Select that file
-                            below to generate the CSV. The upload limit is {{ max_manifest_upload_kib }} KiB.
+                            in your browser, then use Save As (Ctrl+S on Windows/Linux or
+                            Cmd+S on Mac) to save it as a .json file. Select that file
+                            below to generate the CSV. The upload limit is {{ max_manifest_upload_kib }} KB.
                             Generating the CSV does not change any image links.
+                        </p>
+                        <p class="small">
+                            If your file is larger, <a href="{% url 'contact' %}">contact us</a>
+                            with the source page URL and manifest link for help generating the CSV.
                         </p>
                         <form id="iiifManifestUploadForm"
                               method="post"
@@ -104,7 +109,9 @@
                                    data-max-bytes="{{ max_manifest_upload_bytes }}"
                                    required />
                             <p id="manifestUploadError" class="text-danger small" role="alert" hidden>
-                                The saved manifest is too large to upload. The limit is {{ max_manifest_upload_kib }} KiB.
+                                The saved manifest is too large to upload. The limit is {{ max_manifest_upload_kib }} KB.
+                                Please <a href="{% url 'contact' %}">contact us</a> with the source page URL
+                                and manifest link for help generating the CSV.
                             </p>
                             <button type="submit" class="btn btn-sm btn-outline-primary mt-2">
                                 Generate CSV from saved manifest

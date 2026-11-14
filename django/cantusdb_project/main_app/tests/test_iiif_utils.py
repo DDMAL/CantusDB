@@ -849,7 +849,9 @@ class SourceIIIFMappingViewTest(CustomAccessTestMixin, TestCase):
             [str(message) for message in response.wsgi_request._messages],
             [
                 "The saved manifest is too large to upload. "
-                f"The limit is {MAX_MANIFEST_UPLOAD_BYTES // 1024} KiB."
+                f"The limit is {MAX_MANIFEST_UPLOAD_BYTES // 1024} KB. "
+                "Please contact us with the source page URL and manifest link "
+                "for help generating the CSV."
             ],
         )
 
