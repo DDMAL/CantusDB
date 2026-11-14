@@ -36,6 +36,7 @@ from .models import (
     Differentia,
 )
 from .models.url_field import NormalizedURLFormField
+from .chant_range import generate_chant_range
 from .widgets import (
     TextInputWidget,
     VolpianoInputWidget,
@@ -64,6 +65,84 @@ PROOFREAD_CHOICES = [
     (True, "Yes"),
     (False, "No"),
 ]
+
+
+class DerivedChantRangeMixin:
+    """Allow manual ranges when a melody's range cannot be calculated.
+
+    Derivable melodies lock the range field; changing a melody or filling a
+    blank range calculates it on save. Nonblank legacy disagreements survive
+    unrelated edits. Mixed-clef and pitchless melodies allow manual entry.
+
+    Mix in *before* ``forms.ModelForm`` so that a subclass's own ``clean()``
+    reaches this one through ``super()``.
+    """
+
+    class Media:
+        js = ("js/chant_range.js",)
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)  # type: ignore[call-arg]
+        if "chant_range" not in self.fields:
+            # Django admin excludes editable fields for view-only staff.
+            return
+        volpiano = (
+            self.data.get(self.add_prefix("volpiano"), "")
+            if self.is_bound
+            else self.instance.volpiano
+        )
+        self.fields["chant_range"].help_text += (
+            " The range is calculated when the melody changes or the range is blank."
+            " Enter a range by hand if Volpiano is blank or its range cannot be calculated."
+        )
+        range_key = self.add_prefix("chant_range")
+        stored_range = self.initial.get("chant_range") or ""
+        preserved_range = self.instance.pk and (
+            range_key not in self.data or self.data.get(range_key) == stored_range
+        )
+        omitted_range = (
+            self.is_bound and self.instance.pk and range_key not in self.data
+        )
+        if omitted_range or (
+            (generate_chant_range(self.instance.volpiano or "") or preserved_range)
+            and generate_chant_range(volpiano or "")
+        ):
+            # Ignore posted overrides only if the original melody already made
+            # the range read-only. An editable range submitted with a newly
+            # derivable melody must reach clean() so a conflicting edit gets
+            # a validation error instead of being silently discarded.
+            # This also covers adding a melody to a manual range: JS omits the
+            # disabled input, while without JS an unchanged value is submitted.
+            # Preserve that value if the new melody has no derivable range.
+            # Without JS, clearing the melody also submits no range because
+            # the rendered input stays disabled. Preserve it until the next
+            # page load, when the now-manual field becomes editable.
+            self.fields["chant_range"].disabled = True  # type: ignore[attr-defined]
+
+    def clean(self) -> dict[str, Any]:
+        cleaned_data: dict[str, Any] = super().clean()  # type: ignore[misc]
+        if "chant_range" not in self.fields:
+            return cleaned_data
+        if self.fields["chant_range"].disabled:  # type: ignore[attr-defined]
+            # Nothing the user typed reached cleaned_data - it holds the stored
+            # value Django substituted - so there is nothing to reject. This also
+            # keeps a legacy row whose stored range disagrees with its melody
+            # from failing validation on an edit that never touched either field.
+            return cleaned_data
+        if (
+            generate_chant_range(cleaned_data.get("volpiano") or "")
+            and (cleaned_data.get("chant_range") or "").strip()
+        ):
+            self.add_error(  # type: ignore[attr-defined]
+                "chant_range",
+                ValidationError(
+                    "This melody's range can be calculated automatically. "
+                    "Leave the range blank when adding the melody. Manual ranges "
+                    "are allowed when Volpiano is blank or its range cannot be calculated.",
+                    code="chant-range-with-volpiano",
+                ),
+            )
+        return cleaned_data
 
 
 class NameModelChoiceField(forms.ModelChoiceField):
@@ -347,7 +426,7 @@ class FormsetOptimizedModelChoiceField(forms.ModelChoiceField):
         self.choices = choices
 
 
-class ChantCreateForm(ChantTextWarningsMixin, forms.ModelForm):
+class ChantCreateForm(ChantTextWarningsMixin, DerivedChantRangeMixin, forms.ModelForm):
     class Meta:
         model = Chant
         # specify either 'fields' or 'excludes' so that django knows which fields to use
@@ -577,7 +656,7 @@ class SourceCreateForm(forms.ModelForm):
         )
 
 
-class ChantEditForm(ChantTextWarningsMixin, forms.ModelForm):
+class ChantEditForm(ChantTextWarningsMixin, DerivedChantRangeMixin, forms.ModelForm):
     class Meta:
         model = Chant
         fields = [
@@ -965,7 +1044,7 @@ class AdminCenturyForm(forms.ModelForm):
     name = forms.CharField(required=True, widget=TextInputWidget)
 
 
-class AdminChantForm(forms.ModelForm):
+class AdminChantForm(DerivedChantRangeMixin, forms.ModelForm):
     class Meta:
         model = Chant
         fields = "__all__"
@@ -1078,7 +1157,7 @@ class AdminSegmentForm(forms.ModelForm):
     name.widget.attrs.update({"style": "width: 400px;"})
 
 
-class AdminSequenceForm(forms.ModelForm):
+class AdminSequenceForm(DerivedChantRangeMixin, forms.ModelForm):
     class Meta:
         model = Sequence
         fields = "__all__"

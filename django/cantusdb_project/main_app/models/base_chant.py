@@ -1,7 +1,13 @@
-from django.db import models
+from typing import Iterable, Optional
+
+import reversion
+
+from django.db import models, router, transaction
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.search import SearchVectorField
+from django.utils.text import normalize_newlines
 
+from main_app.chant_range import generate_chant_range
 from main_app.models.url_field import NormalizedURLField
 from main_app.models import BaseModel
 
@@ -18,6 +24,164 @@ class BaseChant(BaseModel):
 
     class Meta:
         abstract = True
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        """Remember the persisted range for the save fast path."""
+        instance = super().from_db(db, field_names, values)
+        # Only use this snapshot to skip work for an already matching range.
+        # Missing/deferred values take the database comparison path below.
+        instance._loaded_chant_range = instance.__dict__.get(
+            "chant_range", models.DEFERRED
+        )
+        return instance
+
+    def refresh_from_db(self, using=None, fields=None, from_queryset=None):
+        """Keep the range snapshot current after explicit or deferred refreshes."""
+        if fields is not None:
+            fields = tuple(fields)
+        super().refresh_from_db(using=using, fields=fields, from_queryset=from_queryset)
+        if fields is None or "chant_range" in fields:
+            self._loaded_chant_range = self.__dict__.get("chant_range", models.DEFERRED)
+
+    def _remember_committed_range(self):
+        """Only promote a saved range to the fast path after its write commits."""
+        saved_range = self.chant_range
+        transaction.on_commit(
+            lambda: setattr(self, "_loaded_chant_range", saved_range),
+            using=self._state.db,
+        )
+
+    def save(
+        self,
+        force_insert: bool = False,
+        force_update: bool = False,
+        using: Optional[str] = None,
+        update_fields: Optional[Iterable[str]] = None,
+    ) -> None:
+        """Derive ranges for new/changed melodies or blank ranges, retaining history.
+
+        Unchanged melodies keep nonblank legacy ranges until an explicit
+        populate_chant_ranges --overwrite reconciles them.
+        """
+        fields = set(update_fields) if update_fields is not None else None
+        range_without_melody = (
+            fields is not None
+            and "chant_range" in fields
+            and "volpiano" not in fields
+            and self.pk is not None
+            and not force_insert
+        )
+        derived = ""
+        if not range_without_melody and (
+            fields is None or fields.intersection({"volpiano", "chant_range"})
+        ):
+            volpiano = self.volpiano
+            # Match TextField coercion, normally performed by full_clean below.
+            derived = generate_chant_range(str(volpiano or ""))
+        save_kwargs = dict(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=fields,
+        )
+        matching_range = (
+            derived
+            and (fields is None or "chant_range" in fields)
+            and derived == self.chant_range
+            and derived == getattr(self, "_loaded_chant_range", models.DEFERRED)
+        )
+        if (
+            self.pk is not None
+            and not force_insert
+            and (range_without_melody or (derived and not matching_range))
+        ):
+            # Keep automatic changes and their before/after history atomic.
+            # The fast path above requires a previously loaded/saved match, so
+            # assigning the derived value by hand cannot hide a legacy baseline.
+            from main_app.range_revisions import record_range_baseline
+
+            active_revision = reversion.is_active()
+            database = using or router.db_for_write(type(self), instance=self)
+            save_kwargs["using"] = database
+            records = type(self).objects.using(database)
+            with transaction.atomic(using=database):
+                previous = (
+                    records.select_for_update()
+                    .only("pk", "chant_range", "volpiano")
+                    .filter(pk=self.pk)
+                    .first()
+                )
+                if range_without_melody:
+                    if previous is None:
+                        raise type(self).DoesNotExist(
+                            f"{type(self).__name__} matching query does not exist."
+                        )
+                    # Read and derive only after locking: a concurrent melody
+                    # edit must not leave this range describing an older melody.
+                    volpiano = previous.volpiano
+                    derived = generate_chant_range(str(volpiano or ""))
+                melody_changed = previous is None or (
+                    (fields is None or "volpiano" in fields)
+                    # Forms strip edge whitespace; browsers normalize textarea
+                    # newlines. Neither changes the melody during an unrelated edit.
+                    and normalize_newlines(previous.volpiano or "").strip()
+                    != normalize_newlines(str(volpiano or "")).strip()
+                )
+                saved_range = (
+                    previous.chant_range
+                    if previous is not None
+                    and fields is not None
+                    and "chant_range" not in fields
+                    else self.chant_range
+                )
+                derive_range = bool(derived) and (
+                    melody_changed or not str(saved_range or "").strip()
+                )
+                if derive_range:
+                    self.chant_range = derived
+                    if fields is not None:
+                        fields.add("chant_range")
+                changed = (
+                    derive_range
+                    and previous is not None
+                    and previous.chant_range != derived
+                )
+                if changed:
+                    # Only load large text columns and relations when a range
+                    # actually changes and a complete snapshot is needed.
+                    previous = records.get(pk=self.pk)
+                    if active_revision:
+                        record_range_baseline(previous, database)
+                    else:
+                        with reversion.create_revision(
+                            manage_manually=True, using=database
+                        ):
+                            reversion.set_comment(
+                                "Before save that recalculates chant range"
+                            )
+                            reversion.add_to_revision(previous, model_db=database)
+                super().save(**save_kwargs)
+                if changed and not active_revision:
+                    with reversion.create_revision(
+                        manage_manually=True, using=database
+                    ):
+                        reversion.set_comment(
+                            "Saved record including recalculated chant range"
+                        )
+                        # Read the actual saved row, including partial updates
+                        # and changes made by post_save signals.
+                        reversion.add_to_revision(
+                            records.get(pk=self.pk), model_db=database
+                        )
+            if fields is None or "chant_range" in fields:
+                self._remember_committed_range()
+            return
+        if derived and (self.pk is None or force_insert):
+            self.chant_range = derived
+        super().save(**save_kwargs)
+        if fields is None or "chant_range" in fields:
+            self._remember_committed_range()
 
     # The "visible_status" field corresponds to the "status" field on old Cantus
     visible_status = models.CharField(max_length=1, blank=True, null=True)
