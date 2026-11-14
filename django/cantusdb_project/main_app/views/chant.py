@@ -420,7 +420,7 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
             "project",
             "created_by",
             "last_updated_by",
-        ).prefetch_related("source__segment_m2m")
+        )
 
     @staticmethod
     def _attributable_user(user: Optional[User]) -> Optional[User]:
@@ -449,10 +449,6 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
         context["attribution_created_by"] = self._attributable_user(chant.created_by)
         context["attribution_last_updated_by"] = self._attributable_user(
             chant.last_updated_by
-        )
-        context["bower_segment"] = (
-            source is not None
-            and source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists()
         )
         language = chant.text_language
         if language and language.pk == 2:
