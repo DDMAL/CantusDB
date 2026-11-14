@@ -52,7 +52,7 @@
                             </td>
                         {% else %}
                             <td class="text-wrap">
-                                <a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit }}</a>
+                                <a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit_std_spelling|default:chant.incipit }}</a>
                             </td>
                         {% endif %}
                         <td class="text-wrap">

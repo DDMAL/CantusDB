@@ -876,6 +876,7 @@ class SequenceEditForm(forms.ModelForm):
         fields = [
             "title",
             # "siglum",
+            "incipit_std_spelling",
             "incipit",
             "folio",
             "s_sequence",
@@ -895,6 +896,7 @@ class SequenceEditForm(forms.ModelForm):
         widgets = {
             "title": TextInputWidget(),
             # "siglum": TextInputWidget(),
+            "incipit_std_spelling": TextInputWidget(),
             "incipit": TextInputWidget(),
             "folio": TextInputWidget(),
             "s_sequence": TextInputWidget(),

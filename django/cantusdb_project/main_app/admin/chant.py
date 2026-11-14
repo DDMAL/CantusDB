@@ -56,6 +56,7 @@ class ChantAdmin(BaseModelAdmin):
         "col3",
         "next_chant",
         "s_sequence",
+        "incipit_std_spelling",
         "is_last_chant_in_feast",
         "visible_status",
         "date",
