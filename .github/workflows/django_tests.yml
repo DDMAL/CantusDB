@@ -5,6 +5,7 @@ on:
 jobs:
     run-tests:
         runs-on: ubuntu-latest
+        timeout-minutes: 20
         steps:
             - uses: actions/checkout@v3
             - run: mkdir -p config/envs
@@ -26,5 +27,7 @@ jobs:
                 directory: config/envs
                 file_name: dev_env
             - run: docker compose -f docker-compose-test-runner.yml build
+            # Start Postgres first and wait until it accepts connections (#2207).
+            - run: docker compose -f docker-compose-test-runner.yml up -d --wait postgres
             - run: docker compose -f docker-compose-test-runner.yml up -d
             - run: docker compose -f docker-compose-test-runner.yml exec -T django python manage.py test main_app.tests users.tests articles
