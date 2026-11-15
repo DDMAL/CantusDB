@@ -5,8 +5,9 @@
 {% block favicon %}<link rel="icon" href="{% static "ccdb-images/CCDB-favicon.png" %}" />{% endblock %}
 {% block scripts %}
     <script src="{% static 'js/source_list.js' %}"></script>
+    <script src="{% static 'js/source_filters.js' %}"></script>
     <link href="{% static 'css/ccdb_style.css' %}" rel="stylesheet" media="screen" />
-    <link href="{% static 'css/source_list.css' %}" rel="stylesheet" />
+    <link href="{% static 'css/source_filters.css' %}" rel="stylesheet" />
 {% endblock %}
 {% block header %}
     {% include "header/sticky_header.html" %}
