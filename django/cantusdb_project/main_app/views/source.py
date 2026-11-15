@@ -370,7 +370,6 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
             context["bower_segment"] = False
             context["has_chants"] = chants.exists()
 
-        context["source_notation"] = source.notation.first()
         context["user_can_edit_chants"] = self.user_can_edit_chants(source)
         context["user_can_edit_source"] = self.user_can_edit_source(source)
         # The edit page also carries a submit button, but it is reachable only
