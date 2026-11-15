@@ -100,5 +100,9 @@ def _value_omitted(form: forms.ModelForm, name: str) -> bool:  # type: ignore[ty
 
 def _lock(field: forms.Field) -> None:
     field.disabled = True
-    # nobody can fill in a locked field, so it can't be required
-    field.required = False
+    if field.required:
+        # Nobody can fill in a locked field, so it can't be required. The
+        # input keeps its `required` attribute: browsers ignore it while the
+        # input is disabled, and it applies again once the page unlocks it.
+        field.required = False
+        field.widget.attrs["required"] = True
