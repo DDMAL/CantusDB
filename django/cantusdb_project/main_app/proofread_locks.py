@@ -66,6 +66,11 @@ def lock_proofread_fields(
     or not they ticked it again before saving (#170). A field they left locked
     isn't submitted, so it keeps its saved value.
 
+    A lockable field left out of a submission also keeps its saved value, even
+    if its box is no longer ticked. The page it came from had the field locked,
+    and a proofreader has unticked the box since. Treating the missing field as
+    empty would erase the saved value.
+
     Returns, for each proofread checkbox on the form, the names of the fields
     it locks, so the page can lock and unlock them as the box is ticked.
     """
@@ -75,13 +80,25 @@ def lock_proofread_fields(
             locked_by.setdefault(flag, []).append(name)
 
     for flag, fields in locked_by.items():
-        if getattr(form.instance, flag) is not True:
-            continue
+        flag_ticked = getattr(form.instance, flag) is True
         for name in fields:
-            if can_unlock and form.is_bound and form.add_prefix(name) in form.data:
+            submitted = form.is_bound and not _value_omitted(form, name)
+            if submitted and (can_unlock or not flag_ticked):
                 continue
-            form.fields[name].disabled = True
-            # nobody can fill in a locked field, so it can't be required
-            form.fields[name].required = False
+            if flag_ticked or form.is_bound:
+                _lock(form.fields[name])
 
     return {flag: fields for flag, fields in locked_by.items() if flag in form.fields}
+
+
+def _value_omitted(form: forms.ModelForm, name: str) -> bool:  # type: ignore[type-arg]
+    """True if the submission leaves `name` out, as browsers do with disabled inputs."""
+    return form.fields[name].widget.value_omitted_from_data(
+        form.data, form.files, form.add_prefix(name)
+    )
+
+
+def _lock(field: forms.Field) -> None:
+    field.disabled = True
+    # nobody can fill in a locked field, so it can't be required
+    field.required = False
