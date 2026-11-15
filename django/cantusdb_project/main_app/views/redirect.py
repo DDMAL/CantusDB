@@ -200,6 +200,8 @@ def redirect_chants(request) -> HttpResponse:
     if source_id is None:
         # source parameter must be provided
         raise BadRequest("Source parameter must be provided")
+    if not source_id.isdigit():
+        raise BadRequest("Source parameter must be a source ID")
 
     base_url: str = reverse("browse-chants", args=[source_id])
 
@@ -228,5 +230,7 @@ def redirect_source_inventory(request) -> HttpResponse:
     if source_id is None:
         # source parameter must be provided
         raise BadRequest("Source parameter must be provided")
+    if not source_id.isdigit():
+        raise BadRequest("Source parameter must be a source ID")
     url: str = reverse("source-inventory", args=[source_id])
     return redirect(url, permanent=True)

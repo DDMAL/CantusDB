@@ -702,7 +702,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         return context
 
     def get_segment_id(self) -> Optional[str]:
-        return self.request.GET.get("segment")
+        segment_id = self.request.GET.get("segment", "")
+        # Ignore ids that aren't numbers, e.g. from an edited URL (#1484).
+        return segment_id if segment_id.isdigit() else None
 
     def get_queryset(self) -> QuerySet[Chant]:
         # if user has just arrived on the Chant Search page, there will be no GET parameters.
@@ -762,10 +764,10 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             # The field names should be keys in the "GET" QueryDict if the search button has been
             # clicked, even if the user put nothing into the search form and hit "apply" immediately.
             # In that case, we return all chants + seqs filtered by the search form.
-            if service_id := self.request.GET.get("service"):
+            if (service_id := self.request.GET.get("service", "")).isdigit():
                 q_obj_filter &= Q(service__id=service_id)
 
-            if genre_id := self.request.GET.get("genre"):
+            if (genre_id := self.request.GET.get("genre", "")).isdigit():
                 q_obj_filter &= Q(genre__id=int(genre_id))
 
             if cantus_id := self.request.GET.get("cantus_id"):
@@ -921,10 +923,13 @@ class MelodySearchView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # if searching in a specific source, pass the source into context
-        if self.request.GET.get("source"):
-            context["source"] = Source.objects.select_related(
-                "holding_institution"
-            ).get(id=self.request.GET.get("source"))
+        source_id = self.request.GET.get("source", "")
+        if source_id.isdigit():
+            context["source"] = (
+                Source.objects.select_related("holding_institution")
+                .filter(id=source_id)
+                .first()
+            )
         return context
 
 
@@ -1061,10 +1066,10 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
         # For every GET parameter other than incipit, add to the Q object
-        if service_id := self.request.GET.get("service"):
+        if (service_id := self.request.GET.get("service", "")).isdigit():
             q_obj_filter &= Q(service__id=service_id)
 
-        if genre_id := self.request.GET.get("genre"):
+        if (genre_id := self.request.GET.get("genre", "")).isdigit():
             q_obj_filter &= Q(genre__id=int(genre_id))
 
         if cantus_id := self.request.GET.get("cantus_id"):

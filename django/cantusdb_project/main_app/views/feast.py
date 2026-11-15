@@ -173,7 +173,7 @@ class FeastListView(SearchableListMixin, ListView):  # type: ignore[type-arg]
         elif date == "sanc":
             queryset = queryset.filter(prefix__in=SANC_PREFIX)
 
-        if month and (int(month)) in range(1, 13):
+        if month and month.isdigit() and int(month) in range(1, 13):
             month = int(month)
             queryset = queryset.filter(month=month)
 

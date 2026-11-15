@@ -193,9 +193,10 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
             "feast", "service", "genre"
         )
         # filter the chants with optional search params
-        if feast_id:
+        # Ignore ids that aren't numbers, e.g. from an edited URL (#1484).
+        if feast_id and feast_id.isdigit():
             chants = chants.filter(feast__id=feast_id)
-        if genre_id:
+        if genre_id and genre_id.isdigit():
             chants = chants.filter(genre__id=genre_id)
         if folio:
             chants = chants.filter(folio=folio)
@@ -581,9 +582,10 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 # Only end date: find centuries that have started
                 q_obj_filter &= Q(century__min_date__lte=date_end_int)
 
-        if provenance_id := self.request.GET.get("provenance"):
+        # Ignore ids that aren't numbers, e.g. from an edited URL (#1484).
+        if (provenance_id := self.request.GET.get("provenance", "")).isdigit():
             q_obj_filter &= Q(provenance__id=int(provenance_id))
-        if segment_id := self.request.GET.get("segment"):
+        if (segment_id := self.request.GET.get("segment", "")).isdigit():
             q_obj_filter &= Q(segment_m2m__id=int(segment_id))
         if source_completeness := self.request.GET.getlist("sourceCompleteness"):
             q_obj_filter &= Q(source_completeness__in=source_completeness)
