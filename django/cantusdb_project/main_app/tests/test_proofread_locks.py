@@ -379,6 +379,22 @@ class ChantEditLockTest(ProofreadLockTestCase):
         self.assertEqual(chant.cantus_id, "999999")
         self.assertIs(chant.other_fields_proofread, False)
 
+    def test_unlocked_required_field_left_empty_is_a_form_error(self) -> None:
+        # unlocking a field makes it required again
+        chant = self.make_chant(other_fields_proofread=True)
+        for field in ("folio", "c_sequence"):
+            with self.subTest(field=field):
+                response = self.post_edit(
+                    "editor", chant, other_fields_proofread=None, **{field: ""}
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertFormError(
+                    response.context["form"], field, "This field is required."
+                )
+                chant.refresh_from_db()
+                self.assertEqual(chant.folio, "001r")
+                self.assertIs(chant.other_fields_proofread, True)
+
     def test_proofreader_edits_and_ticks_in_one_save(self) -> None:
         chant = self.make_chant()
         self.post_edit("editor", chant, volpiano="1---a---3", volpiano_proofread="on")
@@ -430,6 +446,19 @@ class ChantEditPageTest(ProofreadLockTestCase):
         self.assertIn("id_chant_range", locks["id_volpiano_proofread"])
         self.assertIn("id_cantus_id", locks["id_other_fields_proofread"])
         self.assertNotIn("id_indexing_notes", locks["id_other_fields_proofread"])
+
+    def test_locked_required_inputs_stay_required_once_unlocked(self) -> None:
+        # The browser ignores `required` on a disabled input. Keeping it means
+        # a proofreader who unlocks the folio can't leave it empty.
+        chant = self.make_chant(other_fields_proofread=True)
+        response = self.get_edit_page("editor", chant)
+        for field in ("folio", "c_sequence"):
+            with self.subTest(field=field):
+                html = str(response.context["form"][field])
+                self.assertIn("disabled", html)
+                self.assertIn("required", html)
+        # a locked field that was never required doesn't become required
+        self.assertNotIn("required", str(response.context["form"]["cantus_id"]))
 
     def test_no_lock_notice_without_proofread_fields(self) -> None:
         chant = self.make_chant()

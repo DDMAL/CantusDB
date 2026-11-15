@@ -754,9 +754,12 @@ class ChantEditForm(ChantTextWarningsMixin, forms.ModelForm):
         # Call super().clean() to ensure that the form's built-in validation
         # is run before our custom validation.
         super().clean()
-        folio = self.cleaned_data["folio"]
-        c_sequence = self.cleaned_data["c_sequence"]
-        source = self.cleaned_data["source"]
+        folio = self.cleaned_data.get("folio")
+        c_sequence = self.cleaned_data.get("c_sequence")
+        source = self.cleaned_data.get("source")
+        if folio is None or c_sequence is None or source is None:
+            # a field failed its own validation, which already reported it
+            return self.cleaned_data
         if (
             source.chant_set.exclude(id=self.instance.id)
             .filter(folio=folio, c_sequence=c_sequence)
