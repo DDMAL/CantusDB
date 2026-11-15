@@ -52,6 +52,7 @@ from main_app.models import (
     Service,
 )
 from main_app.permissions import CustomAccessMixin
+from main_app.segments import is_sequence_source
 
 from main_app.mixins import JSONResponseMixin
 from users.models import User
@@ -1128,10 +1129,7 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         source_id = self.kwargs["source_pk"]
         source = Source.objects.get(id=source_id)
         queryset = (
-            source.sequence_set
-            if settings.BOWER_SEGMENT_ID
-            in source.segment_m2m.values_list("id", flat=True)
-            else source.chant_set
+            source.sequence_set if is_sequence_source(source) else source.chant_set
         )
 
         # Filter the QuerySet with Q object
