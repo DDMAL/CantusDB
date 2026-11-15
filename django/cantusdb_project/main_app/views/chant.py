@@ -495,7 +495,7 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
         )
 
         chants_current_folio = chants_in_source.filter(folio=chant.folio).order_by(
-            "c_sequence"
+            "c_sequence", "id"
         )
         context["exists_on_cantus_ultimus"] = source.exists_on_cantus_ultimus
         context["feasts_current_folio"] = get_chants_with_feasts(chants_current_folio)
