@@ -52,7 +52,7 @@ from main_app.tests.make_fakes import (
     make_fake_user,
 )
 from main_app.tests.mixins import HTMLContentsTestMixin, CustomAccessTestMixin
-from main_app.views.source import SourceListView
+from main_app.views.source import SourceBrowseChantsView, SourceListView
 from users.models import User as UserAnnotation
 
 # Create a Faker instance with locale set to Latin
@@ -1664,6 +1664,34 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         chants = response.context["chants"]
         self.assertIn(chant_on_folio, chants)
         self.assertNotIn(chant_on_another_folio, chants)
+
+    def test_page_past_the_end_shows_the_last_page(self):
+        # e.g. a filter changed on page 5, or fewer chants match since (#2300)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
+        source = make_fake_source(segment=[cantus_segment])
+        chant = make_fake_chant(source=source, folio="001r")
+        url = reverse("browse-chants", args=[source.id])
+        for params in (
+            {"page": "5"},
+            {"page": "5", "folio": "001r"},
+            {"page": "last"},
+        ):
+            with self.subTest(params=params):
+                response = self.client.get(url, params)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.context["page_obj"].number, 1)
+                self.assertIn(chant, response.context["chants"])
+
+    def test_page_number_still_selects_the_page(self):
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
+        source = make_fake_source(segment=[cantus_segment])
+        for _ in range(SourceBrowseChantsView.paginate_by + 1):
+            make_fake_chant(source=source, folio="001r")
+        url = reverse("browse-chants", args=[source.id])
+        for page, expected in (("2", 2), ("last", 2), ("1", 1), ("abc", 1)):
+            with self.subTest(page=page):
+                response = self.client.get(url, {"page": page})
+                self.assertEqual(response.context["page_obj"].number, expected)
 
     def test_search_full_text(self):
         cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)

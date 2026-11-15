@@ -67,6 +67,9 @@ window.addEventListener("load", function () {
     // the folio selector and folio-feast selector on the right half do source-wide filtering
     // the feast selector, genre selector, and text search on the left half do folio-wide filtering
     var url = new URL(window.location.href);
+    // A new filter starts from its first page: the old page number may be
+    // past the end of the new results (#2300).
+    url.searchParams.delete("page");
 
     // Handle text search change
     function setSearch() {

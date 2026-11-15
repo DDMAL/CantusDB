@@ -8,6 +8,7 @@ import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
+from django.core.paginator import Page, Paginator
 from django.db import transaction
 from django.db.models import (
     BooleanField,
@@ -122,6 +123,24 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
     extra_context = {
         "bulk_edit_formset": None,
     }
+
+    def paginate_queryset(
+        self, queryset: QuerySet[Chant], page_size: int
+    ) -> tuple[Paginator, Page, QuerySet[Chant], bool]:  # type: ignore[type-arg]
+        """Show the last page for a page number past the end, rather than a 404.
+
+        The list shrinks as chants are proofread or renumbered, so a page
+        number from an older URL can be out of range (#2300).
+        """
+        paginator = self.get_paginator(
+            queryset,
+            page_size,
+            orphans=self.get_paginate_orphans(),
+            allow_empty_first_page=self.get_allow_empty(),
+        )
+        number = self.request.GET.get(self.page_kwarg)
+        page = paginator.get_page(paginator.num_pages if number == "last" else number)
+        return (paginator, page, page.object_list, page.has_other_pages())
 
     def test_func(self) -> bool:
         """
