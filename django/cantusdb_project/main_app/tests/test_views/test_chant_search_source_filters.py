@@ -107,3 +107,19 @@ class ChantSearchSourceFiltersTest(TestCase):
         )
         response = self.client.get(reverse("chant-search"), {"keyword": "x"})
         self.assertFalse(response.context["advanced_search_active"])
+
+    def test_form_offers_the_source_filters(self) -> None:
+        response = self.client.get(reverse("chant-search"))
+        for name in (
+            "country",
+            "provenance",
+            "prodMethod",
+            "dateStart",
+            "dateEnd",
+            "sourceCompleteness",
+        ):
+            with self.subTest(name=name):
+                self.assertContains(response, f'name="{name}"')
+        self.assertContains(response, '<option value="Spain">Spain</option>', html=True)
+        self.assertContains(response, "js/source_filters.js")
+        self.assertContains(response, "css/source_filters.css")

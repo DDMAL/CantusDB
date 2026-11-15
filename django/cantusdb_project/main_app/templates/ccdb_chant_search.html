@@ -6,7 +6,9 @@
 {% block favicon %}<link rel="icon" href="{% static 'ccdb-images/CCDB-favicon.png' %}" />{% endblock %}
 {% block scripts %}
     <script src="/static/js/chant_search.js"></script>
+    <script src="{% static 'js/source_filters.js' %}"></script>
     <link href="{% static 'css/ccdb_style.css' %}" rel="stylesheet" media="screen" />
+    <link href="{% static 'css/source_filters.css' %}" rel="stylesheet" />
 {% endblock %}
 {% block header %}
     {% include "header/sticky_header.html" %}
@@ -144,6 +146,8 @@
                             </select>
                         </div>
                     </div>
+                    <h6 class="small fw-bold mt-2 mb-1">Source</h6>
+                    {% include "source_filter_fields.html" with hide_country=True hide_prod_method=True input_class="ccdb-search-input" %}
                     <div class="row align-items-end pt-2">
                         <div class="form-group col-lg">
                             <button type="submit" class="btn btn-sm ccdb-button text-white" id="btn-submit">Apply</button>

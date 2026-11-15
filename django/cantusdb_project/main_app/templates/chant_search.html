@@ -8,6 +8,8 @@
 {{ search_form.media }}
 <script src="/static/js/chant_search.js"></script>
 <script src="/static/js/filter_form_autosubmit.js"></script>
+<script src="{% static 'js/source_filters.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/source_filters.css' %}" />
 {% endblock %}
 {% block heading %}<h3>Search Chants</h3>{% endblock %}
 {% block results_count %}
@@ -173,6 +175,10 @@
                 {{ search_form.differentia_id }}
             </div>
         </div>
+        {% if not source %}
+            <h6 class="small fw-bold mt-2 mb-1">Source</h6>
+            {% include "source_filter_fields.html" %}
+        {% endif %}
     </div>
     <div class="row align-items-end pt-2">
         <div class="form-group col-lg">
