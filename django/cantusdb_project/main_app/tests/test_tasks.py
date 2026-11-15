@@ -12,6 +12,7 @@ from django.core.files.base import ContentFile
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.db.models import QuerySet
 from django.urls import reverse
+from reversion.models import Version  # type: ignore[import-untyped]
 
 from main_app.tasks import (
     save_browse_chants_formset,
@@ -95,6 +96,60 @@ class SaveBrowseChantsFormsetTest(TestCase):
         chant.refresh_from_db()
         self.assertEqual(chant.mode, "0")
         self.assertEqual(res["error_count"], 0)
+
+    def browser_form_data(self) -> Dict[str, str]:
+        """The initial data as a browser submits it: every value as text, and
+        line breaks as CRLF."""
+        return {
+            key: "" if value is None else str(value).replace("\n", "\r\n")
+            for key, value in self.initial_form_data.items()
+        }
+
+    def test_bulk_edit_credits_the_editor_with_the_changed_rows_only(self) -> None:
+        # #2297: the chant's "last modified by" kept the previous editor
+        editor = make_fake_user()
+        previous_editor = make_fake_user()
+        changed, untouched = self.chants
+        Chant.objects.filter(pk=untouched.pk).update(
+            last_updated_by=previous_editor,
+            manuscript_full_text_std_spelling="Alleluia\nAmen",
+        )
+        untouched.refresh_from_db()
+        data = self.browser_form_data()
+        data["chant_set-1-manuscript_full_text_std_spelling"] = "Alleluia\r\nAmen"
+        data["chant_set-0-mode"] = "1" if changed.mode == "0" else "0"
+
+        res = save_browse_chants_formset.apply(
+            args=(data, self.chant_ids), kwargs={"user_id": editor.id}
+        ).get()
+
+        self.assertEqual(res["error_count"], 0)
+        changed.refresh_from_db()
+        self.assertEqual(changed.mode, data["chant_set-0-mode"])
+        self.assertEqual(changed.last_updated_by, editor)
+        # Its feast, service, genre and CRLF text came back unchanged, so
+        # the row isn't saved or credited to the editor.
+        date_updated = untouched.date_updated
+        untouched.refresh_from_db()
+        self.assertEqual(untouched.last_updated_by, previous_editor)
+        self.assertEqual(untouched.date_updated, date_updated)
+
+        versions = Version.objects.get_for_object(changed)
+        self.assertEqual(versions.count(), 1)
+        self.assertEqual(versions[0].revision.user, editor)
+        self.assertEqual(versions[0].revision.comment, "Bulk edit")
+        self.assertFalse(Version.objects.get_for_object(untouched).exists())
+
+    def test_bulk_edit_without_a_user_leaves_the_last_editor(self) -> None:
+        previous_editor = make_fake_user()
+        chant = self.chants[0]
+        Chant.objects.filter(pk=chant.pk).update(last_updated_by=previous_editor)
+        data = self.browser_form_data()
+        data["chant_set-0-mode"] = "1" if chant.mode == "0" else "0"
+        save_browse_chants_formset.apply(args=(data, self.chant_ids)).get()
+        chant.refresh_from_db()
+        self.assertEqual(chant.mode, data["chant_set-0-mode"])
+        self.assertEqual(chant.last_updated_by, previous_editor)
 
     def test_queued_edit_refused_once_source_is_locked(self) -> None:
         # The view authorises a bulk edit when it is queued, but the source
