@@ -42,7 +42,11 @@
                     <th width="80" title="Siglum">Siglum</th>
                     <th width="30" title="Marginalia">Marg</th>
                     <th width="30" title="Folio">Folio</th>
-                    <th width="30" title="Sequence">Seq</th>
+                    {% if chants.0.record_type == "sequence" %}
+                        <th width="30" title="Order of the sequence within the source">Order</th>
+                    {% else %}
+                        <th width="30" title="Sequence">Seq</th>
+                    {% endif %}
                     <th width="80" title="Feast">Feast</th>
                     <th width="30" title="Service">Service</th>
                     <th width="30" title="Genre">Genre</th>

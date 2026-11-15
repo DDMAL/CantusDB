@@ -35,7 +35,8 @@ class BaseChant(BaseModel):
     folio = models.CharField(
         help_text="Binding order", blank=True, null=True, max_length=255, db_index=True
     )
-    # The "s_sequence" char field, used for Sequences, is used to indicate the relative positions of sequences on the page.
+    # The "s_sequence" char field, used for Sequences, is the order of the sequence within
+    # its source (Bower's running number), shown as "Order" (#2327).
     # It sometimes features non-numeric characters and leading zeroes, so it's a CharField.
     s_sequence = models.CharField("Sequence", blank=True, null=True, max_length=255)
     # The "c_sequence" integer field, used for Chants, similarly indicates the relative positions of chants on the page

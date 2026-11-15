@@ -49,6 +49,8 @@
                 <thead>
                     <tr>
                         <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
+                        <th scope="col" class="text-wrap" style="text-align:center" title="Order of the sequence within the source">Order</th>
+                        <th scope="col" class="text-wrap" style="text-align:center">Folio</th>
                         <th scope="col" class="text-wrap" style="text-align:center">Text incipit</th>
                         <th scope="col" class="text-wrap" style="text-align:center">Rubrics</th>
                         <th scope="col" class="text-wrap" style="text-align:center">AH</th>
@@ -66,11 +68,11 @@
                                     <a href="{% url 'source-detail' sequence.source.id %}"
                                        title="{{ sequence.source.heading }}">
                                         <b>{{ sequence.source.short_heading }}</b>
-                                        <br />
                                     </a>
                                 {% endif %}
-                                <b>{{ sequence.folio|default:"" }}</b> {{ sequence.s_sequence|default:"" }}
                             </td>
+                            <td class="text-wrap">{{ sequence.s_sequence|default:"" }}</td>
+                            <td class="text-wrap"><b>{{ sequence.folio|default:"" }}</b></td>
                             <td class="text-wrap">
                                 <a href="{% url 'sequence-detail' sequence.id %}">{{ sequence.incipit_std_spelling|default:sequence.incipit|default:"" }}</a>
                             </td>
