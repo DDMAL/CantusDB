@@ -368,8 +368,9 @@
         {% endif %}
         {{ source.indexing_notes|default_if_none:""|safe }}
         <br />
+        {# Only on unpublished sources: who is working on them (#1687). #}
         {% with creator=source.created_by %}
-            {% if creator %}
+            {% if creator and not source.published %}
                 {% if creator.full_name %}
                     Contributor: <a href={% url 'user-detail' creator.id %}><b>{{ creator.full_name }}</b></a>
                 {% else %}

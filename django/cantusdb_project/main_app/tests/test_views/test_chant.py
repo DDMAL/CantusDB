@@ -104,6 +104,14 @@ class ChantDetailViewTest(ChantPermissionsTestCase):
         self.assertContains(response, "Miserere mihi")
         self.assertNotContains(response, "<b>Miserere mihi</b>", html=True)
 
+    def test_sidebar_shows_no_contributor_for_a_published_source(self) -> None:
+        # #1687
+        source = make_fake_source(published=True)
+        Source.objects.filter(pk=source.pk).update(created_by=make_fake_user())
+        chant = make_fake_chant(source=source)
+        response = self.client.get(reverse("chant-detail", args=[chant.id]))
+        self.assertNotContains(response, "Contributor:")
+
     def test_context_folios(self) -> None:
         # create a source and several chants in it
         source = make_fake_source()

@@ -948,6 +948,21 @@ class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_detail.html")
 
+    def test_contributor_is_shown_only_on_unpublished_sources(self) -> None:
+        # #1687: useful to see who is working on a source until it's published
+        creator = make_fake_user()
+        self.client.force_login(self.users["superuser"])
+        for published, shown in ((True, False), (False, True)):
+            with self.subTest(published=published):
+                source = make_fake_source(published=published)
+                Source.objects.filter(pk=source.pk).update(created_by=creator)
+                response = self.client.get(reverse("source-detail", args=[source.id]))
+                if shown:
+                    self.assertContains(response, f"Contributor: <a")
+                    self.assertContains(response, creator.full_name)
+                else:
+                    self.assertNotContains(response, "Contributor:")
+
     def test_add_image_links_entry_is_superuser_only(self) -> None:
         """The edit-options card's "Add image links" entry is superuser-only.
 
