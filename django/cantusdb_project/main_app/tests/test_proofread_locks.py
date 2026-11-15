@@ -402,6 +402,31 @@ class ChantEditLockTest(ProofreadLockTestCase):
         self.assertEqual(chant.volpiano, "1---a---3")
         self.assertIs(chant.volpiano_proofread, True)
 
+    def test_proofreader_approves_the_value_they_saw(self) -> None:
+        # Someone saves a new melody after the proofreader's page loaded. The
+        # page submits the melody the proofreader approved with the box, so
+        # the unreviewed one isn't marked proofread.
+        chant = self.make_chant()
+        approved = chant.volpiano
+        Chant.objects.filter(pk=chant.pk).update(volpiano="1---a---3")
+        self.post_edit("editor", chant, volpiano=approved, volpiano_proofread="on")
+        chant.refresh_from_db()
+        self.assertEqual(chant.volpiano, approved)
+        self.assertIs(chant.volpiano_proofread, True)
+
+    def test_failed_save_shows_the_unsaved_edit_unlocked(self) -> None:
+        # The page shown again carries the edit, so it can be submitted again.
+        chant = self.make_chant(volpiano_proofread=True)
+        response = self.post_edit("editor", chant, volpiano="1---a---3", folio="")
+        self.assertEqual(response.status_code, 200)
+        field = response.context["form"]["volpiano"]
+        self.assertFalse(field.field.disabled)
+        self.assertEqual(field.value(), "1---a---3")
+        self.post_edit("editor", chant, volpiano="1---a---3")
+        chant.refresh_from_db()
+        self.assertEqual(chant.volpiano, "1---a---3")
+        self.assertIs(chant.volpiano_proofread, True)
+
     def test_null_flag_does_not_lock(self) -> None:
         chant = self.make_chant()
         Chant.objects.filter(pk=chant.pk).update(volpiano_proofread=None)

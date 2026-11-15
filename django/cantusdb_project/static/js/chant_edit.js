@@ -41,20 +41,36 @@ window.addEventListener("load", function () {
         if (!checkbox || checkbox.disabled) {
             continue; // not a proofreader: the locks can't change
         }
-        // Only fields locked when the page loaded can be unlocked and relocked.
-        // A field that is unlocked now stays editable until the chant is saved:
-        // disabling it would stop the browser from submitting its value.
-        const lockedFields = fieldIds
+        const fields = fieldIds
             .map((fieldId) => document.getElementById(fieldId))
-            .filter((field) => field && field.disabled);
-        const savedValues = new Map(lockedFields.map((field) => [field, field.value]));
+            .filter(Boolean);
+        const submittedCopies = new Map();
+        function unlock(field) {
+            submittedCopies.get(field)?.remove();
+            submittedCopies.delete(field);
+            field.disabled = false;
+        }
+        // Lock a field the proofreader is approving, so nothing more can be
+        // typed into it. The browser doesn't submit a disabled input, so its
+        // value is submitted from a hidden copy: the server saves the value the
+        // proofreader approved, not whatever is stored by then (#170).
+        function lockApproved(field) {
+            unlock(field);
+            field.disabled = true;
+            const copy = document.createElement("input");
+            copy.type = "hidden";
+            copy.name = field.name;
+            copy.value = field.value;
+            field.after(copy);
+            submittedCopies.set(field, copy);
+        }
+        if (checkbox.checked) {
+            // A page shown again after a failed save leaves the fields the
+            // proofreader submitted unlocked, even under a ticked box.
+            fields.filter((field) => !field.disabled).forEach(lockApproved);
+        }
         checkbox.addEventListener("change", function () {
-            for (const field of lockedFields) {
-                // Ticking the box again relocks the fields, but not one the
-                // proofreader has just edited: untick, edit, tick saves the
-                // edit as proofread (#170).
-                field.disabled = checkbox.checked && field.value === savedValues.get(field);
-            }
+            fields.forEach(checkbox.checked ? lockApproved : unlock);
         });
     }
 

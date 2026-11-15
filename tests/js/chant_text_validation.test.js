@@ -58,6 +58,9 @@ function escapeText(text) {
 // Enough of a CSS selector to cover what the script asks for: an optional
 // leading class, then any number of `[attribute="value"]` tests.
 function matches(element, selector) {
+    if (selector.includes(":not(:disabled)") && element.disabled) {
+        return false;
+    }
     const wantedClass = selector.match(/^\.([\w-]+)/);
     if (wantedClass) {
         const classes = String(element.className || "").split(/\s+/);
@@ -658,6 +661,32 @@ describe("chant text validation: only what the user saw is acknowledged", () => 
 
         assert.equal(harness.submits.length, 1);
         assert.equal(harness.submits[0].confirmInvalidText, "1");
+    });
+});
+
+describe("chant text validation: locked fields", () => {
+    it("doesn't check a locked field, which can't have been edited", async () => {
+        const harness = makeHarness();
+        harness.field.value = "Gloria # Deo";
+        harness.field.disabled = true;
+
+        harness.submit();
+        const sent = new URLSearchParams(harness.requests[0].init.body);
+        assert.deepEqual(sent.getAll(TEXT_FIELD), []);
+    });
+
+    it("checks the copy submitted for a field edited and locked again", async () => {
+        const harness = makeHarness();
+        harness.field.value = "Gloria # Deo";
+        harness.field.disabled = true;
+        // chant_edit.js submits a locked edit through a hidden copy
+        const copy = makeElement("input", { type: "hidden", name: TEXT_FIELD });
+        copy.value = "Gloria # Deo";
+        harness.form.appendChild(copy);
+
+        harness.submit();
+        const sent = new URLSearchParams(harness.requests[0].init.body);
+        assert.deepEqual(sent.getAll(TEXT_FIELD), ["Gloria # Deo"]);
     });
 });
 

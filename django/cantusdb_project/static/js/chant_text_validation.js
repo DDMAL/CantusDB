@@ -249,7 +249,13 @@
         function collectBody() {
             var params = new URLSearchParams();
             FIELD_NAMES.forEach(function (name) {
-                var field = form.querySelector('[name="' + name + '"]');
+                // Check what the form submits: not a locked (disabled) field,
+                // which can't have been edited and whose text the server
+                // ignores, but the hidden copy that carries a field a
+                // proofreader edited and locked again (#170).
+                var field = form.querySelector(
+                    '[name="' + name + '"]:not(:disabled)'
+                );
                 if (field) {
                     params.append(name, field.value);
                 }
