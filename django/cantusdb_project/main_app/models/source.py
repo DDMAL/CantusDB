@@ -106,7 +106,12 @@ class Source(BaseModel):
         help_text='Date of the source, if known (e.g. "1541")',
     )
     century = models.ManyToManyField("Century", related_name="sources", blank=True)
-    notation = models.ManyToManyField("Notation", related_name="sources", blank=True)
+    notation = models.ManyToManyField(
+        "Notation",
+        related_name="sources",
+        blank=True,
+        verbose_name="notation (Clavis Sequentiarum)",
+    )
     cursus = models.CharField(
         blank=True, null=True, choices=cursus_choices, max_length=63
     )
