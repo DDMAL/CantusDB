@@ -89,6 +89,7 @@ from main_app.views.source import (
     SourceInventoryView,
     SourceAddImageLinksView,
     SourceIIIFMappingView,
+    SourceSubmitForProofreadingView,
     CcdbBrowseView,
 )
 from main_app.views.ccdb import (
@@ -117,8 +118,10 @@ from main_app.views.autocomplete import (
     HoldingAutocomplete,
 )
 from main_app.views.auth import change_password
+from main_app.views.markdown import markdown_preview
 
 urlpatterns = [
+    path("markdown/preview/", markdown_preview, name="markdown-preview"),
     path(
         "contact/",
         contact,
@@ -410,6 +413,11 @@ urlpatterns = [
         name="source-delete",
     ),
     path(
+        "source/<int:source_id>/submit-for-proofreading",
+        SourceSubmitForProofreadingView.as_view(),
+        name="source-submit-for-proofreading",
+    ),
+    path(
         "source/<int:source_id>/add-image-links",
         SourceAddImageLinksView.as_view(),
         name="source-add-image-links",
@@ -479,7 +487,7 @@ urlpatterns = [
     ),
     # misc search
     path(
-        "searchms/<int:source_pk>",
+        "searchms/<int:source_pk>/",
         ChantSearchMSView.as_view(),
         name="chant-search-ms",
     ),

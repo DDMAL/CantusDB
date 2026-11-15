@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("main_app", "0045_normalize_text_data"),
+        ("main_app", "0047_normalize_text_data"),
     ]
 
     operations = [

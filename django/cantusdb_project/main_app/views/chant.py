@@ -7,7 +7,8 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.postgres.aggregates import ArrayAgg
-from django.db.models import Case, F, Q, QuerySet, When
+from django.db.models import Case, F, Q, QuerySet, Value, When
+from django.db.models.functions import Coalesce, NullIf
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -116,6 +117,7 @@ ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
     # never touched it. Including it here would keep this section expanded on
     # every search.
     "indexing_notes",
+    "differentia_id",
 )
 
 CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
@@ -147,6 +149,21 @@ CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     "genre__name",
 )
 
+
+def with_sort_incipit(queryset: QuerySet) -> QuerySet:
+    """
+    Add `sort_incipit`, the incipit a list shows: a sequence's standardized
+    incipit when it has one, otherwise its incipit (#2326). Chant results only
+    ever show `incipit`, so chants sort by it alone. Annotate each side before a
+    chant/sequence union, since a union can't be annotated afterwards.
+    """
+    if queryset.model is not Sequence:
+        return queryset.annotate(sort_incipit=F("incipit"))
+    return queryset.annotate(
+        sort_incipit=Coalesce(NullIf("incipit_std_spelling", Value("")), "incipit")
+    )
+
+
 ONLY_FIELDS = (
     "id",
     "genre",
@@ -160,6 +177,7 @@ ONLY_FIELDS = (
     "source__name",
     "title",
     "incipit",
+    "incipit_std_spelling",
     "folio",
     "search_vector",
     "manuscript_full_text_std_spelling",
@@ -427,7 +445,7 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
         chant = context["chant"]
         source = chant.source
 
-        context["user_can_edit_chant"] = self.user_assigned_to_source(source)
+        context["user_can_edit_chant"] = self.user_can_edit_chants(source)
         context["attribution_created_by"] = self._attributable_user(chant.created_by)
         context["attribution_last_updated_by"] = self._attributable_user(
             chant.last_updated_by
@@ -562,6 +580,7 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         ``feast``: Filters by Feast of Chant
         ``liturgical_function``: Filters by liturgical function of Chant
         ``segment``: Filters by Segment of the Chant's Source
+        ``differentia_id``: Filters by the Differentia ID (Differentiae Database) of Chant
         ``keyword``: Searches text of Chant for keywords
         ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
         ``indexing_notes``: Searches indexing notes of Chant/Sequence for text
@@ -575,11 +594,8 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
 
     def get_context_data(self, **kwargs) -> dict:
         context = super().get_context_data(**kwargs)
-        # Add to context a QuerySet of dicts with id and name of each Genre
-        context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
-        context["services"] = (
-            Service.objects.all().order_by("name").values("id", "name")
-        )
+        context["genres"] = Genre.objects.all().order_by("name")
+        context["services"] = Service.objects.all().order_by("name")
         context["liturgical_functions"] = Chant.LITURGICAL_FUNCTION_CHOICES
         # "Benedicamus Domino" is a chant-level project designation, not a
         # source segment, so it's excluded here (see #2131). "Cantus Database"
@@ -597,14 +613,28 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             self.request.GET.get(field) for field in ADVANCED_SEARCH_FIELDS
         )
         feast_param = self.request.GET.get("feast")
+        differentia_id_param = self.request.GET.get("differentia_id")
         context["search_form"] = ChantSearchForm(
-            initial=(
-                {"feast": feast_param} if feast_param and feast_param.isdigit() else {}
-            )
+            initial={
+                **(
+                    {"feast": feast_param}
+                    if feast_param and feast_param.isdigit()
+                    else {}
+                ),
+                **(
+                    {"differentia_id": differentia_id_param}
+                    if differentia_id_param and differentia_id_param.isdigit()
+                    else {}
+                ),
+            }
         )
         context["query_empty"] = False if self.request.GET else True
         context["order"] = self.request.GET.get("order")
         context["sort"] = self.request.GET.get("sort")
+
+        search_keyword: Optional[str] = self.request.GET.get("keyword")
+        if search_keyword:
+            context["keyword"] = search_keyword
 
         # build a url containing all the search parameters, excluding ordering parameters.
         # this way, when someone clicks on a column heading, we can append the ordering parameters
@@ -661,6 +691,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         search_indexing_notes: Optional[str] = self.request.GET.get("indexing_notes")
         if search_indexing_notes:
             search_parameters.append(f"indexing_notes={search_indexing_notes}")
+        search_differentia_id: Optional[str] = self.request.GET.get("differentia_id")
+        if search_differentia_id:
+            search_parameters.append(f"differentia_id={search_differentia_id}")
 
         url_with_search_params: str = current_url + "?"
         if search_parameters:
@@ -704,7 +737,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 std_spelling_filter = Q(
                     manuscript_full_text_std_spelling__istartswith=search_term
                 )
-                incipit_filter = Q(incipit__istartswith=search_term)
+                incipit_filter = Q(incipit__istartswith=search_term) | Q(
+                    incipit_std_spelling__istartswith=search_term
+                )
                 search_term_filter = (
                     ms_spelling_filter | std_spelling_filter | incipit_filter
                 )
@@ -723,7 +758,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 chant_set = chant_set.filter(source__segment_m2m=segment_id)
                 sequence_set = sequence_set.filter(source__segment_m2m=segment_id)
 
-            queryset = chant_set.union(sequence_set, all=True)
+            queryset = with_sort_incipit(chant_set).union(
+                with_sort_incipit(sequence_set), all=True
+            )
         else:
             # The field names should be keys in the "GET" QueryDict if the search button has been
             # clicked, even if the user put nothing into the search form and hit "apply" immediately.
@@ -756,6 +793,10 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             if liturgical_function := self.request.GET.get("liturgical_function"):
                 q_obj_filter &= Q(liturgical_function=liturgical_function)
 
+            if differentia_id := self.request.GET.get("differentia_id"):
+                if differentia_id.isdigit():
+                    q_obj_filter &= Q(diff_db_id=differentia_id)
+
             # Filter the QuerySet with Q object
             chant_set = Chant.objects.filter(q_obj_filter).select_related(
                 "source__holding_institution", "feast", "service", "genre"
@@ -782,19 +823,25 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                     std_spelling_filter = Q(
                         manuscript_full_text_std_spelling__icontains=keyword
                     )
-                    incipit_filter = Q(incipit__icontains=keyword)
+                    incipit_filter = Q(incipit__icontains=keyword) | Q(
+                        incipit_std_spelling__icontains=keyword
+                    )
                 elif operation and operation == "ends_with":
                     ms_spelling_filter = Q(manuscript_full_text__iendswith=keyword)
                     std_spelling_filter = Q(
                         manuscript_full_text_std_spelling__iendswith=keyword
                     )
-                    incipit_filter = Q(incipit__iendswith=keyword)
+                    incipit_filter = Q(incipit__iendswith=keyword) | Q(
+                        incipit_std_spelling__iendswith=keyword
+                    )
                 else:
                     ms_spelling_filter = Q(manuscript_full_text__istartswith=keyword)
                     std_spelling_filter = Q(
                         manuscript_full_text_std_spelling__istartswith=keyword
                     )
-                    incipit_filter = Q(incipit__istartswith=keyword)
+                    incipit_filter = Q(incipit__istartswith=keyword) | Q(
+                        incipit_std_spelling__istartswith=keyword
+                    )
                 keyword_filter = (
                     ms_spelling_filter | std_spelling_filter | incipit_filter
                 )
@@ -820,7 +867,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 sequence_set = sequence_set.filter(source__segment_m2m=segment_id)
 
             # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
-            queryset = chant_set.union(sequence_set, all=True)
+            queryset = with_sort_incipit(chant_set).union(
+                with_sort_incipit(sequence_set), all=True
+            )
 
         # Apply sorting
         order_get_param: Optional[str] = self.request.GET.get("order")
@@ -833,7 +882,7 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             "has_fulltext": "manuscript_full_text",
             "has_melody": "volpiano",
             "has_image": "image_link",
-            "incipit": "incipit",
+            "incipit": "sort_incipit",
             "cantus_id": "cantus_id",
             "mode": "mode",
         }
@@ -887,7 +936,7 @@ class MelodySearchView(TemplateView):
 class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     """
     Searches chants/sequences in a certain manuscript, accessed with
-    ``chant-search-ms/<int:source_pk>``
+    ``searchms/<int:source_pk>/``
 
     This view uses the same template as ``ChantSearchView``
 
@@ -898,10 +947,12 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         ``genre``: Filters by Genre of Chant
         ``cantus_id``: Filters by the Cantus ID field of Chant
         ``mode``: Filters by mode of Chant
+        ``position``: Filters by position of chant
         ``melodies``: Filters Chant by whether or not it contains a melody in
                       Volpiano form. Valid values are "true" or "false".
         ``feast``: Filters by Feast of Chant
         ``liturgical_function``: Filters by liturgical function of Chant
+        ``differentia_id``: Filters by the Differentia ID (Differentiae Database) of Chant
         ``keyword``: Searches text of Chant for keywords
         ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
         ``indexing_notes``: Searches indexing notes of Chant/Sequence for text
@@ -926,24 +977,30 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context = super().get_context_data(**kwargs)
 
         context["source"] = self.source
-        # Add to context a QuerySet of dicts with id and name of each Genre
-        context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
-        context["services"] = (
-            Service.objects.all().order_by("name").values("id", "name")
-        )
+        context["genres"] = Genre.objects.all().order_by("name")
+        context["services"] = Service.objects.all().order_by("name")
         context["liturgical_functions"] = Chant.LITURGICAL_FUNCTION_CHOICES
         context["advanced_search_active"] = any(
             self.request.GET.get(field) for field in ADVANCED_SEARCH_FIELDS
         )
         feast_param = self.request.GET.get("feast")
+        differentia_id_param = self.request.GET.get("differentia_id")
         context["search_form"] = ChantSearchForm(
-            initial=(
-                {"feast": feast_param} if feast_param and feast_param.isdigit() else {}
-            )
+            initial={
+                **(
+                    {"feast": feast_param}
+                    if feast_param and feast_param.isdigit()
+                    else {}
+                ),
+                **(
+                    {"differentia_id": differentia_id_param}
+                    if differentia_id_param and differentia_id_param.isdigit()
+                    else {}
+                ),
+            }
         )
         context["order"] = self.request.GET.get("order")
         context["sort"] = self.request.GET.get("sort")
-        # This is searching in a specific source, pass the source into context
 
         current_url = self.request.path
         search_parameters = []
@@ -986,6 +1043,9 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         search_indexing_notes = self.request.GET.get("indexing_notes")
         if search_indexing_notes:
             search_parameters.append(f"indexing_notes={search_indexing_notes}")
+        search_differentia_id = self.request.GET.get("differentia_id")
+        if search_differentia_id:
+            search_parameters.append(f"differentia_id={search_differentia_id}")
 
         if search_parameters:
             joined_search_parameters = "&".join(search_parameters)
@@ -994,6 +1054,7 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             url_with_search_params = current_url + "?"
 
         context["url_with_search_params"] = url_with_search_params
+
         return context
 
     def get_queryset(self) -> QuerySet[Chant]:
@@ -1017,6 +1078,9 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         if mode := self.request.GET.get("mode"):
             q_obj_filter &= Q(mode=mode)
 
+        if position := self.request.GET.get("position"):
+            q_obj_filter &= Q(position=position)
+
         if melodies := self.request.GET.get("melodies"):
             if melodies == "true":
                 q_obj_filter &= Q(volpiano__gt="")
@@ -1029,6 +1093,10 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         if liturgical_function := self.request.GET.get("liturgical_function"):
             q_obj_filter &= Q(liturgical_function=liturgical_function)
 
+        if differentia_id := self.request.GET.get("differentia_id"):
+            if differentia_id.isdigit():
+                q_obj_filter &= Q(diff_db_id=differentia_id)
+
         order_value = self.request.GET.get("order")
         sort_get_param: Optional[str] = self.request.GET.get("sort")
 
@@ -1039,7 +1107,7 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             "has_fulltext": "manuscript_full_text",
             "has_melody": "volpiano",
             "has_image": "image_link",
-            "incipit": "incipit",
+            "incipit": "sort_incipit",
             "cantus_id": "cantus_id",
             "mode": "mode",
         }
@@ -1089,19 +1157,25 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 std_spelling_filter = Q(
                     manuscript_full_text_std_spelling__icontains=keyword
                 )
-                incipit_filter = Q(incipit__icontains=keyword)
+                incipit_filter = Q(incipit__icontains=keyword) | Q(
+                    incipit_std_spelling__icontains=keyword
+                )
             elif operation == "ends_with":
                 ms_spelling_filter = Q(manuscript_full_text__iendswith=keyword)
                 std_spelling_filter = Q(
                     manuscript_full_text_std_spelling__iendswith=keyword
                 )
-                incipit_filter = Q(incipit__iendswith=keyword)
+                incipit_filter = Q(incipit__iendswith=keyword) | Q(
+                    incipit_std_spelling__iendswith=keyword
+                )
             else:
                 ms_spelling_filter = Q(manuscript_full_text__istartswith=keyword)
                 std_spelling_filter = Q(
                     manuscript_full_text_std_spelling__istartswith=keyword
                 )
-                incipit_filter = Q(incipit__istartswith=keyword)
+                incipit_filter = Q(incipit__istartswith=keyword) | Q(
+                    incipit_std_spelling__istartswith=keyword
+                )
 
             keyword_filter = ms_spelling_filter | std_spelling_filter | incipit_filter
             queryset = queryset.filter(keyword_filter)
@@ -1116,7 +1190,7 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         # ordering with the folio string gives wrong order
         # old cantus is also not strictly ordered by folio (there are outliers)
         # so we order by id for now, which is the order that the chants are entered into the DB
-        queryset = queryset.order_by(order_expression, "id")
+        queryset = with_sort_incipit(queryset).order_by(order_expression, "id")
         return queryset
 
 
@@ -1137,7 +1211,7 @@ class ChantCreateView(CustomAccessMixin, CreateView):  # type: ignore[type-arg]
     def test_func(self) -> bool:
         source_id = self.kwargs.get(self.pk_url_kwarg)
         self.source = get_object_or_404(Source, id=source_id)
-        return self.user_assigned_to_source(self.source)
+        return self.user_can_edit_chants(self.source)
 
     def get_success_url(self):
         """
@@ -1264,7 +1338,7 @@ class ChantDeleteView(CustomAccessMixin, DeleteView):  # type: ignore[type-arg]
         chant_id = self.kwargs.get(self.pk_url_kwarg)
         chant = get_object_or_404(Chant, id=chant_id)
         source = chant.source
-        return self.user_assigned_to_source(source)
+        return self.user_can_edit_chants(source)
 
     def get_success_url(self):
         return reverse("source-edit-chants", args=[self.object.source.id])
@@ -1280,9 +1354,10 @@ class CISearchView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["genres"] = list(
-            Genre.objects.all().order_by("name").values("id", "name")
-        )
+        context["genres"] = [
+            {"id": genre.id, "name": genre.name, "label": genre.dropdown_label}
+            for genre in Genre.objects.all().order_by("name")
+        ]
         search_term: str = kwargs["search_term"]
         search_term: str = search_term.replace(" ", "+")  # for multiple keywords
 
@@ -1319,7 +1394,7 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
     def test_func(self) -> bool:
         source_id = self.kwargs.get(self.pk_url_kwarg)
         self.source = get_object_or_404(Source, id=source_id)
-        return self.user_assigned_to_source(self.source)
+        return self.user_can_edit_chants(self.source)
 
     def get_queryset(self) -> QuerySet[Chant]:
         """
@@ -1558,7 +1633,7 @@ class ChantEditSyllabificationView(CustomAccessMixin, UpdateView):  # type: igno
     def test_func(self) -> bool:
         chant = self.get_object()
         source = chant.source
-        return self.user_assigned_to_source(source)
+        return self.user_can_edit_chants(source)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

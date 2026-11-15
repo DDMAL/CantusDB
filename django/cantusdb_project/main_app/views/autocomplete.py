@@ -62,8 +62,8 @@ class FeastAutocomplete(autocomplete.Select2QuerySetView):
 
 
 class ServiceAutocomplete(autocomplete.Select2QuerySetView):
-    def get_result_label(self, result):
-        return f"{result.name} - {result.description}"
+    def get_result_label(self, result: Service) -> str:
+        return result.dropdown_label
 
     def get_queryset(self):
         if not self.request.user.is_authenticated:
@@ -77,8 +77,8 @@ class ServiceAutocomplete(autocomplete.Select2QuerySetView):
 
 
 class GenreAutocomplete(autocomplete.Select2QuerySetView):
-    def get_result_label(self, result):
-        return f"{result.name} - {result.description}"
+    def get_result_label(self, result: Genre) -> str:
+        return result.dropdown_label
 
     def get_queryset(self):
         if not self.request.user.is_authenticated:
@@ -92,9 +92,9 @@ class GenreAutocomplete(autocomplete.Select2QuerySetView):
 
 
 class DifferentiaAutocomplete(autocomplete.Select2QuerySetView):
+    # unlike most autocompletes here, not gated behind authentication:
+    # it's also used by the public Chant Search "Differentia ID" filter.
     def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Differentia.objects.none()
         qs = Differentia.objects.all().order_by("differentia_id")
         if self.q:
             qs = qs.filter(differentia_id__istartswith=self.q)

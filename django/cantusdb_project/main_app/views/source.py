@@ -8,6 +8,7 @@ import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
+from django.db import transaction
 from django.db.models import (
     BooleanField,
     Case,
@@ -48,6 +49,7 @@ from main_app.forms import (
     SourceEditForm,
     SourceBrowseChantsProofreadForm,
     ImageLinkForm,
+    MAX_IMAGE_LINK_ROWS,
     BrowseChantsBulkEditFormset,
 )
 from main_app.models import (
@@ -129,7 +131,9 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
         source_id = self.kwargs.get(self.pk_url_kwarg)
         self.source = get_object_or_404(Source, id=source_id)
         if self.request.method == "POST":
-            return self.user_assigned_to_source(self.source)
+            # POST here bulk-edits the source's chants, so it follows the
+            # same lock as every other chant edit (issue #1962).
+            return self.user_can_edit_chants(self.source)
         return (
             self.source.published
             or self.user_is_global_viewer
@@ -250,7 +254,7 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
             sources = sources.filter(published=True)
         context["sources"] = sources
 
-        context["user_can_edit_chant"] = self.user_assigned_to_source(source)
+        context["user_can_edit_chant"] = self.user_can_edit_chants(source)
         context["user_can_proofread_source"] = (
             self.user_assigned_to_source(source) and self.user_is_editor
         )
@@ -295,9 +299,12 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         chant_ids = list(self.get_queryset().values_list("id", flat=True))
+        # The task re-checks the proofreading lock when it runs (issue #1962).
         task = save_browse_chants_formset.delay(
             data=request.POST,
             chant_ids=chant_ids,
+            source_id=self.source.id,
+            user_id=request.user.id,
         )
         return JsonResponse({"taskID": task.id})
 
@@ -364,9 +371,13 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
             context["has_chants"] = chants.exists()
 
         context["source_notation"] = source.notation.first()
-        context["user_can_edit_chants"] = self.user_assigned_to_source(source)
-        context["user_can_edit_source"] = self.user_assigned_to_source(source) and (
-            self.user_is_editor or self.user_created_source(source)
+        context["user_can_edit_chants"] = self.user_can_edit_chants(source)
+        context["user_can_edit_source"] = self.user_can_edit_source(source)
+        # The edit page also carries a submit button, but it is reachable only
+        # by a source's editors and creator; an assigned indexer who did not
+        # create the source hands it over from here (issue #1962).
+        context["user_can_submit_for_proofreading"] = (
+            self.user_can_submit_source_for_proofreading(source)
         )
         return context
 
@@ -847,6 +858,13 @@ class SourceDeleteView(CustomAccessMixin, DeleteView):  # type: ignore[type-arg]
         return self.user_is_editor and self.user_assigned_to_source(self.get_object())
 
 
+PROOFREADING_SUBMITTED_MESSAGE = (
+    "Source submitted for proofreading. You can still view it, but the "
+    "source and its chants are now locked for editing until an editor "
+    "picks it up."
+)
+
+
 class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
     template_name = "source_edit.html"
     model = Source
@@ -854,16 +872,14 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
     pk_url_kwarg = "source_id"
 
     def test_func(self) -> bool:
-        source = self.get_object()
-        if self.user_assigned_to_source(source) and (
-            self.user_is_editor or source.created_by == self.user
-        ):
-            return True
-        return False
+        return self.user_can_edit_source(self.get_object())
 
     def get_context_data(self, **kwargs):
         source = self.object
         context = super().get_context_data(**kwargs)
+        context["user_can_submit_for_proofreading"] = (
+            self.user_can_submit_source_for_proofreading(source)
+        )
 
         if source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists():
             # if this is a sequence source
@@ -887,10 +903,104 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
             context["bower_segment"] = False
         return context
 
+    @staticmethod
+    def save_form_fields_only(form) -> None:
+        """
+        Save `form`'s instance, writing only the columns the form edits.
+
+        `ModelForm.save()` issues a full-row UPDATE carrying every value the
+        instance was loaded with, including columns the form never showed. On
+        a form that sat open while another request changed one of those
+        columns — `source_status`, when the source is submitted for
+        proofreading — that UPDATE writes the stale value back. Naming the
+        form's own fields in `update_fields` keeps the edit out of columns it
+        doesn't own. `date_updated` is listed explicitly because Django only
+        refreshes `auto_now` fields that appear in `update_fields`.
+
+        :param form: A bound, valid `SourceEditForm` to save.
+        """
+        form_field_names = set(form.fields)
+        # Many-to-many fields are saved separately by `save_m2m()` and are
+        # rejected in `update_fields`, so take the concrete columns only.
+        update_fields = {
+            field.name
+            for field in Source._meta.concrete_fields
+            if field.name in form_field_names or field.attname in form_field_names
+        }
+        update_fields.update(("last_updated_by", "date_updated"))
+        source = form.save(commit=False)
+        source.save(update_fields=sorted(update_fields))
+        form.save_m2m()
+
     def form_valid(self, form):
-        form.instance.last_updated_by = self.request.user
-        form.save()
+        # `source_status` is not editable on this form, but a save from a form
+        # that opened before the source was submitted must not revert the lock.
+        # Two things keep it from doing so (see issue #1962):
+        #
+        # - the status is re-read under a row lock held until the save
+        #   commits, so a submission racing this request either lands first —
+        #   and the stale edit is refused — or waits its turn behind it;
+        # - the save is narrowed to the form's own columns, so `source_status`
+        #   is never in the UPDATE at all and a submission that commits just
+        #   after the re-read still stands.
+        submitting = "submit_for_proofreading" in self.request.POST
+        with transaction.atomic():
+            fresh = (
+                Source.objects.select_for_update()
+                .only("source_status")
+                .get(pk=form.instance.pk)
+            )
+            if self.source_locked_for_proofreading(fresh) and not self.user_is_editor:
+                return self.handle_no_permission()
+            # The UPDATE leaves `source_status` alone, but django-reversion
+            # snapshots the whole in-memory instance, so carry the current
+            # status onto it: otherwise restoring this version would bring
+            # back the stale, unlocked status.
+            form.instance.source_status = fresh.source_status
+            form.instance.last_updated_by = self.request.user
+            # A stale or forged form can still post the submit button for a
+            # published or already-submitted source; save the edits, but
+            # don't submit it.
+            submitting = submitting and self.user_can_submit_source_for_proofreading(
+                form.instance
+            )
+            self.save_form_fields_only(form)
+            if submitting:
+                # The button lives inside this form, so save the indexer's
+                # pending corrections before locking the source (issue #1962).
+                form.instance.submit_for_proofreading(self.request.user)
+        if submitting:
+            messages.success(self.request, PROOFREADING_SUBMITTED_MESSAGE)
+            return HttpResponseRedirect(
+                reverse("source-detail", args=[form.instance.id])
+            )
         return HttpResponseRedirect(self.get_success_url())
+
+
+class SourceSubmitForProofreadingView(CustomAccessMixin, SingleObjectMixin, View):  # type: ignore[type-arg]
+    """
+    Lets anyone working on a source mark it as ready for proofreading.
+    Sets the source's status accordingly, which locks it from further
+    edits by the assigned indexer/creator (though they can still view it)
+    until an editor picks it up for proofreading. See issue #1962.
+
+    Anyone assigned to the source may submit it, not only its creator:
+    #1962 asks for a way for whoever is working on a source to hand it
+    over, and an indexer is routinely assigned to a source someone else
+    created.
+    """
+
+    model = Source
+    pk_url_kwarg = "source_id"
+
+    def test_func(self) -> bool:
+        return self.user_can_submit_source_for_proofreading(self.get_object())
+
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        source = self.get_object()
+        source.submit_for_proofreading(request.user)
+        messages.success(request, PROOFREADING_SUBMITTED_MESSAGE)
+        return HttpResponseRedirect(reverse("source-detail", args=[source.id]))
 
 
 class SourceInventoryView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
@@ -913,7 +1023,7 @@ class SourceInventoryView(CustomAccessMixin, ListView):  # type: ignore[type-arg
             queryset = (
                 self.source.sequence_set.annotate(record_type=Value("sequence"))
                 .order_by("s_sequence")
-                .select_related("genre")
+                .select_related("feast", "service", "genre", "diff_db")
             )
         else:
             queryset = (
@@ -941,6 +1051,7 @@ class SourceAddImageLinksView(CustomAccessMixin, SingleObjectMixin, FormView):  
     context_object_name = "source"
     form_class = ImageLinkForm
     object: Source
+    source_folios: list[str]
     http_method_names = ["get", "post"]
 
     def test_func(self) -> bool:
@@ -951,26 +1062,46 @@ class SourceAddImageLinksView(CustomAccessMixin, SingleObjectMixin, FormView):  
 
     def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         self.object = self.get_object()
+        self.source_folios = self.get_source_folios()
         return super().get(request, *args, **kwargs)
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         self.object = self.get_object()
+        # Read the folios afresh rather than trusting the posted ones, so an
+        # import can only reach folios this source actually has.
+        self.source_folios = self.get_source_folios()
         return super().post(request, *args, **kwargs)
 
-    def get_initial(self) -> dict[str, Any]:
+    def get_source_folios(self) -> list[str]:
         """
-        Set the initial data required by the ImageLinkForm
-        on GET requests.
+        List the distinct folios of this source's chants, in folio order.
         """
         folios: QuerySet[Chant, Optional[str]] = (
             self.object.chant_set.values_list("folio", flat=True)
             .distinct()
             .order_by("folio")
         )
-        return {folio: "" for folio in folios if folio}
+        return [folio for folio in folios if folio]
+
+    def get_form_kwargs(self) -> dict[str, Any]:
+        kwargs = super().get_form_kwargs()
+        kwargs["source_folios"] = self.source_folios
+        return kwargs
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
+        # The page lists the folios once, as JSON, for the CSV preview and its
+        # checks to read.
+        context["source_folios"] = self.source_folios
+        # Keep imports below nginx's default 1 MiB body limit as well as any
+        # smaller Django limit, so the preview can explain how to split them.
+        request_limit = 1024 * 1024
+        if settings.DATA_UPLOAD_MAX_MEMORY_SIZE is not None:
+            request_limit = min(request_limit, settings.DATA_UPLOAD_MAX_MEMORY_SIZE)
+        context["image_link_import_limits"] = {
+            "maxRows": MAX_IMAGE_LINK_ROWS,
+            "maxRequestBytes": request_limit,
+        }
         # Check if this source has a IIIF manifest
         has_iiif = self.object.source_links.filter(
             url_type=SourceURL.URLTypes.IIIF_MANIFEST
@@ -982,8 +1113,21 @@ class SourceAddImageLinksView(CustomAccessMixin, SingleObjectMixin, FormView):  
         """
         Save the image links to the database.
         """
-        form.save(self.object)
-        messages.success(self.request, "Image links saved successfully!")
+        saved = form.save(self.object)
+        if saved:
+            message = f"Image links saved for {saved} folio{'' if saved == 1 else 's'}."
+        else:
+            message = (
+                "No image links were changed. The matching folios have blank links "
+                "in the CSV, so their existing links were kept."
+            )
+        if form.ignored_folios:
+            skipped = len(form.ignored_folios)
+            message += (
+                f" Skipped {skipped} row{'' if skipped == 1 else 's'} "
+                "naming folios this source does not have."
+            )
+        messages.success(self.request, message)
         return HttpResponseRedirect(self.get_success_url())
 
 

@@ -23,7 +23,7 @@
                                 {% endfor %}
                                 {% for sequence in object.sequence_set.all %}
                                     <li>
-                                        <a href="{% url "sequence-detail" sequence.id %}" target="_blank">{{ sequence.incipit }}</a>
+                                        <a href="{% url "sequence-detail" sequence.id %}" target="_blank">{{ sequence.incipit_std_spelling|default:sequence.incipit }}</a>
                                     </li>
                                 {% endfor %}
                             </ul>

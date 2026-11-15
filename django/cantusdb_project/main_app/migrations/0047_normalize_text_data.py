@@ -93,7 +93,7 @@ def normalize_text_data(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -> 
 
 
 class Migration(migrations.Migration):
-    dependencies = [("main_app", "0044_alter_source_source_completeness")]
+    dependencies = [("main_app", "0046_incipit_std_spelling")]
 
     operations = [
         # Undoing the schema constraint is safe while retaining canonical data.

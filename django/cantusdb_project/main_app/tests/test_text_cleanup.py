@@ -218,6 +218,22 @@ class TextNormalizationTest(TestCase):
         )
         self.assertEqual(self.source.number_of_melodies, 0)
 
+    def test_partial_save_with_unsaved_missing_melody(self) -> None:
+        chant = Chant.objects.create(
+            source=self.source, folio="001r", volpiano="1--a--b--4"
+        )
+        chant.volpiano = None
+        chant.folio = "002r"
+        chant.save(update_fields=["folio"])
+        chant.refresh_from_db()
+        self.source.refresh_from_db()
+        self.assertEqual(chant.folio, "002r")
+        self.assertEqual(
+            (chant.volpiano, chant.volpiano_notes, chant.volpiano_intervals),
+            ("1--a--b--4", "ab", "1"),
+        )
+        self.assertEqual(self.source.number_of_melodies, 1)
+
 
 class TextCleanupConsumerTest(TestCase):
     def setUp(self) -> None:
@@ -394,8 +410,8 @@ class TextCleanupConsumerTest(TestCase):
 
 
 class TextCleanupMigrationTest(TransactionTestCase):
-    old_target = [("main_app", "0044_alter_source_source_completeness")]
-    new_target = [("main_app", "0046_canonical_empty_text")]
+    old_target = [("main_app", "0046_incipit_std_spelling")]
+    new_target = [("main_app", "0048_canonical_empty_text")]
 
     def migrate(self, target: list[tuple[str, str]]) -> Apps:
         executor = MigrationExecutor(connection)
@@ -407,10 +423,12 @@ class TextCleanupMigrationTest(TransactionTestCase):
         old_apps = self.migrate(self.old_target)
         old_source = old_apps.get_model("main_app", "Source")
         formatting = "    indented paragraph\nlast line  \n"
+        legacy_html = "<p>Original source description</p>"
         source = old_source.objects.create(
             pk=0,
             shelfmark="Legacy cleanup",
             description=formatting,
+            description_html_legacy=legacy_html,
             selected_bibliography=" \r\n",
             summary=None,
             number_of_melodies=99,
@@ -423,6 +441,7 @@ class TextCleanupMigrationTest(TransactionTestCase):
                 model.objects.create(
                     source_id=source.pk,
                     incipit="Curated incipit",
+                    incipit_std_spelling="Curated standardized incipit",
                     manuscript_full_text=" \r\nGloria  patri\nfilio \t",
                     manuscript_full_text_std_spelling="\u00a0Benedictus dominus\u00a0",
                     manuscript_syllabized_full_text=None,
@@ -436,7 +455,7 @@ class TextCleanupMigrationTest(TransactionTestCase):
             ]
             ids[name] = [(obj.pk, obj.date_updated) for obj in rows]
         migration = importlib.import_module(
-            "main_app.migrations.0045_normalize_text_data"
+            "main_app.migrations.0047_normalize_text_data"
         )
         with patch.object(migration, "BATCH_SIZE", 2):
             apps = self.migrate(self.new_target)
@@ -452,6 +471,9 @@ class TextCleanupMigrationTest(TransactionTestCase):
                 self.assertEqual(obj.image_link, "")
                 self.assertEqual(obj.indexing_notes, formatting)
                 self.assertEqual(obj.incipit, "Curated incipit")
+                self.assertEqual(
+                    obj.incipit_std_spelling, "Curated standardized incipit"
+                )
                 self.assertEqual(obj.date_updated, date)
                 self.assertEqual(
                     (obj.volpiano, obj.volpiano_notes, obj.volpiano_intervals),
@@ -468,6 +490,8 @@ class TextCleanupMigrationTest(TransactionTestCase):
         )
         self.assertEqual(cleaned_source.number_of_melodies, 1)
         self.assertEqual(cleaned_source.date_updated, unchanged_date)
+        self.assertEqual(cleaned_source.description_html_legacy, legacy_html)
+        self.assertIsNone(cleaned_source.selected_bibliography_html_legacy)
         before = {
             name: list(apps.get_model("main_app", name).objects.values().order_by("pk"))
             for name in ("Chant", "Sequence", "Source")

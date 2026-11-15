@@ -1,4 +1,5 @@
-from django.forms.widgets import TextInput, Select, Textarea, CheckboxInput
+from django.forms.widgets import TextInput, Select, Textarea, CheckboxInput, Media
+from django.templatetags.static import static
 
 
 class TextInputWidget(TextInput):
@@ -41,9 +42,12 @@ class CheckboxWidget(CheckboxInput):
 class MarkdownWidget(TextAreaWidget):
     template_name = "widgets/markdown_widget.html"
 
-    class Media:
-        js = [
-            "https://cdn.jsdelivr.net/npm/marked/marked.min.js",
-            "js/markdown_widget.js",
-        ]
-        css = {"all": ["css/markdown_widget.css"]}
+    @property
+    def media(self) -> Media:
+        # Fetch the matching assets when replacing the old marked-based widget.
+        # Resolve static paths before appending queries so storage does not
+        # escape the query into the filename.
+        return Media(
+            js=[f"{static('js/markdown_widget.js')}?v=server-preview-1"],
+            css={"all": [f"{static('css/markdown_widget.css')}?v=server-preview-1"]},
+        )

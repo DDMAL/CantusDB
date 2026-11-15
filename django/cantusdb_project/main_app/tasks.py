@@ -15,16 +15,20 @@ from urllib.parse import quote
 
 from celery import shared_task, Task
 from django.conf import settings
+from django.contrib.postgres.aggregates import ArrayAgg
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
+from django.db import transaction
 from django.db.models import Count, Q
 from django.utils import timezone
 
 from cantusindex import get_json_from_ci_api
-from main_app.models import Chant, Sequence
+from main_app.models import Chant, Sequence, Source
 from main_app.models.data_check_config import DataCheckConfig
 from main_app.models.data_check_report import DataCheckReport
 from main_app.forms import BrowseChantsBulkEditFormset
+from main_app.permissions import CustomAccessMixin, user_is_editor
+from users.models import User
 
 CI_WORKERS = 10
 CI_REQUEST_DELAY = 0.2  # seconds between requests per worker, so we don't hammer CI
@@ -87,7 +91,9 @@ def check_cantus_ids_not_in_ci(chant_ids: Optional[List[int]] = None) -> dict:
 
     invalid_ids = {cid for cid in local_ids if cid not in ci_ids}
 
-    base_qs = qs.filter(cantus_id__in=invalid_ids).select_related("source", "genre")
+    base_qs = qs.filter(cantus_id__in=invalid_ids).select_related(
+        "source__holding_institution", "genre"
+    )
     return {
         "published": list(base_qs.filter(source__published=True).order_by("cantus_id")),
         "unpublished": list(
@@ -120,36 +126,18 @@ def check_duplicate_folio_sequence(
         base_qs.exclude(folio__isnull=True)
         .exclude(c_sequence__isnull=True)
         .values("source_id", "source__published", "folio", "c_sequence")
-        .annotate(count=Count("id"))
+        .annotate(count=Count("id"), chant_ids=ArrayAgg("id", order_by="id"))
         .filter(count__gt=1)
         .order_by("source_id", "folio", "c_sequence")
     )
-    for group in chant_dups:
-        group["chant_ids"] = list(
-            base_qs.filter(
-                source_id=group["source_id"],
-                folio=group["folio"],
-                c_sequence=group["c_sequence"],
-            ).values_list("id", flat=True)
-        )
-
     seq_dups = list(
         seq_qs.exclude(folio__isnull=True)
         .exclude(s_sequence__isnull=True)
         .values("source_id", "source__published", "folio", "s_sequence")
-        .annotate(count=Count("id"))
+        .annotate(count=Count("id"), sequence_ids=ArrayAgg("id", order_by="id"))
         .filter(count__gt=1)
         .order_by("source_id", "folio", "s_sequence")
     )
-    for group in seq_dups:
-        group["sequence_ids"] = list(
-            seq_qs.filter(
-                source_id=group["source_id"],
-                folio=group["folio"],
-                s_sequence=group["s_sequence"],
-            ).values_list("id", flat=True)
-        )
-
     published = [g for g in chant_dups if g["source__published"]] + [
         g for g in seq_dups if g["source__published"]
     ]
@@ -241,7 +229,7 @@ def check_cantus_ids_genre_mismatch(chant_ids: Optional[List[int]] = None) -> di
     mismatched_cids = {cid for cid, _ in mismatched_pairs}
     candidates = (
         qs.filter(cantus_id__in=mismatched_cids)
-        .select_related("source", "genre")
+        .select_related("source__holding_institution", "genre")
         .order_by("cantus_id")
     )
     matches = [
@@ -272,7 +260,7 @@ def check_position_service_mismatch(chant_ids: Optional[List[int]] = None) -> di
     invalid = qs.filter(
         Q(position="M") & (Q(service__isnull=True) | ~Q(service__name__in=["V", "V2"]))
         | Q(position="B") & (Q(service__isnull=True) | ~Q(service__name="L"))
-    ).select_related("source", "service")
+    ).select_related("source__holding_institution", "genre", "service")
 
     return {
         "published": list(
@@ -294,7 +282,7 @@ def check_blank_cantus_id(chant_ids: Optional[List[int]] = None) -> dict:
         else Chant.objects.all()
     )
     invalid = qs.filter(Q(cantus_id__isnull=True) | Q(cantus_id="")).select_related(
-        "source", "genre"
+        "source__holding_institution", "genre"
     )
     return {
         "published": list(invalid.filter(source__published=True).order_by("source_id")),
@@ -314,7 +302,7 @@ def check_blank_mode(chant_ids: Optional[List[int]] = None) -> dict:
         else Chant.objects.all()
     )
     invalid = qs.filter(Q(mode__isnull=True) | Q(mode="")).select_related(
-        "source", "genre"
+        "source__holding_institution", "genre"
     )
     return {
         "published": list(invalid.filter(source__published=True).order_by("source_id")),
@@ -337,7 +325,7 @@ def check_blank_invitatory_differentia(chant_ids: Optional[List[int]] = None) ->
     invalid = (
         qs.filter(genre__name__in=["I", "IP"])
         .filter(Q(differentia__isnull=True) | Q(differentia=""))
-        .select_related("source", "genre")
+        .select_related("source__holding_institution", "genre")
     )
     return {
         "published": list(
@@ -467,7 +455,9 @@ def _format_check_csv(result: dict, check_key: Optional[str] = None) -> str:
                     f'=HYPERLINK("{link_url}","{item.id}")',
                     _csv_safe(item.source_id),
                     _csv_safe(item.id),
-                    _csv_safe(getattr(item.source, "siglum", item.source_id)),
+                    # Current composed heading (institution siglum + shelfmark),
+                    # not the frozen `siglum` column (#2025).
+                    _csv_safe(item.source.short_heading),
                     _csv_safe(item.folio),
                     _csv_safe(item.cantus_id),
                     _csv_safe(getattr(item.genre, "name", "")),
@@ -578,21 +568,71 @@ def run_data_checks() -> None:
         logger.error("Failed to send data check report email.", exc_info=True)
 
 
+PROOFREADING_LOCKED_BULK_EDIT_ERROR = (
+    "This source was submitted for proofreading before your changes were "
+    "saved, so they were not applied."
+)
+
+
+def _bulk_edit_locked_out(
+    source_id: int, user_id: Optional[int], chant_ids: List[int]
+) -> bool:
+    """
+    Re-check the proofreading lock when a queued bulk edit finally runs.
+
+    The view authorises the edit when the request arrives, but the task can
+    sit in the queue while the source is submitted and an editor corrects it;
+    applying the stale edit then would overwrite those corrections (issue
+    #1962). Must be called inside a transaction: the row lock taken here is
+    held until the edit commits, so a submission racing the task waits
+    behind it rather than slipping in between this check and the save.
+    """
+    # Lock the chants before the source. A single-chant edit locks its chant
+    # and then the source (via the chant-count signal), so taking the source
+    # first here would let the two deadlock; ordering by id keeps two bulk
+    # edits from deadlocking on each other.
+    list(
+        Chant.objects.select_for_update()
+        .filter(id__in=chant_ids)
+        .order_by("id")
+        .values_list("id", flat=True)
+    )
+    source = Source.objects.select_for_update().only("source_status").get(pk=source_id)
+    if not CustomAccessMixin.source_locked_for_proofreading(source):
+        return False
+    user = User.objects.filter(pk=user_id).first()
+    return user is None or not user_is_editor(user)
+
+
 @shared_task(name="cantusdb.save_browse_chants_formset", bind=True)
 def save_browse_chants_formset(
-    self: Task, data: Dict[str, Any], chant_ids: List[int]
+    self: Task,
+    data: Dict[str, Any],
+    chant_ids: List[int],
+    source_id: Optional[int] = None,
+    user_id: Optional[int] = None,
 ) -> Dict[str, Any]:
     self.update_state(state="PROCESSING")
     chants = Chant.objects.filter(id__in=chant_ids)
     formset = BrowseChantsBulkEditFormset(data=data, queryset=chants)
     text_warnings: list[dict[str, Any]] = []
-    if formset.is_valid():
-        formset.save()
-        text_warnings = [
-            {"form_num": form_num, **problem}
-            for form_num, form in enumerate(formset.forms)
-            for problem in form.text_problems
-        ]
+    with transaction.atomic():
+        if source_id is not None and _bulk_edit_locked_out(
+            source_id, user_id, chant_ids
+        ):
+            return {
+                "non_form_errors": [{"message": PROOFREADING_LOCKED_BULK_EDIT_ERROR}],
+                "form_errors": [],
+                "error_count": 1,
+                "text_warnings": [],
+            }
+        if formset.is_valid():
+            formset.save()
+            text_warnings = [
+                {"form_num": form_num, **problem}
+                for form_num, form in enumerate(formset.forms)
+                for problem in form.text_problems
+            ]
     non_form_errors = formset.non_form_errors().get_json_data(escape_html=True)
     form_errors = []
     for form_num, errors in enumerate(formset.errors):

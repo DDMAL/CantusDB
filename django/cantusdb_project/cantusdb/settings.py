@@ -78,6 +78,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "main_app.middleware.CancelDisconnectedSearchMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -264,3 +265,18 @@ if DEBUG:
     INSTALLED_APPS.append("debug_toolbar")
     # debug toolbar must be inserted as early in the middleware as possible
     MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
+
+# Expected search disconnects are useful operational information. Keep their
+# logger visible in production without changing other application log levels.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"search_cancellation_console": {"class": "logging.StreamHandler"}},
+    "loggers": {
+        "main_app.middleware": {
+            "handlers": ["search_cancellation_console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}

@@ -1,7 +1,7 @@
 # Text field cleanup (#1585)
 
 Missing values use `""`, with `blank=True` retained for optional form fields.
-Migrations 0045 and 0046 normalize existing data and then add `NOT NULL` for:
+Migrations 0047 and 0048 normalize existing data and then add `NOT NULL` for:
 
 - Chant and Sequence: manuscript full text, standardized and syllabized full
   text, image link, indexing notes, Volpiano, Volpiano notes and intervals.
@@ -35,10 +35,10 @@ sometimes JSON `null`. CSV missing values remain empty cells.
 3. Check text search, melody filters and source melody counts before restarting
    writers. Test on staging before a production release.
 
-0045 scans Chant, Sequence and Source using primary-key batches of 500, updating
+0047 scans Chant, Sequence and Source using primary-key batches of 500, updating
 only changed records. It runs in one database transaction; batching bounds Python
 memory, but does not shorten the transaction or release its locks. Allow time
-and database/WAL space for large tables. 0046 adds the constraints separately,
+and database/WAL space for large tables. 0048 adds the constraints separately,
 after the data transaction commits. Measure the migration on a restored database
 of representative size before scheduling production; local regression tests do
 not establish production runtime.
@@ -59,7 +59,7 @@ storage and processing, relying on the database backup for exact recovery.
 Agree on this audit-history tradeoff before running the cleanup; this migration
 does not leave a per-record explanation of its changes in the revision history.
 
-Reversing to migration 0044 restores nullable columns but deliberately leaves
+Reversing to migration 0046 restores nullable columns but deliberately leaves
 normalized data in place. Original NULL values and removed whitespace cannot be
 reconstructed from the cleaned values. Exact recovery requires the database
 backup; restoring it also discards later changes, so decide rollback before

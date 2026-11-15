@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.urls import reverse
 
+from main_app.models import Differentia
 from main_app.tests.make_fakes import make_fake_century, make_fake_feast
 
 
@@ -42,6 +43,10 @@ class AutocompleteViewsTest(TestCase):
             name="Dom. Pentecostes",
             description='Pentecost Sunday (also "Whitsunday")',
         )
+
+        Differentia.objects.create(differentia_id="118a")
+        Differentia.objects.create(differentia_id="118b")
+        Differentia.objects.create(differentia_id="201a")
 
     def test_active_users_autocomplete(self):
         response = self.client.get(reverse("active-users-autocomplete"))
@@ -87,6 +92,16 @@ class AutocompleteViewsTest(TestCase):
         data = response.json()
         self.assertEqual(len(data["results"]), 1)
 
+    def test_differentia_autocomplete(self):
+        response = self.client.get(reverse("differentia-autocomplete"))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 3)
+
+        response = self.client.get(reverse("differentia-autocomplete"), {"q": "118"})
+        data = response.json()
+        self.assertEqual(len(data["results"]), 2)
+
     def test_non_authenticated_user(self):
         self.client.logout()
         response = self.client.get(reverse("active-users-autocomplete"))
@@ -108,6 +123,13 @@ class AutocompleteViewsTest(TestCase):
         # reachable anonymously and uses this endpoint to populate its Select2
         # feast widget.
         response = self.client.get(reverse("feast-autocomplete"))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 3)
+
+        # DifferentiaAutocomplete is intentionally public for the same reason:
+        # it populates the Chant Search "Differentia ID" widget.
+        response = self.client.get(reverse("differentia-autocomplete"))
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(len(data["results"]), 3)

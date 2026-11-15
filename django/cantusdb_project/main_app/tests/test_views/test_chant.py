@@ -14,6 +14,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from faker import Faker
+from bs4 import BeautifulSoup
 
 from main_app.tests.make_fakes import (
     make_fake_chant,
@@ -31,7 +32,8 @@ from main_app.tests.make_fakes import (
 )
 from main_app.tests.test_functions import mock_requests_get
 from main_app.tests.mixins import CustomAccessTestMixin
-from main_app.models import Chant, Source, Feast, Service
+from main_app.forms import ChantEditSyllabificationForm
+from main_app.models import Chant, Source, Feast, Service, Differentia, Sequence
 from main_app.forms import MAX_CHECKED_TEXT_LENGTH, find_chant_text_problems
 from main_app.views.chant import (
     get_feast_selector_options,
@@ -165,6 +167,36 @@ class ChantDetailViewTest(ChantPermissionsTestCase):
             test_name="Unassigned chant",
         )
 
+    def test_chant_create_link_visibility(self) -> None:
+        cases = [
+            ("user", "user_assigned_chant", True),
+            ("editor", "editor_assigned_chant", True),
+            ("superuser", "unassigned_chant", True),
+            ("anonymous user", "published_chant", False),
+            ("user", "published_chant", False),
+            ("editor", "published_chant", False),
+            ("global viewer", "published_chant", False),
+        ]
+        for user_key, chant_key, visible in cases:
+            with self.subTest(user=user_key, chant=chant_key):
+                self.client.logout()
+                if user_key != "anonymous user":
+                    self.client.force_login(self.users[user_key])
+                chant = self.chants[chant_key]
+                create_url = reverse("chant-create", args=[chant.source_id])
+                response = self.client.get(reverse("chant-detail", args=[chant.id]))
+
+                if visible:
+                    self.assertContains(
+                        response,
+                        f'<a href="{create_url}">Add new chant</a>',
+                        count=1,
+                        html=True,
+                    )
+                else:
+                    self.assertNotContains(response, "Add new chant")
+                    self.assertNotContains(response, f'href="{create_url}"')
+
     def test_chant_edit_link(self) -> None:
         source = make_fake_source()
         chant = make_fake_chant(source=source, folio="001r")
@@ -244,6 +276,44 @@ class ChantDetailViewTest(ChantPermissionsTestCase):
         self.assertIn("Notation (Bower):", html)
         self.assertIn(notation.name, html)
         self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
+
+
+class MelodyWithTextRenderingTest(TestCase):
+    def test_missing_music_wraps_without_changing_text_or_melody(self) -> None:
+        user = make_fake_user()
+        source = make_fake_source(current_editors=[user])
+        text = "Oremus. {Fidelium deus omnium conditor et redemptor} Amen"
+        chant = make_fake_chant(
+            source=source,
+            folio="001r",
+            manuscript_full_text=text,
+            manuscript_full_text_std_spelling=text,
+            manuscript_syllabized_full_text=None,
+            volpiano="1---k--jk--k---6------6---k--k---4",
+        )
+        self.client.force_login(user)
+        urls = [
+            reverse("chant-detail", args=[chant.pk]),
+            reverse("source-edit-chants", args=[source.pk]) + f"?pk={chant.pk}",
+            reverse("source-edit-syllabification", args=[chant.pk]),
+        ]
+        for url in urls:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+                alignment = response.context["syllabized_text_with_melody"]
+                soup = BeautifulSoup(response.content, "html.parser")
+                syllables = soup.select("pre")
+                texts = [syllable.get_text() for syllable in syllables]
+                melodies = [
+                    syllable.parent.find_previous_sibling("div").get_text()
+                    for syllable in syllables
+                ]
+                self.assertIn("{Fidelium ", texts)
+                self.assertIn("deus ", texts)
+                self.assertIn("redemptor}", texts)
+                self.assertEqual("".join(texts), "".join(t for t, _ in alignment))
+                self.assertEqual("".join(melodies), "".join(m for _, m in alignment))
 
 
 class ChantAttributionFooterTest(CustomAccessTestMixin, TestCase):
@@ -889,6 +959,45 @@ class ChantEditSyllabificationViewTest(ChantPermissionsTestCase):
         message_levels = [m.level for m in get_messages(response.wsgi_request)]
         self.assertNotIn(message_constants.WARNING, message_levels)
 
+    def test_save_cannot_revert_a_lock_set_while_the_editor_was_open(self) -> None:
+        """
+        Saving a chant recalculates its source's chant and melody counts, and
+        it recalculates them on the copy of the source loaded when the request
+        was authorized. A full-row write there carries that copy's
+        `source_status` back into the row, undoing a proofreading lock applied
+        while the syllabification edit was in flight (issue #1962).
+
+        The lock has to land after the request loads the source, so the form's
+        own `is_valid()` stands in for the concurrent submission.
+        """
+        chant = self.chants["user_assigned_chant"]
+        source = chant.source
+        real_is_valid = ChantEditSyllabificationForm.is_valid
+
+        def submit_then_validate(form):
+            Source.objects.get(pk=source.pk).submit_for_proofreading(
+                self.users["editor"]
+            )
+            return real_is_valid(form)
+
+        self.client.force_login(self.users["user"])
+        with patch.object(
+            ChantEditSyllabificationForm, "is_valid", submit_then_validate
+        ):
+            response = self.client.post(
+                reverse("source-edit-syllabification", args=[chant.id]),
+                {
+                    "manuscript_full_text": "lorem ipsum",
+                    "manuscript_syllabized_full_text": "lore-m i-psum",
+                },
+            )
+
+        self.assertEqual(response.status_code, 302)
+        source.refresh_from_db()
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+        chant.refresh_from_db()
+        self.assertEqual(chant.manuscript_syllabized_full_text, "lore-m i-psum")
+
 
 class ChantByCantusIDViewTest(ChantPermissionsTestCase):
     def test_url_and_templates(self):
@@ -944,6 +1053,24 @@ class ChantByCantusIDViewTest(ChantPermissionsTestCase):
 
 
 class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
+    def test_cantusindex_search_link(self) -> None:
+        for url_name in ("chant-search", "ccdb-chant-search"):
+            for params in ({"keyword": "alleluia"}, {"keyword": ""}, {}):
+                with self.subTest(url_name=url_name, params=params):
+                    response = self.client.get(reverse(url_name), params)
+                    if params.get("keyword"):
+                        self.assertContains(
+                            response,
+                            '<a href="https://cantusindex.org/search?t=alleluia" '
+                            'title="Search alleluia on CantusIndex.org" '
+                            'target="_blank">Search <b>alleluia</b> on CantusIndex.org</a>',
+                            html=True,
+                        )
+                    else:
+                        self.assertNotContains(
+                            response, "https://cantusindex.org/search?t="
+                        )
+
     def test_view_url_path(self):
         response = self.client.get("/chant-search/")
         self.assertEqual(response.status_code, 200)
@@ -1078,6 +1205,111 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         response = self.client.get(reverse("chant-search"), {"feast": feast.id})
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
+
+    def test_search_by_differentia_id(self):
+        source = make_fake_source(published=True)
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        chant = make_fake_chant(source=source, diff_db=diff_db)
+        make_fake_chant(source=source)
+        response = self.client.get(
+            reverse("chant-search"), {"differentia_id": diff_db.id}
+        )
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 1)
+        self.assertEqual(chant.id, listed_chants[0].id)
+
+    def test_search_by_differentia_id_excludes_chants_with_other_differentiae(self):
+        source = make_fake_source(published=True)
+        diff_db_a = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        diff_db_b = Differentia.objects.create(differentia_id=faker.numerify("###b"))
+        chant_a = make_fake_chant(source=source, diff_db=diff_db_a)
+        make_fake_chant(source=source, diff_db=diff_db_b)
+        response = self.client.get(
+            reverse("chant-search"), {"differentia_id": diff_db_a.id}
+        )
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 1)
+        self.assertEqual(chant_a.id, listed_chants[0].id)
+
+    def test_search_by_differentia_id_no_matching_chants(self):
+        source = make_fake_source(published=True)
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        make_fake_chant(source=source)  # not linked to diff_db
+        response = self.client.get(
+            reverse("chant-search"), {"differentia_id": diff_db.id}
+        )
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 0)
+
+    def test_search_by_differentia_id_nonexistent_id_returns_no_chants(self):
+        source = make_fake_source(published=True)
+        make_fake_chant(source=source)
+        nonexistent_id = Differentia.objects.count() + 1000
+        response = self.client.get(
+            reverse("chant-search"), {"differentia_id": nonexistent_id}
+        )
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 0)
+
+    def test_search_by_differentia_id_non_numeric_value_is_ignored(self):
+        # The dropdown widget always submits a Differentia pk. A non-numeric
+        # value (e.g. a stale/tampered query string) should be ignored rather
+        # than raising, falling back to an unfiltered (all chants) result.
+        source = make_fake_source(published=True)
+        chant = make_fake_chant(source=source)
+        response = self.client.get(
+            reverse("chant-search"), {"differentia_id": "not-a-valid-id"}
+        )
+        self.assertEqual(response.status_code, 200)
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 1)
+        self.assertEqual(chant.id, listed_chants[0].id)
+
+    def test_search_by_differentia_id_marks_advanced_search_active(self):
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        response = self.client.get(
+            reverse("chant-search"), {"differentia_id": diff_db.id}
+        )
+        self.assertTrue(response.context["advanced_search_active"])
+
+    def test_search_by_differentia_id_populates_search_form_initial(self):
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        response = self.client.get(
+            reverse("chant-search"), {"differentia_id": diff_db.id}
+        )
+        search_form = response.context["search_form"]
+        self.assertEqual(search_form.initial.get("differentia_id"), str(diff_db.id))
+
+    def test_search_by_differentia_id_included_in_url_with_search_params(self):
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        response = self.client.get(
+            reverse("chant-search"), {"differentia_id": diff_db.id}
+        )
+        self.assertIn(
+            f"differentia_id={diff_db.id}", response.context["url_with_search_params"]
+        )
+
+    def test_search_by_differentia_id_respects_source_permissions(self):
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        published_chant = make_fake_chant(
+            source=make_fake_source(published=True), diff_db=diff_db
+        )
+        unassigned_chant = make_fake_chant(
+            source=make_fake_source(published=False), diff_db=diff_db
+        )
+        with self.subTest("Anonymous user"):
+            response = self.client.get(
+                reverse("chant-search"), {"differentia_id": diff_db.id}
+            )
+            self.assertCountEqual([published_chant], response.context["chants"])
+        with self.subTest("Superuser"):
+            self.client.force_login(self.users["superuser"])
+            response = self.client.get(
+                reverse("chant-search"), {"differentia_id": diff_db.id}
+            )
+            self.assertCountEqual(
+                [published_chant, unassigned_chant], response.context["chants"]
+            )
 
     def test_search_by_liturgical_function(self):
         source = make_fake_source(published=True)
@@ -1222,6 +1454,63 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(len(response.context["chants"]), 1)
         context_sequence_id = response.context["chants"][0].id
         self.assertEqual(sequence.id, context_sequence_id)
+
+    def test_sequences_show_and_sort_by_standardized_incipit(self):
+        source = make_fake_source(published=True)
+        standardized = make_fake_sequence(source=source, indexing_notes="marker")
+        plain = make_fake_sequence(source=source, indexing_notes="marker")
+        Sequence.objects.filter(id=standardized.id).update(
+            incipit="Zeta", incipit_std_spelling="Alpha"
+        )
+        Sequence.objects.filter(id=plain.id).update(
+            incipit="Beta", incipit_std_spelling=None
+        )
+        response = self.client.get(
+            reverse("chant-search"),
+            {
+                "indexing_notes": "marker",
+                "indexing_notes_op": "contains",
+                "order": "incipit",
+                "sort": "asc",
+            },
+        )
+        self.assertEqual(
+            [s.id for s in response.context["chants"]], [standardized.id, plain.id]
+        )
+        self.assertContains(response, ">Alpha</a>")
+        self.assertNotContains(response, ">Zeta</a>")
+
+    def test_chants_sort_by_the_incipit_they_show(self):
+        source = make_fake_source(published=True)
+        with_standardized = make_fake_chant(source=source, indexing_notes="marker")
+        plain = make_fake_chant(source=source, indexing_notes="marker")
+        Chant.objects.filter(id=with_standardized.id).update(
+            incipit="Zeta", incipit_std_spelling="Alpha"
+        )
+        Chant.objects.filter(id=plain.id).update(incipit="Beta")
+        response = self.client.get(
+            reverse("chant-search"),
+            {
+                "indexing_notes": "marker",
+                "indexing_notes_op": "contains",
+                "order": "incipit",
+                "sort": "asc",
+            },
+        )
+        self.assertEqual(
+            [c.id for c in response.context["chants"]], [plain.id, with_standardized.id]
+        )
+
+    def test_keyword_search_matches_standardized_incipit(self):
+        source = make_fake_source(published=True)
+        sequence = make_fake_sequence(source=source)
+        Sequence.objects.filter(id=sequence.id).update(
+            incipit="Letabundus exultet", incipit_std_spelling="Laetabundus exsultet"
+        )
+        response = self.client.get(
+            reverse("chant-search"), {"keyword": "Laetabundus", "op": "starts_with"}
+        )
+        self.assertIn(sequence.id, [s.id for s in response.context["chants"]])
 
     def test_indexing_notes_search_box_renders_on_global_search(self):
         response = self.client.get(reverse("chant-search"))
@@ -2127,6 +2416,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
 
         # additional properties for which there are search fields
         position = make_random_string(1)
+        indexing_notes = "edited & revised"
         make_fake_chant(
             manuscript_full_text_std_spelling=fulltext,
             service=service,
@@ -2138,6 +2428,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
             source=source,
             feast=feast,
             position=position,
+            indexing_notes=indexing_notes,
         )
         search_term = "so it be"
 
@@ -2162,6 +2453,8 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
             "feast": feast.id,
             "position": position,
             "melodies": "true",
+            "indexing_notes": indexing_notes,
+            "indexing_notes_op": "starts_with",
         }
 
         response_2 = self.client.get(
@@ -2527,6 +2820,17 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "chant_search.html")
 
+    def test_url_without_trailing_slash_redirects(self):
+        # Regression test: the URL pattern used to omit the trailing slash,
+        # so a URL like /searchms/123/ (with a trailing slash, as commonly
+        # typed/shared) would 404 instead of resolving.
+        source = make_fake_source()
+        url = reverse("chant-search-ms", args=[source.id])
+        self.assertTrue(url.endswith("/"))
+        response = self.client.get(url.rstrip("/"), follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "chant_search.html")
+
     def test_permissions(self) -> None:
         published_source = self.chants["published_chant"].source
         self.run_request_permissions_test(
@@ -2604,6 +2908,98 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
+    def test_search_by_differentia_id(self):
+        source = make_fake_source()
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        chant = make_fake_chant(source=source, diff_db=diff_db)
+        make_fake_chant(source=source)
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"differentia_id": diff_db.id},
+        )
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 1)
+        self.assertEqual(chant.id, listed_chants[0].id)
+
+    def test_search_by_differentia_id_excludes_chants_with_other_differentiae(self):
+        source = make_fake_source()
+        diff_db_a = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        diff_db_b = Differentia.objects.create(differentia_id=faker.numerify("###b"))
+        chant_a = make_fake_chant(source=source, diff_db=diff_db_a)
+        make_fake_chant(source=source, diff_db=diff_db_b)
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"differentia_id": diff_db_a.id},
+        )
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 1)
+        self.assertEqual(chant_a.id, listed_chants[0].id)
+
+    def test_search_by_differentia_id_no_matching_chants(self):
+        source = make_fake_source()
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        make_fake_chant(source=source)  # not linked to diff_db
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"differentia_id": diff_db.id},
+        )
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 0)
+
+    def test_search_by_differentia_id_only_matches_within_source(self):
+        source = make_fake_source()
+        other_source = make_fake_source()
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        make_fake_chant(source=other_source, diff_db=diff_db)
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"differentia_id": diff_db.id},
+        )
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 0)
+
+    def test_search_by_differentia_id_non_numeric_value_is_ignored(self):
+        source = make_fake_source()
+        chant = make_fake_chant(source=source)
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"differentia_id": "not-a-valid-id"},
+        )
+        self.assertEqual(response.status_code, 200)
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 1)
+        self.assertEqual(chant.id, listed_chants[0].id)
+
+    def test_search_by_differentia_id_marks_advanced_search_active(self):
+        source = make_fake_source()
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"differentia_id": diff_db.id},
+        )
+        self.assertTrue(response.context["advanced_search_active"])
+
+    def test_search_by_differentia_id_populates_search_form_initial(self):
+        source = make_fake_source()
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"differentia_id": diff_db.id},
+        )
+        search_form = response.context["search_form"]
+        self.assertEqual(search_form.initial.get("differentia_id"), str(diff_db.id))
+
+    def test_search_by_differentia_id_included_in_url_with_search_params(self):
+        source = make_fake_source()
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"differentia_id": diff_db.id},
+        )
+        self.assertIn(
+            f"differentia_id={diff_db.id}", response.context["url_with_search_params"]
+        )
+
     def test_search_by_feast(self):
         source = make_fake_source()
         feast = make_fake_feast()
@@ -2630,11 +3026,14 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         source = make_fake_source(published=True)
         position = 1
         chant = make_fake_chant(source=source, position=position)
+        make_fake_chant(source=source, position=2)
         search_term = "1"
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"position": search_term}
         )
-        context_chant_id = response.context["chants"][0].id
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 1)
+        context_chant_id = listed_chants[0].id
         self.assertEqual(chant.id, context_chant_id)
 
     def test_filter_by_melody(self):
@@ -3263,6 +3662,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         # additional properties for which there are search fields
         feast = make_fake_feast()
         position = make_random_string(1)
+        indexing_notes = "edited & revised"
         make_fake_chant(
             service=service,
             genre=genre,
@@ -3274,6 +3674,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
             source=source,
             feast=feast,
             position=position,
+            indexing_notes=indexing_notes,
         )
         response_1 = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
@@ -3296,6 +3697,8 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
             "feast": feast.id,
             "position": position,
             "melodies": "true",
+            "indexing_notes": indexing_notes,
+            "indexing_notes_op": "starts_with",
         }
         response_2 = self.client.get(
             reverse("chant-search-ms", args=[source.id]),

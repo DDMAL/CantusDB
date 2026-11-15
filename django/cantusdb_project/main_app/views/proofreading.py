@@ -10,14 +10,15 @@ from django.db.models import (
     Case,
     When,
     Value,
+    Exists,
+    OuterRef,
 )
-from django.db.models.functions import Coalesce
 from django.views.generic import ListView
 from django.views.generic.list import MultipleObjectMixin
 from django.utils import timezone
 
-from main_app.models import Source
-from main_app.permissions import CustomAccessMixin
+from main_app.models import Chant, Source
+from main_app.permissions import CustomAccessMixin, annotate_proofreading_lock
 
 
 class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
@@ -32,9 +33,20 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
     def get_queryset(self):
         user = self.request.user
 
-        queryset = Source.objects.filter(
-            Q(segment_m2m__id=settings.CANTUS_SEGMENT_ID) & Q(number_of_chants__gt=0)
-        ).select_related("holding_institution")
+        inactive_filter = self.request.GET.get("inactive", None)
+        if inactive_filter == "submitted":
+            # Any source can be submitted for proofreading (issue #1962),
+            # including Bower sources and sources without chants, so the
+            # Cantus-only, has-chants scope below would hide some handoffs.
+            queryset = Source.objects.filter(
+                source_status=Source.PROOFREAD_PENDING_STATUS
+            )
+        else:
+            queryset = Source.objects.filter(
+                Q(segment_m2m__id=settings.CANTUS_SEGMENT_ID)
+                & Q(number_of_chants__gt=0)
+            )
+        queryset = queryset.select_related("holding_institution")
 
         if not user.is_superuser:
             queryset = queryset.filter(
@@ -55,7 +67,12 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
             queryset = queryset.filter(search_filter)
 
         # Inactive Source Filtering
-        inactive_filter = self.request.GET.get("inactive", None)
+        queryset = annotate_proofreading_lock(queryset)
+        # The Submitted filter can list sources without chants, whose Browse
+        # Chants page is a 404, so the template hides the link for them.
+        queryset = queryset.annotate(
+            has_chants=Exists(Chant.objects.filter(source=OuterRef("pk")))
+        )
         if inactive_filter:
             today = timezone.now()
             if inactive_filter == "3":
@@ -223,20 +240,16 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
         sort_param = self.request.GET.get("sort", "asc")
         sort_prefix = "-" if sort_param == "desc" else ""
 
-        # Mirror Browse Sources: coalesce NULL holding_institution__siglum to ""
-        # so private collectors sort consistently regardless of DB NULL ordering.
-        siglum_coalesced = Coalesce("holding_institution__siglum", Value(""))
-
-        if order_param == "country":
-            ordering_fields = [
-                f"{sort_prefix}holding_institution__country",
-                siglum_coalesced.desc() if sort_prefix else siglum_coalesced.asc(),
-                f"{sort_prefix}shelfmark",
-            ]
-            return queryset.order_by(*ordering_fields)
-
         # Updated sort_mapping to use annotated fields
         sort_mapping = {
+            # Country (also the default for missing or unrecognized orders)
+            # mirrors Browse Sources' country sort. PostgreSQL puts NULL sigla
+            # (private collectors) last ascending, first descending.
+            "country": [
+                "holding_institution__country",
+                "holding_institution__siglum",
+                "shelfmark",
+            ],
             "city_institution": [
                 "holding_institution__city",
                 "holding_institution__name",
@@ -286,21 +299,15 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
             ],
         }
 
-        primary_sort_fields = sort_mapping.get(order_param, [])
+        primary_sort_fields = sort_mapping.get(order_param, sort_mapping["country"])
 
         if not isinstance(primary_sort_fields, list):
             primary_sort_fields = [primary_sort_fields]
 
         ordering_fields = [f"{sort_prefix}{field}" for field in primary_sort_fields]
 
-        # Fallback if somehow ordering_fields is empty (should not happen with default in .get)
-        if not ordering_fields:
-            ordering_fields = [
-                f"{sort_prefix}holding_institution__country",
-                siglum_coalesced.desc() if sort_prefix else siglum_coalesced.asc(),
-                f"{sort_prefix}shelfmark",
-            ]
-
+        # Break ties in every sort mode so pagination stays consistent.
+        ordering_fields.append(f"{sort_prefix}id")
         return queryset.order_by(*ordering_fields)
 
     def get_context_data(self, **kwargs):

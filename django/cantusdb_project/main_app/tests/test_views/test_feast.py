@@ -256,6 +256,29 @@ class FeastDetailViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(sources[0].chant_count, 3)
         self.assertEqual(sources[1].chant_count, 1)
 
+    def test_sources_containing_this_feast_siglum_fallbacks(self) -> None:
+        """Sources with no usable institution siglum display "Cantus", matching
+        `Source.compose_short_heading`. See #2025.
+        """
+        for description, institution in (
+            ("private collector", make_fake_institution(is_private_collector=True)),
+            ("placeholder siglum", make_fake_institution(siglum="XX-NN")),
+        ):
+            with self.subTest(institution=description):
+                source = make_fake_source(
+                    published=True,
+                    shelfmark=description,
+                    holding_institution=institution,
+                )
+                make_fake_chant(feast=self.feast, source=source)
+                request = self.request
+                request.user = AnonymousUser()
+                context = self._get_view_context(request)
+
+                observed = [s for s in context["sources"] if s.shelfmark == description]
+                self.assertEqual(len(observed), 1)
+                self.assertEqual(observed[0].siglum, "Cantus")
+
     def test_permissions(self) -> None:
         make_fake_chant(
             feast=self.feast, source=self.published_source, cantus_id="100000"

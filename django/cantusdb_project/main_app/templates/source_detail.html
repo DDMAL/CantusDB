@@ -56,13 +56,13 @@
         {% if source.description %}
             <dt>Description</dt>
             <dd class="markdown-field-display">
-                {{ source.description|safe|linebreaks }}
+                {{ source.description|render_markdown }}
             </dd>
         {% endif %}
         {% if source.selected_bibliography %}
             <dt>Selected Bibliography</dt>
             <dd class="markdown-field-display">
-                {{ source.selected_bibliography|safe|linebreaks }}
+                {{ source.selected_bibliography|render_markdown }}
             </dd>
         {% endif %}
         {% if source.indexing_notes %}
@@ -124,7 +124,7 @@
                             <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
                         </td>
                         <td class="text-wrap text-center">
-                            <a href="{% url 'sequence-detail' sequence.id %}">{{ sequence.incipit|default:"" }}</a>
+                            <a href="{% url 'sequence-detail' sequence.id %}">{{ sequence.incipit_std_spelling|default:sequence.incipit|default:"" }}</a>
                         </td>
                         <td class="text-wrap text-center">{{ sequence.rubrics|default:"" }}</td>
                         <td class="text-wrap text-center">{{ sequence.analecta_hymnica|default:"" }}</td>
@@ -411,6 +411,19 @@
                     </li>
                 {% endif %}
             </ul>
+            {% if user_can_submit_for_proofreading %}
+                {# assigned non-creators can't open the edit page, so they submit here #}
+                <form method="post"
+                      action="{% url "source-submit-for-proofreading" source.id %}">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="btn btn-success btn-sm"
+                            id="btn-submit-for-proofreading"
+                            onclick="return confirm('This will mark the source as ready for proofreading and lock the source and its chants from further editing. Continue?');">
+                        Submit for Proofreading
+                    </button>
+                </form>
+            {% endif %}
         </div>
     </div>
 {% endif %}

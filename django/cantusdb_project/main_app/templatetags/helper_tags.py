@@ -1,21 +1,61 @@
 import calendar
+import re
 from typing import Union, Optional, Any
 
 from django.conf import settings
 from django import template
 from django.core.paginator import Paginator, Page
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from django.template.defaultfilters import stringfilter
 from django.utils.safestring import mark_safe, SafeString
 from django.http import HttpRequest, QueryDict
 from django.utils.html import format_html_join
-from cmarkgfm import github_flavored_markdown_to_html
 
 from articles.models import Article
-from main_app.models import Source, BaseModel
+from main_app.models import Chant, Source, BaseModel
+from main_app.permissions import (
+    annotate_proofreading_lock,
+    user_is_editor as user_has_editor_privileges,
+)
+from main_app.markdown import render_markdown
 from users.models import User
 
 register = template.Library()
+
+
+@register.filter
+def split_missing_music(
+    alignment: Optional[list[tuple[str, str]]],
+) -> list[tuple[str, str]]:
+    """Allow unnotated text to wrap between words without changing its staff.
+
+    The alignment library returns a missing-music passage as one text/staff
+    pair. Split only its empty staff (bounded by Volpiano's ``6`` markers),
+    leaving notes and other aligned sections intact.
+    """
+    pieces = []
+    for text, melody in alignment or []:
+        missing_music = re.fullmatch(r"6(-+)6([-7]*)", melody)
+        # The library gives passages of up to ten characters a fixed six-dash
+        # staff. Dividing that short staff can leave gaps between the words.
+        if not missing_music or len(text) <= 10:
+            pieces.append((text, melody))
+            continue
+
+        staff, ending = missing_music.groups()
+        staff_start = 0
+        for word in re.finditer(r"\S+\s*|\s+", text):
+            # Preserve every staff character and distribute the existing
+            # spacing in proportion to each word's share of the text.
+            staff_end = len(staff) * word.end() // len(text)
+            word_melody = staff[staff_start:staff_end]
+            if word.start() == 0:
+                word_melody = "6" + word_melody
+            if word.end() == len(text):
+                word_melody += "6" + ending
+            pieces.append((word.group(), word_melody))
+            staff_start = staff_end
+    return pieces
 
 
 @register.simple_tag(takes_context=False)
@@ -193,16 +233,27 @@ def split(value: str, key: str) -> list[str]:
 
 
 @register.simple_tag(takes_context=True)
+def user_is_editor(context: dict[str, Any]) -> bool:
+    """
+    Whether the current user has editor privileges. Source lists use it to
+    keep chant-editing links for editors on sources submitted for
+    proofreading, which are locked to everyone else (issue #1962).
+    """
+    return user_has_editor_privileges(context["user"])
+
+
+@register.simple_tag(takes_context=True)
 def get_user_source_pagination(context: dict[str, Any]) -> Page[Source]:
     """
     Gets the appropriate `Page` object for the user's sources,
     based on the current page number in the request's GET parameters.
     """
-    user_created_sources = (
+    user_created_sources = annotate_proofreading_lock(
         Source.objects.filter(
             Q(current_editors=context["user"]) | Q(created_by=context["user"])
         )
         .select_related("holding_institution")
+        .annotate(has_chants=Exists(Chant.objects.filter(source_id=OuterRef("pk"))))
         .order_by("-date_updated")
         .distinct()
         .only(
@@ -213,6 +264,7 @@ def get_user_source_pagination(context: dict[str, Any]) -> Page[Source]:
             "holding_institution__name",
             "holding_institution__is_private_collector",
             "shelfmark",
+            "name",
         )
     )
     paginator = Paginator(user_created_sources, 6)
@@ -227,9 +279,10 @@ def get_user_created_source_pagination(context: dict[str, Any]) -> Page[Source]:
     Gets the appropriate `Page` object for the user's created sources,
     based on the current page number in the request's GET parameters.
     """
-    user_created_sources = (
+    user_created_sources = annotate_proofreading_lock(
         Source.objects.filter(created_by=context["user"])
         .select_related("holding_institution")
+        .annotate(has_chants=Exists(Chant.objects.filter(source_id=OuterRef("pk"))))
         .order_by("-date_created")
         .distinct()
         .only(
@@ -240,6 +293,7 @@ def get_user_created_source_pagination(context: dict[str, Any]) -> Page[Source]:
             "holding_institution__name",
             "holding_institution__is_private_collector",
             "shelfmark",
+            "name",
         )
     )
     paginator = Paginator(user_created_sources, 6)
@@ -323,12 +377,16 @@ def join_absolute_url_links(
     )
 
 
+register.filter("render_markdown", render_markdown)
+
+
+# Used by the audit and conversion commands to distinguish HTML from Markdown
+# autolinks such as <https://example.com> and <user@example.com>. Keep namespaced
+# tags such as Word's <o:p> detectable for manual review.
+HTML_TAG_RE = re.compile(r"<\s*/?\s*[A-Za-z][A-Za-z0-9:-]*(?:\s+[^<>]*)?/?\s*>")
+
+
 @register.filter
-def render_markdown(value: str) -> SafeString:
-    """
-    Renders markdown text as HTML.
-    """
-    html: str = github_flavored_markdown_to_html(value)
-    # Generated html is marked safe b/c cmark is run in safe mode in
-    # github_flavored_markdown_to_html
-    return mark_safe(html)
+def contains_html_tags(value: str) -> bool:
+    """Detect raw HTML for the legacy-content audit and conversion commands."""
+    return bool(value) and bool(HTML_TAG_RE.search(value))

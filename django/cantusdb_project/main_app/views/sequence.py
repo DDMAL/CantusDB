@@ -6,8 +6,16 @@ from django.contrib import messages
 from django.http import HttpResponse
 
 from main_app.forms import SequenceEditForm
-from main_app.models import Sequence
+from main_app.models import Sequence, Source
 from main_app.permissions import CustomAccessMixin
+
+# The heading each sequence displays under: the holding institution's siglum (or
+# "Cantus" when it is missing, empty, or the "XX-NN" placeholder) followed by the
+# source's shelfmark. `Sequence.siglum` holds a frozen legacy copy of this, so
+# searching and sorting compose the current value instead (#2025).
+COMPUTED_SIGLUM = Source.short_heading_expression(
+    "source__holding_institution__siglum", "source__shelfmark"
+)
 
 
 class SequenceDetailView(CustomAccessMixin, DetailView):  # type: ignore[type-arg]
@@ -31,16 +39,19 @@ class SequenceDetailView(CustomAccessMixin, DetailView):  # type: ignore[type-ar
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         context = super().get_context_data(**kwargs)
         sequence = context["sequence"]
-        context["concordances"] = (
-            Sequence.objects.select_related("source__holding_institution")
-            .filter(cantus_id=sequence.cantus_id)
-            .select_related("source")
-            .order_by("siglum")
-        )
+        concordances = Sequence.objects.select_related(
+            "source__holding_institution"
+        ).filter(cantus_id=sequence.cantus_id)
+        if not (self.user.is_superuser or self.user_is_global_viewer):
+            # only list sequences from sources the user can see (#2274)
+            concordances = concordances.filter(
+                source__in=self.published_and_assigned_sources
+            )
+        context["concordances"] = concordances.annotate(
+            computed_siglum=COMPUTED_SIGLUM
+        ).order_by("computed_siglum", "folio", "s_sequence")
 
-        context["user_can_edit_sequence"] = self.user_assigned_to_source(
-            sequence.source
-        )
+        context["user_can_edit_sequence"] = self.user_can_edit_chants(sequence.source)
         return context
 
 
@@ -62,23 +73,24 @@ class SequenceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 "source__holding_institution"
             ).filter(source__in=self.published_and_assigned_sources)
 
+        queryset = queryset.annotate(computed_siglum=COMPUTED_SIGLUM)
+
         q_obj_filter = Q()
 
         if self.request.GET.get("incipit"):
             incipit = self.request.GET.get("incipit")
-            q_obj_filter &= Q(incipit__icontains=incipit)
+            q_obj_filter &= Q(incipit__icontains=incipit) | Q(
+                incipit_std_spelling__icontains=incipit
+            )
         if self.request.GET.get("siglum"):
             siglum = self.request.GET.get("siglum")
-            q_obj_filter &= Q(siglum__icontains=siglum)
+            q_obj_filter &= Q(computed_siglum__icontains=siglum)
         if self.request.GET.get("cantus_id"):
             cantus_id = self.request.GET.get("cantus_id")
             q_obj_filter &= Q(cantus_id__icontains=cantus_id)
 
         return queryset.filter(q_obj_filter).order_by(
-            "source__holding_institution__siglum",
-            "source__shelfmark",
-            "folio",
-            "s_sequence",
+            "computed_siglum", "folio", "s_sequence"
         )
 
 
@@ -89,6 +101,15 @@ class SequenceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
     pk_url_kwarg = "sequence_id"
 
     def form_valid(self, form: SequenceEditForm) -> HttpResponse:
+        # `test_func` checks the source the sequence is in now, but the form
+        # can also move it into another source, which must not let a sequence
+        # into a source locked for proofreading (issue #1962).
+        new_source = form.cleaned_data.get("source")
+        if new_source is not None and not self.user_can_edit_chants(new_source):
+            form.add_error(
+                "source", "You do not have permission to add sequences to this source."
+            )
+            return self.form_invalid(form)
         form.instance.last_updated_by = self.request.user
         messages.success(
             self.request,
@@ -99,4 +120,4 @@ class SequenceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
     def test_func(self) -> bool:
         sequence = self.get_object()
         source = sequence.source
-        return self.user_assigned_to_source(source)
+        return self.user_can_edit_chants(source)

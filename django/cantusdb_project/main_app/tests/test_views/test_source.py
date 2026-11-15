@@ -2,21 +2,39 @@
 Test views in views/source.py
 """
 
+import json
 import random
 import re
+from unittest import mock
+from unittest.mock import patch
+from urllib.parse import urlencode
 
 from faker import Faker
-from typing import Dict
+import reversion  # type: ignore[import-untyped]
+from reversion.models import Version  # type: ignore[import-untyped]
+from typing import Dict, Optional
 
 from django.conf import settings
+from django.contrib.messages import get_messages
 from django.db import connection
-from django.test import TestCase
+from django.db.models import QuerySet
+from django.forms.models import model_to_dict
+from django.http import HttpResponse
+from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
 
-from main_app.models import Source, Chant, Differentia, SourceIdentifier, SourceURL
+from main_app.forms import MAX_IMAGE_LINK_ROWS, SourceEditForm
+from main_app.models import (
+    Chant,
+    Differentia,
+    Sequence,
+    Source,
+    SourceIdentifier,
+    SourceURL,
+)
 from main_app.tests.make_fakes import (
     make_fake_source,
     make_fake_segment,
@@ -262,6 +280,16 @@ class SourceEditViewTest(CsvExportLinkTestMixin, CustomAccessTestMixin, TestCase
             response.content.decode("utf-8"), source.id
         )
 
+    def test_markdown_widget_uses_server_preview(self) -> None:
+        source = self.sources["editor_assigned_source"]
+        html = self.client.get(
+            reverse("source-edit", args=[source.id])
+        ).content.decode()
+        self.assertIn(f'data-preview-url="{reverse("markdown-preview")}"', html)
+        self.assertIn("js/markdown_widget.js?v=server-preview-1", html)
+        self.assertIn("css/markdown_widget.css?v=server-preview-1", html)
+        self.assertNotIn("npm/marked", html)
+
     def test_edit_source(self) -> None:
         source = self.sources["editor_assigned_source"]
         response = self.client.post(
@@ -292,6 +320,619 @@ class SourceEditViewTest(CsvExportLinkTestMixin, CustomAccessTestMixin, TestCase
             .queryset.values_list("id", flat=True)
         )
         self.assertNotIn(settings.BENEDICAMUS_DOMINO_SEGMENT_ID, segment_ids)
+
+
+class SourceSubmitForProofreadingViewTest(CustomAccessTestMixin, TestCase):
+    default_user = "editor"
+    sources: Dict[str, Source]
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        # Only unpublished sources can be submitted, so pin `published`
+        # rather than leaving it to make_fake_source's random choice.
+        cls.sources = {
+            "unassigned_source": make_fake_source(published=False),
+            "user_assigned_source": make_fake_source(
+                current_editors=[cls.users["user"]], published=False
+            ),
+            "editor_assigned_source": make_fake_source(
+                current_editors=[cls.users["editor"]], published=False
+            ),
+            "user_created_source": make_fake_source(
+                current_editors=[cls.users["user"], cls.users["editor"]],
+                published=False,
+            ),
+        }
+        cls.sources["user_created_source"].created_by = cls.users["user"]
+        cls.sources["user_created_source"].save()
+
+    def test_permissions(self) -> None:
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-submit-for-proofreading",
+                args=[self.sources["unassigned_source"].id],
+            ),
+            get_allowed_users=["superuser"],
+            post_allowed_users=["superuser"],
+            test_name="Unassigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-submit-for-proofreading",
+                args=[self.sources["user_assigned_source"].id],
+            ),
+            get_allowed_users=["user", "superuser"],
+            post_allowed_users=["user", "superuser"],
+            test_name="User assigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-submit-for-proofreading",
+                args=[self.sources["editor_assigned_source"].id],
+            ),
+            get_allowed_users=["editor", "superuser"],
+            post_allowed_users=["editor", "superuser"],
+            test_name="Editor assigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-submit-for-proofreading",
+                args=[self.sources["user_created_source"].id],
+            ),
+            get_allowed_users=["user", "editor", "superuser"],
+            post_allowed_users=["user", "editor", "superuser"],
+            test_name="User created source",
+        )
+
+    def test_submit_locks_editing_for_creator(self) -> None:
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        response = self.client.post(
+            reverse("source-submit-for-proofreading", args=[source.id])
+        )
+        self.assertRedirects(response, reverse("source-detail", args=[source.id]))
+        source.refresh_from_db()
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+
+        # the creator can no longer edit the source, but can still view it
+        edit_response = self.client.get(reverse("source-edit", args=[source.id]))
+        self.assertEqual(edit_response.status_code, 403)
+        detail_response = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertEqual(detail_response.status_code, 200)
+
+        # an editor assigned to the source can still edit it to proofread
+        self.client.force_login(user=self.users["editor"])
+        editor_edit_response = self.client.get(reverse("source-edit", args=[source.id]))
+        self.assertEqual(editor_edit_response.status_code, 200)
+
+    def test_submit_records_submitting_user(self) -> None:
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+        source.refresh_from_db()
+        self.assertEqual(source.last_updated_by, self.users["user"])
+
+    def test_submit_bumps_date_updated(self) -> None:
+        # "My sources" orders by `-date_updated`, so a submitted source has to
+        # float to the top of the queue it is meant to create.
+        source = self.sources["user_created_source"]
+        before = source.date_updated
+        self.client.force_login(user=self.users["user"])
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+        source.refresh_from_db()
+        self.assertGreater(source.date_updated, before)
+
+    def test_editor_can_submit(self) -> None:
+        source = self.sources["editor_assigned_source"]
+        self.client.force_login(user=self.users["editor"])
+        response = self.client.post(
+            reverse("source-submit-for-proofreading", args=[source.id])
+        )
+        self.assertRedirects(response, reverse("source-detail", args=[source.id]))
+        source.refresh_from_db()
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+
+    def test_assigned_non_creator_can_submit(self) -> None:
+        # An indexer is routinely assigned to a source someone else created;
+        # #1962 asks for whoever is working on it to be able to hand it over.
+        source = self.sources["user_assigned_source"]
+        self.assertNotEqual(source.created_by, self.users["user"])
+        self.client.force_login(user=self.users["user"])
+        response = self.client.post(
+            reverse("source-submit-for-proofreading", args=[source.id])
+        )
+        self.assertRedirects(response, reverse("source-detail", args=[source.id]))
+        source.refresh_from_db()
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+
+    def test_submitter_keeps_view_access_to_unpublished_source(self) -> None:
+        source = self.sources["user_created_source"]
+        self.assertFalse(source.published)
+        self.client.force_login(user=self.users["user"])
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+        self.assertEqual(
+            self.client.get(reverse("source-detail", args=[source.id])).status_code, 200
+        )
+        # ...and the source really is hidden from everyone else.
+        self.client.logout()
+        self.assertNotEqual(
+            self.client.get(reverse("source-detail", args=[source.id])).status_code, 200
+        )
+
+    def test_detail_page_hides_edit_link_once_locked(self) -> None:
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        detail_url = reverse("source-detail", args=[source.id])
+        self.assertTrue(self.client.get(detail_url).context["user_can_edit_source"])
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+        self.assertFalse(self.client.get(detail_url).context["user_can_edit_source"])
+
+    def test_locked_source_cannot_be_resubmitted_by_non_editor(self) -> None:
+        # The submitter loses edit access on submit, so they must not be able
+        # to keep reposting and rewriting the source's audit fields.
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        url = reverse("source-submit-for-proofreading", args=[source.id])
+        self.client.post(url)
+        source.refresh_from_db()
+        submitted_by, submitted_at = source.last_updated_by, source.date_updated
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 403)
+        source.refresh_from_db()
+        self.assertEqual(source.last_updated_by, submitted_by)
+        self.assertEqual(source.date_updated, submitted_at)
+
+    def test_editor_cannot_resubmit_locked_source(self) -> None:
+        # Resubmitting would only rewrite the audit fields, so it is refused
+        # for editors too, and neither page offers the button.
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        url = reverse("source-submit-for-proofreading", args=[source.id])
+        self.client.post(url)
+        source.refresh_from_db()
+        submitted_by, submitted_at = source.last_updated_by, source.date_updated
+
+        self.client.force_login(user=self.users["editor"])
+        self.assertEqual(self.client.post(url).status_code, 403)
+        source.refresh_from_db()
+        self.assertEqual(source.last_updated_by, submitted_by)
+        self.assertEqual(source.date_updated, submitted_at)
+        for page in ("source-detail", "source-edit"):
+            response = self.client.get(reverse(page, args=[source.id]))
+            self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.context["user_can_submit_for_proofreading"])
+            self.assertNotContains(response, "btn-submit-for-proofreading")
+
+    def test_published_source_cannot_be_submitted(self) -> None:
+        # Submitting would overwrite a status such as "Published / Complete"
+        # on a source that stays published.
+        source = make_fake_source(
+            published=True,
+            current_editors=[self.users["user"], self.users["editor"]],
+        )
+        source.created_by = self.users["user"]
+        source.source_status = "Published / Complete"
+        source.save()
+        url = reverse("source-submit-for-proofreading", args=[source.id])
+        for user in ("user", "editor", "superuser"):
+            with self.subTest(user=user):
+                self.client.force_login(user=self.users[user])
+                self.assertEqual(self.client.post(url).status_code, 403)
+                for page in ("source-detail", "source-edit"):
+                    response = self.client.get(reverse(page, args=[source.id]))
+                    self.assertNotContains(response, "btn-submit-for-proofreading")
+        source.refresh_from_db()
+        self.assertEqual(source.source_status, "Published / Complete")
+
+    def test_edit_form_does_not_submit_a_published_source(self) -> None:
+        # A forged or stale edit-form submission still saves the edits but
+        # leaves a published source's status alone.
+        source = make_fake_source(published=True, current_editors=[self.users["user"]])
+        source.created_by = self.users["user"]
+        source.source_status = "Published / Complete"
+        source.save()
+        self.client.force_login(user=self.users["user"])
+        response = self.client.post(
+            reverse("source-edit", args=[source.id]),
+            {
+                "shelfmark": "edited-not-submitted",
+                "source_completeness": "1",
+                "production_method": "1",
+                "submit_for_proofreading": "1",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        source.refresh_from_db()
+        self.assertEqual(source.shelfmark, "edited-not-submitted")
+        self.assertEqual(source.source_status, "Published / Complete")
+
+    def test_submit_locks_chant_editing(self) -> None:
+        # #1962 asks for the submitter's edit access to be removed. Chant
+        # entry is the bulk of what an indexer does, so a lock that covered
+        # only the source record would leave them able to add, retext and
+        # delete every chant after being told editing was locked.
+        source = self.sources["user_created_source"]
+        chant = make_fake_chant(source=source)
+        self.client.force_login(user=self.users["user"])
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+
+        locked_urls = {
+            "chant-create": reverse("chant-create", args=[source.id]),
+            "source-edit-chants": reverse("source-edit-chants", args=[source.pk]),
+            "chant-delete": reverse("chant-delete", args=[chant.id]),
+            "source-edit-syllabification": reverse(
+                "source-edit-syllabification", args=[chant.id]
+            ),
+        }
+        for name, url in locked_urls.items():
+            with self.subTest(f"creator locked out of {name}"):
+                self.assertEqual(self.client.get(url).status_code, 403)
+        with self.subTest("creator locked out of the bulk chant edit"):
+            # A GET here is the readable Browse Chants page; only the POST
+            # that saves the bulk-edit formset is an edit.
+            self.assertEqual(
+                self.client.post(
+                    reverse("browse-chants", args=[source.id])
+                ).status_code,
+                403,
+            )
+
+        # an editor picking the source up for proofreading keeps chant access
+        self.client.force_login(user=self.users["editor"])
+        for name, url in locked_urls.items():
+            with self.subTest(f"editor still reaches {name}"):
+                self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_submit_hides_chant_edit_links_on_detail_page(self) -> None:
+        source = self.sources["user_created_source"]
+        make_fake_chant(source=source)
+        self.client.force_login(user=self.users["user"])
+        detail_url = reverse("source-detail", args=[source.id])
+        self.assertTrue(self.client.get(detail_url).context["user_can_edit_chants"])
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+        response = self.client.get(detail_url)
+        self.assertFalse(response.context["user_can_edit_chants"])
+        self.assertNotContains(response, reverse("chant-create", args=[source.id]))
+
+    def test_submit_locks_sequence_editing(self) -> None:
+        # Bower-segment sources hold sequences rather than chants, and the
+        # same lock has to reach them.
+        sequence = make_fake_sequence()
+        source = sequence.source
+        source.current_editors.set([self.users["user"], self.users["editor"]])
+        source.created_by = self.users["user"]
+        source.published = False
+        source.save()
+        edit_url = reverse("sequence-edit", args=[sequence.id])
+
+        self.client.force_login(user=self.users["user"])
+        self.assertEqual(self.client.get(edit_url).status_code, 200)
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+        self.assertEqual(self.client.get(edit_url).status_code, 403)
+
+        self.client.force_login(user=self.users["editor"])
+        self.assertEqual(self.client.get(edit_url).status_code, 200)
+
+    def test_assigned_non_creator_can_reach_the_submit_button(self) -> None:
+        # The edit page's button is behind assigned-and-(editor-or-creator),
+        # so an assigned indexer who did not create the source cannot open the
+        # page holding it. The rule is "any assigned user may submit", so the
+        # button has to live somewhere they can actually get to.
+        source = self.sources["user_assigned_source"]
+        self.assertNotEqual(source.created_by, self.users["user"])
+        self.client.force_login(user=self.users["user"])
+
+        self.assertEqual(
+            self.client.get(reverse("source-edit", args=[source.id])).status_code, 403
+        )
+        detail = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertEqual(detail.status_code, 200)
+        self.assertTrue(detail.context["user_can_submit_for_proofreading"])
+        self.assertContains(
+            detail, reverse("source-submit-for-proofreading", args=[source.id])
+        )
+        # `{# #}` only comments out a single line; a multi-line one renders as
+        # page text, which this template has leaked before (see #2238).
+        self.assertNotContains(detail, "{#")
+
+    def test_detail_page_hides_submit_button_once_locked(self) -> None:
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        detail_url = reverse("source-detail", args=[source.id])
+        submit_url = reverse("source-submit-for-proofreading", args=[source.id])
+        self.assertTrue(
+            self.client.get(detail_url).context["user_can_submit_for_proofreading"]
+        )
+        self.client.post(submit_url)
+        response = self.client.get(detail_url)
+        self.assertFalse(response.context["user_can_submit_for_proofreading"])
+        self.assertNotContains(response, submit_url)
+
+    def test_detail_page_hides_submit_button_from_unassigned_user(self) -> None:
+        # A global viewer can open an unpublished source without being
+        # assigned to it, but must not be offered the submit button.
+        source = self.sources["unassigned_source"]
+        self.client.force_login(user=self.users["global viewer"])
+        detail = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertEqual(detail.status_code, 200)
+        self.assertFalse(detail.context["user_can_submit_for_proofreading"])
+
+    def test_edit_form_cannot_revert_a_lock_set_while_it_was_open(self) -> None:
+        """
+        `source_status` is not on the edit form, but ModelForm.save() writes
+        every field, so an edit posted from a form that opened before the
+        source was submitted would otherwise revert the lock.
+
+        The lock has to land between the view's authorization check and the
+        save to reproduce this, so the form's own `is_valid()` stands in for
+        the concurrent request — by the time it runs, `test_func` has already
+        passed.
+        """
+        source = self.sources["user_created_source"]
+        editor = self.users["editor"]
+        real_is_valid = SourceEditForm.is_valid
+
+        def submit_then_validate(form):
+            Source.objects.get(pk=form.instance.pk).submit_for_proofreading(editor)
+            return real_is_valid(form)
+
+        self.client.force_login(user=self.users["user"])
+        with mock.patch.object(SourceEditForm, "is_valid", submit_then_validate):
+            response = self.client.post(
+                reverse("source-edit", args=[source.id]),
+                {
+                    "shelfmark": "edited-from-a-stale-form",
+                    "source_completeness": "1",
+                    "production_method": "1",
+                },
+            )
+
+        self.assertEqual(response.status_code, 403)
+        source.refresh_from_db()
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+        self.assertNotEqual(source.shelfmark, "edited-from-a-stale-form")
+        self.assertEqual(source.last_updated_by, editor)
+
+    def test_editor_edit_survives_a_lock_set_while_the_form_was_open(self) -> None:
+        # An editor is the one who proofreads a submitted source, so their edit
+        # goes through — but it must not carry the pre-lock status back in.
+        source = self.sources["user_created_source"]
+        real_is_valid = SourceEditForm.is_valid
+
+        def submit_then_validate(form):
+            Source.objects.get(pk=form.instance.pk).submit_for_proofreading(
+                self.users["user"]
+            )
+            return real_is_valid(form)
+
+        self.client.force_login(user=self.users["editor"])
+        with mock.patch.object(SourceEditForm, "is_valid", submit_then_validate):
+            response = self.client.post(
+                reverse("source-edit", args=[source.id]),
+                {
+                    "shelfmark": "proofreader-correction",
+                    "source_completeness": "1",
+                    "production_method": "1",
+                },
+            )
+
+        self.assertEqual(response.status_code, 302)
+        source.refresh_from_db()
+        self.assertEqual(source.shelfmark, "proofreader-correction")
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+
+    def test_editor_edit_records_the_lock_in_history(self) -> None:
+        # django-reversion snapshots the whole in-memory instance, so a form
+        # that opened before the lock must not record the pre-lock status:
+        # restoring that version would unlock the source.
+        source = self.sources["user_created_source"]
+        real_is_valid = SourceEditForm.is_valid
+
+        def submit_then_validate(form):
+            Source.objects.get(pk=form.instance.pk).submit_for_proofreading(
+                self.users["user"]
+            )
+            return real_is_valid(form)
+
+        self.client.force_login(user=self.users["editor"])
+        with mock.patch.object(SourceEditForm, "is_valid", submit_then_validate):
+            self.client.post(
+                reverse("source-edit", args=[source.id]),
+                {
+                    "shelfmark": "proofreader-correction",
+                    "source_completeness": "1",
+                    "production_method": "1",
+                },
+            )
+
+        latest = Version.objects.get_for_object(source).first()
+        self.assertEqual(latest.field_dict["shelfmark"], "proofreader-correction")
+        self.assertEqual(
+            latest.field_dict["source_status"], Source.PROOFREAD_PENDING_STATUS
+        )
+
+    def test_chant_save_records_the_lock_in_source_history(self) -> None:
+        # Saving a chant re-saves its cached source to update the chant
+        # count, and django-reversion snapshots that copy too.
+        source = self.sources["user_created_source"]
+        chant = make_fake_chant(source=source)
+        chant = Chant.objects.select_related("source").get(pk=chant.pk)
+        Source.objects.get(pk=source.pk).submit_for_proofreading(self.users["user"])
+
+        with reversion.create_revision():
+            chant.save()
+
+        latest = Version.objects.get_for_object(source).first()
+        self.assertEqual(
+            latest.field_dict["source_status"], Source.PROOFREAD_PENDING_STATUS
+        )
+
+    def test_sequence_save_records_the_lock_in_source_history(self) -> None:
+        # Saving a sequence re-saves its cached source too, and only the
+        # chant-count update runs on that path.
+        sequence = make_fake_sequence()
+        sequence = Sequence.objects.select_related("source").get(pk=sequence.pk)
+        Source.objects.get(pk=sequence.source.pk).submit_for_proofreading(
+            self.users["user"]
+        )
+
+        with reversion.create_revision():
+            sequence.save()
+
+        latest = Version.objects.get_for_object(sequence.source).first()
+        self.assertEqual(
+            latest.field_dict["source_status"], Source.PROOFREAD_PENDING_STATUS
+        )
+
+    def test_bulk_edit_passes_source_and_user_to_the_task(self) -> None:
+        # The task re-checks the lock when it runs, which it can only do if
+        # the view tells it whose edit it is and on which source.
+        source = self.sources["user_created_source"]
+        make_fake_chant(source=source)
+        self.client.force_login(user=self.users["user"])
+        with mock.patch(
+            "main_app.views.source.save_browse_chants_formset.delay"
+        ) as delay:
+            delay.return_value.id = "task-id"
+            self.client.post(reverse("browse-chants", args=[source.id]), {})
+        delay.assert_called_once()
+        self.assertEqual(delay.call_args.kwargs["source_id"], source.id)
+        self.assertEqual(delay.call_args.kwargs["user_id"], self.users["user"].id)
+
+    def test_sequence_cannot_be_moved_into_a_locked_source(self) -> None:
+        # The edit view checks the sequence's current source; the form can
+        # also move it into another one, which must respect the lock too.
+        sequence = make_fake_sequence()
+        unlocked = sequence.source
+        unlocked.current_editors.set([self.users["user"]])
+        locked = self.sources["user_created_source"]
+        locked.submit_for_proofreading(self.users["user"])
+        data = {
+            key: value
+            for key, value in model_to_dict(sequence).items()
+            if value is not None
+        }
+        data["source"] = locked.id
+
+        self.client.force_login(user=self.users["user"])
+        response = self.client.post(reverse("sequence-edit", args=[sequence.id]), data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(
+            response.context["form"],
+            "source",
+            "You do not have permission to add sequences to this source.",
+        )
+        sequence.refresh_from_db()
+        self.assertEqual(sequence.source, unlocked)
+
+    def test_sequence_can_still_be_moved_between_unlocked_sources(self) -> None:
+        sequence = make_fake_sequence()
+        sequence.source.current_editors.set([self.users["user"]])
+        target = make_fake_source(current_editors=[self.users["user"]])
+        data = {
+            key: value
+            for key, value in model_to_dict(sequence).items()
+            if value is not None
+        }
+        data["source"] = target.id
+
+        self.client.force_login(user=self.users["user"])
+        response = self.client.post(reverse("sequence-edit", args=[sequence.id]), data)
+
+        self.assertEqual(response.status_code, 302)
+        sequence.refresh_from_db()
+        self.assertEqual(sequence.source, target)
+
+    def test_edit_save_cannot_revert_a_lock_set_after_the_status_re_read(self) -> None:
+        """
+        Re-reading `source_status` closes the window before the read, but a
+        submission can still commit between the read and the write. The write
+        must not carry the pre-lock status back into the row.
+
+        Reproducing the real interleaving needs a second connection, so the
+        form's own `save()` stands in for the concurrent request: by the time
+        it runs, `test_func` and the re-read have both gone by.
+        """
+        source = self.sources["user_created_source"]
+        editor = self.users["editor"]
+        real_save = SourceEditForm.save
+
+        def submit_then_save(form, *args, **kwargs):
+            Source.objects.get(pk=form.instance.pk).submit_for_proofreading(editor)
+            return real_save(form, *args, **kwargs)
+
+        self.client.force_login(user=self.users["user"])
+        with mock.patch.object(SourceEditForm, "save", submit_then_save):
+            response = self.client.post(
+                reverse("source-edit", args=[source.id]),
+                {
+                    "shelfmark": "edited-alongside-a-submission",
+                    "source_completeness": "1",
+                    "production_method": "1",
+                },
+            )
+
+        self.assertEqual(response.status_code, 302)
+        source.refresh_from_db()
+        # Serialized for real, the edit would commit first and the submission
+        # land on top of it, which is the state asserted here: the edit keeps
+        # its shelfmark and the lock stands.
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+        self.assertEqual(source.shelfmark, "edited-alongside-a-submission")
+
+    def test_edit_save_leaves_columns_the_form_does_not_edit_alone(self) -> None:
+        # The edit form shows none of a source's status or count columns, so
+        # its save must not write them (issue #1962).
+        source = self.sources["user_created_source"]
+        Source.objects.filter(pk=source.pk).update(number_of_chants=7)
+        self.client.force_login(user=self.users["editor"])
+        with CaptureQueriesContext(connection) as queries:
+            self.client.post(
+                reverse("source-edit", args=[source.id]),
+                {
+                    "shelfmark": "narrow-update",
+                    "source_completeness": "1",
+                    "production_method": "1",
+                },
+            )
+        source_updates = [
+            query["sql"]
+            for query in queries.captured_queries
+            if query["sql"].startswith('UPDATE "main_app_source"')
+        ]
+        self.assertTrue(source_updates, "no UPDATE on the source was issued")
+        for sql in source_updates:
+            self.assertNotIn("source_status", sql)
+            self.assertNotIn("number_of_chants", sql)
+
+    def test_submitting_through_edit_form_saves_pending_edits(self) -> None:
+        # The button lives inside the edit form; submitting also locks the
+        # source, so corrections dropped here could never be redone.
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        response = self.client.post(
+            reverse("source-edit", args=[source.id]),
+            {
+                "shelfmark": "edited-then-submitted",
+                "source_completeness": "1",
+                "production_method": "1",
+                "submit_for_proofreading": "1",
+            },
+        )
+        self.assertRedirects(response, reverse("source-detail", args=[source.id]))
+        source.refresh_from_db()
+        self.assertEqual(source.shelfmark, "edited-then-submitted")
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+        # The form save and the submission both snapshot the source in the
+        # same revision; the version kept must record the lock.
+        latest = Version.objects.get_for_object(source).first()
+        self.assertEqual(latest.field_dict["shelfmark"], "edited-then-submitted")
+        self.assertEqual(
+            latest.field_dict["source_status"], Source.PROOFREAD_PENDING_STATUS
+        )
 
 
 class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
@@ -426,6 +1067,60 @@ class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/json")
         self.assertEqual(response.json()["source"]["id"], source.id)
+
+    def test_description_and_bibliography_render_markdown(self) -> None:
+        """The source page renders the markdown the widget's Preview shows.
+
+        The description and selected bibliography are edited through
+        ``MarkdownWidget``, so markdown typed with its toolbar has to render
+        here too. Before this, the page printed ``**bold**`` literally while
+        Preview showed it in bold.
+        """
+        source = make_fake_source(
+            description="**bold** description\nsecond line",
+            selected_bibliography="A *cited* work",
+        )
+        html = self.client.get(
+            reverse("source-detail", args=[source.id])
+        ).content.decode("utf-8")
+        self.assertIn("<strong>bold</strong> description", html)
+        self.assertIn("<em>cited</em>", html)
+        # A single newline stays a line break, as it did under `linebreaks`.
+        self.assertIn("<strong>bold</strong> description<br>\nsecond line", html)
+        self.assertNotIn("**bold**", html)
+
+    def test_description_keeps_html_written_before_the_markdown_widget(self) -> None:
+        """Sanitizing imported HTML keeps ordinary formatting and citation text."""
+        source = make_fake_source(
+            description="<p>A <i>legacy</i> paragraph</p>",
+            selected_bibliography="<ul>\r\n<li>Author. 2018. <i>Title.</i></li>\r\n</ul>",
+        )
+        html = self.client.get(
+            reverse("source-detail", args=[source.id])
+        ).content.decode("utf-8")
+        self.assertIn("A <i>legacy</i> paragraph", html)
+        self.assertIn("<li>Author. 2018. <i>Title.</i></li>", html)
+        self.assertNotIn("raw HTML omitted", html)
+
+    def test_description_preserves_authored_folio_numbers(self) -> None:
+        source = make_fake_source(
+            description="1. First leaf\n4. Fourth leaf\n9. Ninth leaf"
+        )
+        html = self.client.get(
+            reverse("source-detail", args=[source.id])
+        ).content.decode()
+        for number, text in [(1, "First"), (4, "Fourth"), (9, "Ninth")]:
+            self.assertIn(f'<li value="{number}">{text} leaf</li>', html)
+        self.assertNotIn("data-sourcepos", html)
+
+    def test_description_neutralizes_script_tags(self) -> None:
+        """Saved script markup cannot create an executable script element."""
+        source = make_fake_source(description="<script>alert(1)</script>")
+        html = self.client.get(
+            reverse("source-detail", args=[source.id])
+        ).content.decode("utf-8")
+        self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", html)
+        self.assertNotIn("<script>alert(1)</script>", html)
 
     def test_provenance_notes_displayed(self) -> None:
         notes = "test_provenance_notes_value"
@@ -2152,6 +2847,21 @@ class SourceAddImageLinksViewTest(CustomAccessTestMixin, TestCase):
             test_name="Any source",
         )
 
+    @staticmethod
+    def image_link_data(rows: list[list[str]]) -> dict[str, str]:
+        """
+        Build the POST data the page sends: the previewed rows as one field.
+        """
+        return {"image_links": json.dumps(rows)}
+
+    def post_image_links(
+        self, rows: list[list[str]], source: Optional[Source] = None
+    ) -> HttpResponse:
+        return self.client.post(
+            reverse("source-add-image-links", args=[(source or self.source).id]),
+            self.image_link_data(rows),
+        )
+
     def test_form(self) -> None:
         with self.subTest("Test form fields"):
             response = self.client.get(
@@ -2160,17 +2870,20 @@ class SourceAddImageLinksViewTest(CustomAccessTestMixin, TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertTemplateUsed(response, "source_add_image_links.html")
             form = response.context["form"]
+            self.assertListEqual(list(form.fields.keys()), ["image_links"])
+            # The page lists the folios for its CSV preview to read, rather
+            # than carrying one form field per folio.
             self.assertListEqual(
-                list(form.fields.keys()), ["001r", "001v", "003", "004A", "004B"]
+                response.context["source_folios"],
+                ["001r", "001v", "003", "004A", "004B"],
             )
         with self.subTest("Test form submission"):
-            response = self.client.post(
-                reverse("source-add-image-links", args=[self.source.id]),
-                {
-                    "001r": "https://example.com/001r",
-                    "001v": "https://example.com/001v",
-                    "004A": "https://example.com/004A",
-                },
+            response = self.post_image_links(
+                [
+                    ["001r", "https://example.com/001r"],
+                    ["001v", "https://example.com/001v"],
+                    ["004A", "https://example.com/004A"],
+                ]
             )
             self.assertRedirects(
                 response,
@@ -2192,6 +2905,421 @@ class SourceAddImageLinksViewTest(CustomAccessTestMixin, TestCase):
             chants_004B = Chant.objects.filter(source=self.source, folio="004B").all()
             self.assertEqual(len(chants_004B), 1)
             self.assertEqual(chants_004B[0].image_link, "https://i-already-exist.com/2")
+
+    def test_blank_links_keep_the_stored_value(self) -> None:
+        response = self.post_image_links(
+            [
+                ["001r", "https://example.com/001r"],
+                ["004B", ""],
+            ]
+        )
+        self.assertEqual(response.status_code, 302)
+        chant_004B = Chant.objects.get(source=self.source, folio="004B")
+        self.assertEqual(chant_004B.image_link, "https://i-already-exist.com/2")
+
+    def test_preview_receives_the_server_import_limits(self) -> None:
+        for byte_limit, expected_limit in (
+            (8192, 8192),
+            (2621440, 1048576),
+            (None, 1048576),
+        ):
+            with self.subTest(byte_limit=byte_limit), self.settings(
+                DATA_UPLOAD_MAX_MEMORY_SIZE=byte_limit
+            ):
+                response = self.client.get(
+                    reverse("source-add-image-links", args=[self.source.id])
+                )
+                match = re.search(
+                    r'<script id="imageLinkImportLimits" type="application/json">(.*?)</script>',
+                    response.content.decode(),
+                )
+                self.assertIsNotNone(match)
+                self.assertEqual(
+                    json.loads(match.group(1)),
+                    {"maxRows": MAX_IMAGE_LINK_ROWS, "maxRequestBytes": expected_limit},
+                )
+
+    @override_settings(DATA_UPLOAD_MAX_MEMORY_SIZE=2621440)
+    def test_urlencoded_request_size_can_bind_before_the_row_limit(self) -> None:
+        """Reserved URL characters expand in the browser's form encoding."""
+        prefix = "https://example.com/"
+        for suffix, expected_status in (("a", 302), ("/", 400)):
+            with self.subTest(suffix=suffix):
+                link = prefix + suffix * (200 - len(prefix))
+                rows = [["001r", link]] * MAX_IMAGE_LINK_ROWS
+                payload = urlencode(
+                    {
+                        "csrfmiddlewaretoken": "a" * 64,
+                        "image_links": json.dumps(rows, separators=(",", ":")),
+                    }
+                )
+                self.assertEqual(
+                    len(payload) > settings.DATA_UPLOAD_MAX_MEMORY_SIZE,
+                    expected_status == 400,
+                )
+                before = dict(self.source.chant_set.values_list("pk", "image_link"))
+                response = self.client.post(
+                    reverse("source-add-image-links", args=[self.source.id]),
+                    payload,
+                    content_type="application/x-www-form-urlencoded",
+                )
+                self.assertEqual(response.status_code, expected_status)
+                if expected_status == 302:
+                    self.assertEqual(
+                        self.source.chant_set.get(folio="001r").image_link, link
+                    )
+                else:
+                    self.assertEqual(
+                        dict(self.source.chant_set.values_list("pk", "image_link")),
+                        before,
+                    )
+
+    def test_two_folios_can_share_one_image(self) -> None:
+        """A photograph of an opening gives both its folios the same link."""
+        shared = "https://example.com/opening-1v-2r.jpg"
+        response = self.post_image_links([["001r", shared], ["001v", shared]])
+        self.assertEqual(response.status_code, 302)
+        for folio in ("001r", "001v"):
+            for chant in Chant.objects.filter(source=self.source, folio=folio):
+                self.assertEqual(chant.image_link, shared)
+
+    def test_a_folio_listed_twice_keeps_the_last_row(self) -> None:
+        self.post_image_links(
+            [
+                ["001r", "https://example.com/first"],
+                ["001r", "https://example.com/second"],
+            ]
+        )
+        chant = Chant.objects.get(source=self.source, folio="001r")
+        self.assertEqual(chant.image_link, "https://example.com/second")
+
+    def test_final_blank_overrides_an_earlier_link_without_clearing_the_database(
+        self,
+    ) -> None:
+        response = self.post_image_links(
+            [["004B", "https://example.com/earlier"], ["004B", ""]]
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            Chant.objects.get(source=self.source, folio="004B").image_link,
+            "https://i-already-exist.com/2",
+        )
+
+    def test_only_the_final_link_for_a_folio_is_validated(self) -> None:
+        for earlier in ("invalid earlier value", "javascript:alert(1)"):
+            with self.subTest(earlier=earlier):
+                response = self.post_image_links(
+                    [["001r", earlier], ["001r", "https://example.com/final"]]
+                )
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(
+                    Chant.objects.get(source=self.source, folio="001r").image_link,
+                    "https://example.com/final",
+                )
+
+    def test_folios_of_other_sources_are_left_alone(self) -> None:
+        """
+        A row naming a folio this source does not have is reported and skipped.
+
+        Another source's chant on a folio of the same name must not be touched.
+        """
+        other_source = make_fake_source(published=True)
+        other_chant = make_fake_chant(
+            source=other_source,
+            folio="900r",
+            image_link="https://untouched.example.com",
+        )
+        response = self.post_image_links(
+            [
+                ["001r", "https://example.com/001r"],
+                ["900r", "https://example.com/900r"],
+            ],
+        )
+        self.assertEqual(response.status_code, 302)
+        other_chant.refresh_from_db()
+        self.assertEqual(other_chant.image_link, "https://untouched.example.com")
+        messages = [str(message) for message in get_messages(response.wsgi_request)]
+        self.assertIn(
+            "Image links saved for 1 folio. Skipped 1 row naming folios "
+            "this source does not have.",
+            messages,
+        )
+
+    def test_invalid_submissions_are_rejected_with_a_visible_error(self) -> None:
+        stored = Chant.objects.get(source=self.source, folio="004B").image_link
+        too_long = "https://example.com/" + "a" * 200
+        cases: dict[str, tuple[dict[str, str], str]] = {
+            "no file selected": ({}, "Select a CSV file"),
+            "empty list": (
+                self.image_link_data([]),
+                "Select a CSV file",
+            ),
+            "not JSON": (
+                {"image_links": "001r,https://example.com/001r"},
+                "could not be read",
+            ),
+            "not a list of pairs": (
+                {"image_links": json.dumps({"001r": "https://example.com/001r"})},
+                "could not be read",
+            ),
+            "row of the wrong length": (
+                {"image_links": json.dumps([["001r"]])},
+                "could not be read",
+            ),
+            "row that is not text": (
+                {"image_links": json.dumps([[1, 2]])},
+                "could not be read",
+            ),
+            "null row": ({"image_links": "[null]"}, "could not be read"),
+            "string row": ({"image_links": '["001r"]'}, "could not be read"),
+            "object row": (
+                {"image_links": '[{"folio": "001r"}]'},
+                "could not be read",
+            ),
+            "null URL": ({"image_links": '[["001r", null]]'}, "could not be read"),
+            "row with extra values": (
+                {"image_links": '[["001r", "https://example.com/r", "note"]]'},
+                "could not be read",
+            ),
+            "boolean JSON": ({"image_links": "true"}, "could not be read"),
+            "number JSON": ({"image_links": "42"}, "could not be read"),
+            "string JSON": ({"image_links": '"text"'}, "could not be read"),
+            "not a URL": (
+                self.image_link_data([["001r", "not a url"]]),
+                "Fix the image links for these folios: 001r",
+            ),
+            # Chant.image_link is a 200-character column, so a longer link
+            # would fail in the database rather than in the form.
+            "URL too long for the column": (
+                self.image_link_data([["001r", too_long]]),
+                "Fix the image links for these folios: 001r",
+            ),
+            "no folio of this source": (
+                self.image_link_data([["999v", "https://example.com/999v"]]),
+                "None of the folios in the file belong to this source",
+            ),
+            "more rows than an import allows": (
+                self.image_link_data(
+                    [["001r", "https://example.com/001r"]] * (MAX_IMAGE_LINK_ROWS + 1)
+                ),
+                f"at most {MAX_IMAGE_LINK_ROWS} can be imported",
+            ),
+        }
+        for name, (data, expected_error) in cases.items():
+            with self.subTest(name):
+                response = self.client.post(
+                    reverse("source-add-image-links", args=[self.source.id]), data
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, expected_error)
+                self.assertEqual(
+                    Chant.objects.get(source=self.source, folio="004B").image_link,
+                    stored,
+                )
+                self.assertEqual(
+                    Chant.objects.get(source=self.source, folio="003").image_link, ""
+                )
+
+    def test_one_invalid_link_prevents_every_change_in_the_batch(self) -> None:
+        before = dict(self.source.chant_set.values_list("pk", "image_link"))
+        cases = (
+            [["001r", "https://example.com/new"], ["004B", "not a URL"]],
+            [["001r", "https://example.com/new"], ["001r", "not a URL"]],
+        )
+        for rows in cases:
+            with self.subTest(rows=rows):
+                response = self.post_image_links(rows)
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "Fix the image links for these folios")
+                self.assertEqual(
+                    dict(self.source.chant_set.values_list("pk", "image_link")),
+                    before,
+                )
+
+    def test_failure_during_import_rolls_back_earlier_folios(self) -> None:
+        """A later failure must not leave part of an image-link import applied."""
+        before = dict(self.source.chant_set.values_list("pk", "image_link"))
+        original_update = QuerySet.update
+
+        def fail_on_second_link(queryset: QuerySet, **kwargs: str) -> int:
+            if kwargs.get("image_link") == "https://example.com/fail":
+                raise RuntimeError("simulated import failure")
+            return original_update(queryset, **kwargs)
+
+        with patch.object(QuerySet, "update", fail_on_second_link):
+            with self.assertRaisesRegex(RuntimeError, "simulated import failure"):
+                self.post_image_links(
+                    [
+                        ["001r", "https://example.com/first"],
+                        ["004B", "https://example.com/fail"],
+                    ]
+                )
+        self.assertEqual(
+            dict(self.source.chant_set.values_list("pk", "image_link")), before
+        )
+
+    def test_another_source_with_the_same_folio_is_not_changed(self) -> None:
+        other_chant = make_fake_chant(
+            source=make_fake_source(published=True),
+            folio="001r",
+            image_link="https://example.com/untouched",
+        )
+        response = self.post_image_links([["001r", "https://example.com/new"]])
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            self.source.chant_set.get(folio="001r").image_link,
+            "https://example.com/new",
+        )
+        other_chant.refresh_from_db()
+        self.assertEqual(other_chant.image_link, "https://example.com/untouched")
+
+    def test_import_preserves_nonstandard_folio_identifiers(self) -> None:
+        folios = ["prexi2", "298x", "001R"]
+        for folio in folios:
+            make_fake_chant(source=self.source, folio=folio, image_link=None)
+        rows = [[folio, f"https://example.com/{folio}"] for folio in folios]
+        response = self.post_image_links(rows)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            dict(
+                self.source.chant_set.filter(folio__in=folios).values_list(
+                    "folio", "image_link"
+                )
+            ),
+            dict(rows),
+        )
+        self.assertEqual(self.source.chant_set.get(folio="001r").image_link, "")
+
+    def test_normalized_urls_fit_the_database_column(self) -> None:
+        prefix = "https://example.com/"
+        cases = (
+            ("http://example.com/r", "http://example.com/r"),
+            ("ftp://example.com/r", "ftp://example.com/r"),
+            ("ftps://example.com/r", "ftps://example.com/r"),
+            ("https://münich.example/é.jpg", "https://münich.example/é.jpg"),
+            ("https://[2001:db8::1]/r", "https://[2001:db8::1]/r"),
+            (f"  {prefix}a b.jpg  ", f"{prefix}a%20b.jpg"),
+            (f"{prefix}a%20b.jpg", f"{prefix}a%20b.jpg"),
+            (prefix + "a" * (200 - len(prefix)), prefix + "a" * (200 - len(prefix))),
+            (
+                prefix + "a" * (196 - len(prefix)) + " b",
+                prefix + "a" * (196 - len(prefix)) + "%20b",
+            ),
+        )
+        for submitted, expected in cases:
+            with self.subTest(url=submitted):
+                response = self.post_image_links([["001r", submitted]])
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(
+                    self.source.chant_set.get(folio="001r").image_link, expected
+                )
+
+    def test_invalid_url_boundaries_leave_existing_links_unchanged(self) -> None:
+        prefix = "https://example.com/"
+        before = dict(self.source.chant_set.values_list("pk", "image_link"))
+        for url in (
+            prefix + "a" * (201 - len(prefix)),
+            prefix + "a" * (198 - len(prefix)) + " b",
+            "javascript:alert(1)",
+            "data:text/html,hello",
+            "file:///tmp/image.jpg",
+            prefix + "a\x00b",
+            prefix + "caf\ufffd.jpg",
+            prefix + "a\nb",
+            prefix + "a\rb",
+            prefix + "a\tb",
+        ):
+            with self.subTest(url=url):
+                response = self.post_image_links([["004B", url]])
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "Fix the image links for these folios")
+                self.assertEqual(
+                    dict(self.source.chant_set.values_list("pk", "image_link")),
+                    before,
+                )
+
+    def test_exactly_the_maximum_number_of_rows_can_be_imported(self) -> None:
+        rows = [["001r", "https://example.com/earlier"]] * (MAX_IMAGE_LINK_ROWS - 1)
+        rows.append(["001r", "https://example.com/final"])
+        response = self.post_image_links(rows)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            self.source.chant_set.get(folio="001r").image_link,
+            "https://example.com/final",
+        )
+
+    def test_many_invalid_links_produce_a_bounded_visible_error(self) -> None:
+        folios = [f"{number:03d}r" for number in range(100, 112)]
+        for folio in folios:
+            make_fake_chant(source=self.source, folio=folio, image_link=None)
+        before = dict(self.source.chant_set.values_list("pk", "image_link"))
+        response = self.post_image_links([[folio, "not a URL"] for folio in folios])
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "and 2 more")
+        error = " ".join(response.context["form"].errors["image_links"])
+        for folio in folios[:10]:
+            self.assertIn(folio, error)
+        for folio in folios[10:]:
+            self.assertNotIn(folio, error)
+        self.assertEqual(
+            dict(self.source.chant_set.values_list("pk", "image_link")), before
+        )
+
+
+class SourceAddImageLinksLargeSourceTest(CustomAccessTestMixin, TestCase):
+    """
+    Importing a mapping for a source with more folios than a request has fields.
+
+    Tours 149 (source 123640) has 1044 folios. One form field per folio put the
+    request over ``DATA_UPLOAD_MAX_NUMBER_FIELDS`` — 1010 — and Django rejected
+    the whole submission with HTTP 400 before form validation.
+    """
+
+    source: Source
+    folios: list[str]
+    default_user = "superuser"
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        cls.source = make_fake_source(published=True)
+        cls.folios = [
+            f"{leaf:03d}{side}" for leaf in range(1, 551) for side in ("r", "v")
+        ]
+        Chant.objects.bulk_create(
+            Chant(source=cls.source, folio=folio, c_sequence=1) for folio in cls.folios
+        )
+
+    def test_a_folio_per_field_would_exceed_the_request_limit(self) -> None:
+        """
+        Sending one field per folio still fails, which is why the page does not.
+
+        Django counts the fields while parsing the request body, so the whole
+        submission is rejected before form validation.
+        """
+        self.assertGreater(len(self.folios), settings.DATA_UPLOAD_MAX_NUMBER_FIELDS)
+        response = self.client.post(
+            reverse("source-add-image-links", args=[self.source.id]),
+            {folio: f"https://example.com/{folio}.jpg" for folio in self.folios},
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_the_whole_mapping_is_imported(self) -> None:
+        rows = [[folio, f"https://example.com/{folio}.jpg"] for folio in self.folios]
+        response = self.client.post(
+            reverse("source-add-image-links", args=[self.source.id]),
+            {"image_links": json.dumps(rows)},
+        )
+        self.assertRedirects(
+            response,
+            reverse("source-detail", args=[self.source.id]),
+            status_code=302,
+            target_status_code=200,
+        )
+        saved = dict(
+            Chant.objects.filter(source=self.source).values_list("folio", "image_link")
+        )
+        self.assertEqual(saved, dict(rows))
 
 
 class SourceDeleteViewTest(CustomAccessTestMixin, TestCase):

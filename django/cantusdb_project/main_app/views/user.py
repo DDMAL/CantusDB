@@ -5,14 +5,18 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LogoutView
 from django.core.paginator import Paginator
-from django.db.models import Q, QuerySet
+from django.db.models import Exists, OuterRef, Q, QuerySet
 from django.db.models.aggregates import Count
 from django.views.generic import DetailView
 from django.views.generic import ListView
 from extra_views import SearchableListMixin
 
-from main_app.models import Source
-from main_app.permissions import CustomAccessMixin
+from main_app.models import Chant, Source
+from main_app.permissions import (
+    CustomAccessMixin,
+    annotate_proofreading_lock,
+    user_is_editor,
+)
 from users.models import User as UserType
 
 
@@ -99,10 +103,11 @@ class UserSourceListView(LoginRequiredMixin, ListView):  # type: ignore [type-ar
     paginate_by = 3
 
     def get_queryset(self) -> QuerySet[Source]:
-        return (
+        return annotate_proofreading_lock(
             Source.objects.filter(
                 Q(current_editors=self.request.user) | Q(created_by=self.request.user)
             )
+            .annotate(has_chants=Exists(Chant.objects.filter(source_id=OuterRef("pk"))))
             .order_by("-date_updated")
             .select_related("holding_institution")
             .distinct()
@@ -111,8 +116,9 @@ class UserSourceListView(LoginRequiredMixin, ListView):  # type: ignore [type-ar
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         context = super().get_context_data(**kwargs)
         user: UserType = self.request.user
-        user_created_sources = (
+        user_created_sources = annotate_proofreading_lock(
             Source.objects.filter(created_by=user)
+            .annotate(has_chants=Exists(Chant.objects.filter(source_id=OuterRef("pk"))))
             .order_by("-date_created")
             .select_related("holding_institution")
             .distinct()
@@ -122,6 +128,9 @@ class UserSourceListView(LoginRequiredMixin, ListView):  # type: ignore [type-ar
         user_created_page_obj = user_created_paginator.get_page(user_created_page_num)
 
         context["user_created_sources_page_obj"] = user_created_page_obj
+        # Editors proofread submitted sources, so the lock never hides their
+        # links.
+        context["user_is_editor"] = user_is_editor(user)
         return context
 
 

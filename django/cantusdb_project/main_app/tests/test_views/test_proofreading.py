@@ -1,4 +1,5 @@
 import random
+from unittest.mock import patch
 
 from django.conf import settings
 from django.test import TestCase
@@ -10,6 +11,7 @@ from main_app.tests.make_fakes import (
     make_fake_segment,
     make_fake_institution,
 )
+from main_app.models import Source
 from main_app.views.proofreading import ProofreadView
 from users.models import Group
 
@@ -137,6 +139,65 @@ class ProofreadingOverviewViewTest(TestCase):
         self.assertNotIn(needs_proofread_unpublished_source, sources)
         self.assertNotIn(proofread_published_source, sources)
 
+    def test_submitted_for_proofreading_filter(self):
+        # Editors need a way to find sources an indexer has handed over
+        # (issue #1962).
+        submitted_source = make_fake_source(
+            published=False, segment=[self.cantus_segment]
+        )
+        make_fake_chant(source=submitted_source)
+        submitted_source.submit_for_proofreading(self.project_manager_user)
+
+        other_source = make_fake_source(published=False, segment=[self.cantus_segment])
+        make_fake_chant(source=other_source)
+        Source.objects.filter(pk=other_source.pk).update(
+            source_status="Unpublished / Indexing process"
+        )
+
+        response = self.client.get(self.url, {"inactive": "submitted"})
+        sources = list(response.context["sources"])
+        self.assertIn(submitted_source, sources)
+        self.assertNotIn(other_source, sources)
+        self.assertContains(response, "Submitted</span>")
+        self.assertContains(
+            response, reverse("browse-chants", args=[submitted_source.pk])
+        )
+        self.assertNotContains(response, ">No chants</span>")
+
+        # Without the filter both show, but only the submitted one is flagged.
+        response = self.client.get(self.url)
+        flagged = {
+            source.pk: source.locked_for_proofreading
+            for source in response.context["sources"]
+        }
+        self.assertTrue(flagged[submitted_source.pk])
+        self.assertFalse(flagged[other_source.pk])
+
+    def test_submitted_filter_includes_sources_outside_the_overview_scope(self):
+        # The overview normally lists only Cantus sources with chants, but any
+        # source can be submitted, so the filter must not drop the others.
+        bower_source = make_fake_source(published=False, segment=[self.other_segment])
+        bower_source.submit_for_proofreading(self.project_manager_user)
+        empty_source = make_fake_source(published=False, segment=[self.cantus_segment])
+        Source.objects.filter(pk=empty_source.pk).update(number_of_chants=0)
+        empty_source.submit_for_proofreading(self.project_manager_user)
+
+        response = self.client.get(self.url, {"inactive": "submitted"})
+        self.assertEqual(response.status_code, 200)
+        sources = list(response.context["sources"])
+        self.assertIn(bower_source, sources)
+        self.assertIn(empty_source, sources)
+        # Browse Chants is a 404 for a source without chants, so no link to it.
+        for source in (bower_source, empty_source):
+            self.assertNotContains(response, reverse("browse-chants", args=[source.pk]))
+        self.assertContains(response, ">No chants</span>", count=2)
+
+        # The default view keeps its Cantus-only, has-chants scope.
+        response = self.client.get(self.url)
+        sources = list(response.context["sources"])
+        self.assertNotIn(bower_source, sources)
+        self.assertNotIn(empty_source, sources)
+
     def test_sortable_headers(self):
         response = self.client.get(self.url, {"order": "country"})
         self.assertEqual(response.status_code, 200)
@@ -144,17 +205,11 @@ class ProofreadingOverviewViewTest(TestCase):
     def test_ordering(self):
         """
         Order on the Proofreading Overview should mirror Browse Sources for the
-        shared sort modes: by country (with NULL sigla coalesced to "") and by
-        institution siglum + shelfmark.
+        shared sort modes: by country (with NULL sigla — private collectors —
+        sorted after institutions within a country group) and by institution
+        siglum + shelfmark.
         """
         sources = []
-        # A source from a private collector (NULL siglum).
-        private_collector = make_fake_institution(is_private_collector=True)
-        sources.append(
-            make_fake_source(
-                holding_institution=private_collector, segment=[self.cantus_segment]
-            )
-        )
         # A handful of other sources with distinct institutions.
         inst = None
         for _ in range(10):
@@ -177,6 +232,16 @@ class ProofreadingOverviewViewTest(TestCase):
         sources.append(
             make_fake_source(holding_institution=inst, segment=[self.cantus_segment])
         )
+        # Share a country with an institution with a siglum so NULL ordering is
+        # always exercised, rather than depending on random countries matching.
+        private_collector = make_fake_institution(
+            is_private_collector=True, country=inst.country
+        )
+        sources.append(
+            make_fake_source(
+                holding_institution=private_collector, segment=[self.cantus_segment]
+            )
+        )
         for s in sources:
             make_fake_chant(source=s)
 
@@ -186,8 +251,10 @@ class ProofreadingOverviewViewTest(TestCase):
                 sources,
                 key=lambda s: (
                     s.holding_institution.country,
+                    s.holding_institution.siglum is None,
                     s.holding_institution.siglum or "",
                     s.shelfmark,
+                    s.id,  # mirror the view's final `id` tiebreaker
                 ),
             )
             self.assertEqual(expected, list(response.context["sources"]))
@@ -199,6 +266,19 @@ class ProofreadingOverviewViewTest(TestCase):
                 list(reversed(expected)), list(response_desc.context["sources"])
             )
 
+            for order in (None, "does_not_exist", ""):
+                for sort in ("asc", "desc"):
+                    with self.subTest(order=order, sort=sort):
+                        params = {"sort": sort}
+                        if order is not None:
+                            params["order"] = order
+                        response = self.client.get(self.url, params)
+                        self.assertEqual(response.status_code, 200)
+                        self.assertEqual(
+                            expected if sort == "asc" else list(reversed(expected)),
+                            list(response.context["sources"]),
+                        )
+
         with self.subTest("Order by source_siglum"):
             # source_siglum sorts by institution siglum then shelfmark, without
             # COALESCE — so NULL sigla (private collectors) land last in asc.
@@ -209,9 +289,64 @@ class ProofreadingOverviewViewTest(TestCase):
                     s.holding_institution.siglum is None,
                     s.holding_institution.siglum or "",
                     s.shelfmark,
+                    s.id,
                 ),
             )
             self.assertEqual(expected, list(response.context["sources"]))
+
+    @patch.object(ProofreadView, "paginate_by", 2)
+    def test_ordering_ties_across_pages(self):
+        """Every sort mode orders tied sources by ID across page boundaries.
+
+        Tied rows already come back in ID order without a tiebreaker, so only
+        the descending cases fail if the `id` tiebreaker is dropped.
+        """
+        inst = make_fake_institution()
+        sources = []
+        for _ in range(3):
+            source = make_fake_source(
+                holding_institution=inst,
+                shelfmark="Same shelfmark",
+                published=True,
+                segment=[self.cantus_segment],
+            )
+            make_fake_chant(
+                source=source,
+                volpiano="1---a---4",
+                manuscript_full_text="Same text",
+                manuscript_full_text_std_spelling="Same text",
+            )
+            sources.append(source)
+
+        for order in (
+            "country",
+            "city_institution",
+            "source_siglum",
+            "shelfmark",
+            "published",
+            "volpiano",
+            "ms_text",
+            "ms_text_std",
+            "other",
+            "needing_proof",
+            "total_chants",
+            "percent_complete",
+            "does_not_exist",
+        ):
+            for sort in ("asc", "desc"):
+                with self.subTest(order=order, sort=sort):
+                    expected = sorted(
+                        sources, key=lambda source: source.id, reverse=sort == "desc"
+                    )
+                    for page in (1, 2):
+                        response = self.client.get(
+                            self.url, {"order": order, "sort": sort, "page": page}
+                        )
+                        self.assertEqual(response.status_code, 200)
+                        self.assertEqual(
+                            expected[(page - 1) * 2 : page * 2],
+                            list(response.context["sources"]),
+                        )
 
     def test_pagination(self):
         paginate_by = ProofreadView.paginate_by
