@@ -86,6 +86,10 @@ class LockTestForm(forms.ModelForm):  # type: ignore[type-arg]
         }
 
 
+# The test form's other fields, as the page submits them while they're unlocked.
+OTHER_FIELDS = {"manuscript_full_text": "", "cantus_id": "", "indexing_notes": ""}
+
+
 class LockProofreadFieldsTest(SimpleTestCase):
     def locked_fields(self, form: forms.ModelForm) -> set[str]:  # type: ignore[type-arg]
         return {name for name, field in form.fields.items() if field.disabled}
@@ -135,7 +139,7 @@ class LockProofreadFieldsTest(SimpleTestCase):
             {"volpiano": "1-a-3", "volpiano_proofread": "on"},
         ):
             with self.subTest(data=data):
-                form = LockTestForm(data=data, instance=chant)
+                form = LockTestForm(data={**OTHER_FIELDS, **data}, instance=chant)
                 lock_proofread_fields(form, can_unlock=True)
                 self.assertEqual(self.locked_fields(form), set())
 
@@ -143,7 +147,7 @@ class LockProofreadFieldsTest(SimpleTestCase):
         chant = Chant(volpiano_proofread=True)
         for data in ({}, {"volpiano_proofread": "on"}):
             with self.subTest(data=data):
-                form = LockTestForm(data=data, instance=chant)
+                form = LockTestForm(data={**OTHER_FIELDS, **data}, instance=chant)
                 lock_proofread_fields(form, can_unlock=True)
                 self.assertEqual(self.locked_fields(form), {"volpiano"})
 
@@ -152,9 +156,19 @@ class LockProofreadFieldsTest(SimpleTestCase):
         lock_proofread_fields(form, can_unlock=True)
         self.assertEqual(self.locked_fields(form), {"volpiano"})
 
+    def test_field_left_out_after_its_box_was_unticked_stays_locked(self) -> None:
+        # The page was loaded while the box was ticked, so it didn't submit the
+        # field. A proofreader has unticked the box since. Keep the saved value
+        # rather than treating the missing field as empty.
+        form = LockTestForm(data={"cantus_id": "1"}, instance=Chant(volpiano="1-a-3"))
+        lock_proofread_fields(form)
+        self.assertEqual(self.locked_fields(form), {"volpiano", "manuscript_full_text"})
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["volpiano"], "1-a-3")
+
     def test_others_cannot_unlock(self) -> None:
         chant = Chant(volpiano_proofread=True)
-        form = LockTestForm(data={"volpiano": "1-a-3"}, instance=chant)
+        form = LockTestForm(data={**OTHER_FIELDS, "volpiano": "1-a-3"}, instance=chant)
         lock_proofread_fields(form)
         self.assertEqual(self.locked_fields(form), {"volpiano"})
 
@@ -304,6 +318,25 @@ class ChantEditLockTest(ProofreadLockTestCase):
         )
         self.assertEqual(chant.manuscript_full_text, "Ave maria gracia plena")
         self.assertEqual(chant.volpiano, "1---c---d---e---f---g---3")
+
+    def test_outdated_page_keeps_a_field_unlocked_since_it_loaded(self) -> None:
+        # The indexer's page has the melody locked, so it won't submit it. A
+        # proofreader then unticks the melody box and saves. The indexer's
+        # save must not erase the melody.
+        chant = self.make_chant(volpiano_proofread=True)
+        outdated_page = self.edit_data(
+            chant, volpiano=None, volpiano_proofread=None, indexing_notes="new notes"
+        )
+        Chant.objects.filter(pk=chant.pk).update(volpiano_proofread=False)
+        self.client.force_login(self.users["user"])
+        response = self.client.post(
+            reverse("source-edit-chants", args=[self.source.id]), outdated_page
+        )
+        self.assertEqual(response.status_code, 302)
+        chant.refresh_from_db()
+        self.assertEqual(chant.volpiano, "1---c---d---e---f---g---3")
+        self.assertEqual(chant.indexing_notes, "new notes")
+        self.assertIs(chant.volpiano_proofread, False)
 
     def test_no_text_warnings_for_locked_text(self) -> None:
         # nobody can fix a locked text, so it isn't checked for problems

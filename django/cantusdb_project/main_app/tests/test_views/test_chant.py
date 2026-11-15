@@ -878,6 +878,7 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
                     "c_sequence": chant_wo_fulltext.c_sequence,
                     "pk": chant_wo_fulltext.id,
                     "mode": "2",
+                    "manuscript_full_text": "",
                 },
             )
             self.assertEqual(response.status_code, 302)
