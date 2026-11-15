@@ -166,7 +166,29 @@ window.addEventListener("load", function () {
 
     let bulkSaveInFlight = false;
     let bulkChangesSaved = false;
+    let savedFormData = null;
     const warningEchoes = new Map();
+
+    // Show the saved chants. If the save moved every chant off the folio
+    // being browsed (e.g. 2r renumbered to 1rb), follow them to their new
+    // folio rather than reloading an empty one (#2298).
+    function showSavedChants() {
+        const folio = urlParams.get("folio");
+        const savedFolios = [];
+        for (const [name, value] of savedFormData?.entries() || []) {
+            if (/^chant_set-\d+-folio$/.test(name)) {
+                savedFolios.push(value.trim());
+            }
+        }
+        if (folio && savedFolios.length && !savedFolios.includes(folio)) {
+            const savedUrl = new URL(window.location.href);
+            savedUrl.searchParams.set("folio", savedFolios[0]);
+            savedUrl.searchParams.delete("page");
+            window.location.assign(savedUrl);
+        } else {
+            window.location.reload();
+        }
+    }
 
     function clearTextWarnings() {
         const alert = document.getElementById("formsetTextWarningAlert");
@@ -216,7 +238,7 @@ window.addEventListener("load", function () {
     function toggleBulkEditForm(bulkChantEditForm, chantDisplayTable, bulkChantEditSubmit, bulkChantEditToggle) {
         if (bulkSaveInFlight) return;
         if (bulkChangesSaved) {
-            window.location.reload();
+            showSavedChants();
             return;
         }
         bulkChantEditForm.classList.toggle("d-none");
@@ -256,12 +278,13 @@ window.addEventListener("load", function () {
                         const result = data.result;
                         if (result.error_count === 0) {
                             bulkChangesSaved = true;
+                            savedFormData = editFormData;
                             // Older workers may finish a task without this field.
                             const warnings = result.text_warnings || [];
                             if (warnings.length) {
                                 showTextWarnings(warnings, bulkChantEditForm, editFormData);
                             } else {
-                                window.location.reload();
+                                showSavedChants();
                             }
                         } else {
                             result.non_form_errors.forEach(error => addError(error.message));

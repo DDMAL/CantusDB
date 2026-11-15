@@ -1665,6 +1665,35 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         self.assertIn(chant_on_folio, chants)
         self.assertNotIn(chant_on_another_folio, chants)
 
+    def test_folio_with_no_chants_left_shows_an_empty_list(self):
+        # e.g. after every chant on 002r was renumbered in Bulk Edit (#2298)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
+        source = make_fake_source(segment=[cantus_segment])
+        make_fake_chant(source=source, folio="001r")
+        make_fake_chant(source=source, folio="003r")
+        response = self.client.get(
+            reverse("browse-chants", args=[source.id]), {"folio": "002r"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(response.context["chants"]), [])
+        self.assertContains(response, "No chants found.")
+        self.assertIsNone(response.context.get("previous_folio"))
+        self.assertIsNone(response.context.get("next_folio"))
+
+    def test_no_folio_selected_shows_no_folio_navigation(self):
+        # a chant without a folio must not count as the selected folio
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
+        source = make_fake_source(segment=[cantus_segment])
+        make_fake_chant(source=source, folio=None)
+        make_fake_chant(source=source, folio="001r")
+        url = reverse("browse-chants", args=[source.id])
+        for params in ({}, {"folio": ""}):
+            with self.subTest(params=params):
+                response = self.client.get(url, params)
+                self.assertEqual(response.status_code, 200)
+                self.assertIsNone(response.context.get("previous_folio"))
+                self.assertIsNone(response.context.get("next_folio"))
+
     def test_page_past_the_end_shows_the_last_page(self):
         # e.g. a filter changed on page 5, or fewer chants match since (#2300)
         cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)

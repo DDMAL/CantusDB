@@ -296,14 +296,18 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
         )
         context["folios"] = folios
 
-        if folio := self.request.GET.get("folio"):
+        folio_list = list(folios)
+        folio = self.request.GET.get("folio")
+        if folio and folio in folio_list:
             # if browsing chants on a specific folio
-            index: int = list(folios).index(folio)
+            index: int = folio_list.index(folio)
             # get the previous and next folio, if available
-            context["previous_folio"] = folios[index - 1] if index != 0 else None
+            context["previous_folio"] = folio_list[index - 1] if index != 0 else None
             context["next_folio"] = (
-                folios[index + 1] if index < len(folios) - 1 else None
+                folio_list[index + 1] if index < len(folio_list) - 1 else None
             )
+        # A folio with no chants left (e.g. renumbered in Bulk Edit) just
+        # shows an empty list (#2298).
 
         # the options for the feast selector on the right, same as the source detail page
         context["feasts_with_folios"] = get_feast_selector_options(source)
