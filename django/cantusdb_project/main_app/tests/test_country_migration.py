@@ -23,7 +23,7 @@ class CountryMigrationTests(TransactionTestCase):
         self.migrate(self.new)
         super().tearDown()
 
-    def test_migration_preserves_text_history_and_subsequent_edits(self):
+    def test_migration_discards_old_text_and_keeps_history_usable(self):
         apps = self.migrate(self.old)
         Institution = apps.get_model("main_app", "Institution")
         ContentType = apps.get_model("contenttypes", "ContentType")
@@ -62,7 +62,14 @@ class CountryMigrationTests(TransactionTestCase):
         institution = Institution.objects.get(pk=institution.pk)
         self.assertEqual(institution.country_id, "7012149")
         self.assertEqual(institution.country.name, "United States")
-        self.assertEqual(institution.country_legacy, "USA")
+        columns = {
+            column.name
+            for column in connection.introspection.get_table_description(
+                connection.cursor(), "main_app_institution"
+            )
+        }
+        self.assertNotIn("country_legacy", columns)
+        self.assertNotIn("country_text", columns)
         self.assertEqual(institution.date_updated, timestamp)
         self.assertEqual(Institution.objects.get(pk=unknown.pk).country_id, "unknown")
         self.assertEqual(
@@ -72,15 +79,16 @@ class CountryMigrationTests(TransactionTestCase):
             "fields"
         ]
         self.assertEqual(fields["country"], "unknown")
-        self.assertEqual(fields["country_legacy"], "Land O' Tests")
+        self.assertEqual(set(fields), set(original[0]["fields"]))
+        self.assertNotIn("Land O' Tests", json.dumps(fields))
 
         from reversion.models import Version as LiveVersion
 
         recovered = LiveVersion.objects.get(pk=version.pk)._object_version.object
         self.assertEqual(recovered.country.name, "Unknown")
-        self.assertEqual(recovered.country_legacy, "Land O' Tests")
+        self.assertFalse(hasattr(recovered, "country_legacy"))
 
-        # Institutions and revisions created after migration have no legacy text.
+        # Institutions and revisions created after migration use the same rollback.
         new_institution = Institution.objects.create(
             name="New library", siglum="XX-New"
         )
@@ -94,11 +102,14 @@ class CountryMigrationTests(TransactionTestCase):
             object_repr="New library",
         )
 
-        # Undoing the migration restores original values and serialized history.
+        # Rollback uses canonical names; discarded spellings cannot be recovered.
         apps = self.migrate(self.old)
         Institution = apps.get_model("main_app", "Institution")
         Version = apps.get_model("reversion", "Version")
-        self.assertEqual(Institution.objects.get(pk=institution.pk).country, "USA")
+        self.assertEqual(
+            Institution.objects.get(pk=institution.pk).country, "United States"
+        )
+        original[0]["fields"]["country"] = "Unknown"
         self.assertEqual(
             json.loads(Version.objects.get(pk=version.pk).serialized_data), original
         )

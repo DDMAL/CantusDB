@@ -43,7 +43,6 @@ class InstitutionAdmin(BaseModelAdmin):
         "migrated_identifier",
     )
     readonly_fields = (
-        "country_legacy",
         "migrated_identifier",
         "created_by",
         "date_created",
@@ -61,7 +60,6 @@ class InstitutionAdmin(BaseModelAdmin):
                     "city",
                     "region",
                     "country",
-                    "country_legacy",
                     "alternate_names",
                     "former_sigla",
                     "private_notes",

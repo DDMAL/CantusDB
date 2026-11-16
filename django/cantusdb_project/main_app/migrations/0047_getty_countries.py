@@ -36,7 +36,7 @@ def forwards(apps, schema_editor) -> None:
     institutions = Institution.objects.using(alias)
     unmapped = [
         (pk, value)
-        for pk, value in institutions.values_list("pk", "country_legacy")
+        for pk, value in institutions.values_list("pk", "country_text")
         if code_for(value) is None
     ]
     if unmapped:
@@ -48,7 +48,7 @@ def forwards(apps, schema_editor) -> None:
     )
     for institution in institutions.iterator():
         institutions.filter(pk=institution.pk).update(
-            country_id=code_for(institution.country_legacy)
+            country_id=code_for(institution.country_text)
         )
 
     # The old field contained text. Leaving that text in Version.country would
@@ -60,8 +60,7 @@ def forwards(apps, schema_editor) -> None:
             if obj["model"] != "main_app.institution" or "country" not in fields:
                 continue
             original = fields["country"]
-            fields["country_legacy"] = original
-            # Historic unrecognized text remains visible in the recovery form.
+            # Historical countries outside the catalogue become Unknown.
             fields["country"] = code_for(original) or "unknown"
         version.serialized_data = json.dumps(objects)
         version.save(using=alias, update_fields=["serialized_data"])
@@ -73,32 +72,22 @@ def backwards(apps, schema_editor) -> None:
     Institution = apps.get_model("main_app", "Institution")
     names = dict(Country.objects.using(alias).values_list("code", "name"))
 
-    def original_or_current(code: str, original: str) -> str:
-        # New institutions have no pre-migration text. Restore the old default,
-        # rather than introducing an empty country into the old dropdown.
-        if not original and code == "not-recorded":
-            return "[No Country]"
-        # Retain original spellings, but do not undo an editor's later choice.
-        if (code_for(original) or "unknown") == code:
-            return original
-        return names[code]
+    def country_name(code: str) -> str:
+        # Restore the old missing-value default, but not discarded spellings.
+        return "[No Country]" if code == "not-recorded" else names[code]
 
     institutions = Institution.objects.using(alias)
     for institution in institutions.iterator():
         institutions.filter(pk=institution.pk).update(
-            country_legacy=original_or_current(
-                institution.country_id, institution.country_legacy
-            )
+            country_text=country_name(institution.country_id)
         )
     for version in institution_versions(apps, alias).iterator():
         objects = json.loads(version.serialized_data)
         for obj in objects:
             fields = obj["fields"]
-            if obj["model"] != "main_app.institution" or "country_legacy" not in fields:
+            if obj["model"] != "main_app.institution" or "country" not in fields:
                 continue
-            fields["country"] = original_or_current(
-                fields["country"], fields.pop("country_legacy")
-            )
+            fields["country"] = country_name(fields["country"])
         version.serialized_data = json.dumps(objects)
         version.save(using=alias, update_fields=["serialized_data"])
 
@@ -121,18 +110,7 @@ class Migration(migrations.Migration):
             ],
             options={"ordering": ["name"], "verbose_name_plural": "countries"},
         ),
-        migrations.RenameField("institution", "country", "country_legacy"),
-        migrations.AlterField(
-            model_name="institution",
-            name="country_legacy",
-            field=models.CharField(
-                max_length=64,
-                blank=True,
-                default="",
-                editable=False,
-                help_text="Original country text retained when the Getty catalogue was introduced.",
-            ),
-        ),
+        migrations.RenameField("institution", "country", "country_text"),
         migrations.AddField(
             model_name="institution",
             name="country",
@@ -143,6 +121,9 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.RunPython(forwards, backwards),
+        # This temporary column is only needed while mapping the old strings.
+        # On reversal Django recreates it before backwards fills canonical names.
+        migrations.RemoveField("institution", "country_text"),
         migrations.AlterField(
             model_name="institution",
             name="country",

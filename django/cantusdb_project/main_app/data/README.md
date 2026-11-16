@@ -27,7 +27,7 @@ Getty Thesaurus of Geographic Names, which is made available under the
 The catalogue is local so institution editing and migration work without network
 access. It is read-only in the admin. To add a newly represented territory or update
 a Getty name, verify the record with Getty and add a reviewed data migration and
-a new dated catalogue. Keep this file unchanged: migration 0047 uses it for recovery.
+a new dated catalogue. Keep the dated JSON catalogue unchanged: migration 0047 uses it for conversion.
 
 Deploy code and schema together during a short maintenance window: pause public
 requests and background jobs, install the new code, run `python manage.py migrate`
@@ -53,12 +53,12 @@ rejects an unrecognized country, the transaction leaves the old schema intact;
 restore the previous code before reopening the site and reconcile the reported rows
 there before retrying.
 
-Migration 0047 preserves original country
-text and converts institution revision history. Unrecognized current countries
-stop the migration with institution IDs; reconcile those before retrying.
-Unrecognized historical values become Unknown, with their exact text preserved
-in the read-only original-country field. Reversing the migration restores original
-text unless an editor has since selected a different country; in that case it
-retains the selected country's name. New institutions left at Not recorded return
-to the old `[No Country]` default on reversal. The retired US cleanup command is
-unnecessary.
+Migration 0047 converts existing institution countries and their revision history
+then discards the original country text. Unrecognized current countries stop the
+migration with institution IDs; reconcile those before retrying. Unrecognized
+historical values become Unknown. Revision recovery still works with the country
+references, but original spellings and unmatched historical country text are lost.
+Reversing the migration restores the free-text schema using each selected country's
+standard name, including edits made after deployment. Not recorded becomes the old
+`[No Country]` default. Rollback does not recover discarded spellings. The retired
+US cleanup command is unnecessary.

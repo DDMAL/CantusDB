@@ -52,13 +52,6 @@ class Institution(BaseModel):
     country = models.ForeignKey(
         "Country", on_delete=models.PROTECT, default="not-recorded"
     )
-    country_legacy = models.CharField(
-        max_length=64,
-        blank=True,
-        default="",
-        editable=False,
-        help_text="Original country text retained when the Getty catalogue was introduced.",
-    )
     alternate_names = models.TextField(
         blank=True, null=True, help_text="Enter alternate names on separate lines."
     )
