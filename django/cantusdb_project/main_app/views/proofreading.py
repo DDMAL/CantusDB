@@ -17,6 +17,7 @@ from django.views.generic import ListView
 from django.views.generic.list import MultipleObjectMixin
 from django.utils import timezone
 
+from main_app.countries import matching_country_codes
 from main_app.models import Chant, Source
 from main_app.permissions import CustomAccessMixin, annotate_proofreading_lock
 
@@ -46,7 +47,7 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
                 Q(segment_m2m__id=settings.CANTUS_SEGMENT_ID)
                 & Q(number_of_chants__gt=0)
             )
-        queryset = queryset.select_related("holding_institution")
+        queryset = queryset.select_related("holding_institution__country")
 
         if not user.is_superuser:
             queryset = queryset.filter(
@@ -60,7 +61,11 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
                 | Q(shelfmark__icontains=search_query)
                 | Q(holding_institution__name__icontains=search_query)
                 | Q(holding_institution__city__icontains=search_query)
-                | Q(holding_institution__country__icontains=search_query)
+                | Q(
+                    holding_institution__country_id__in=matching_country_codes(
+                        search_query
+                    )
+                )
                 | Q(title__icontains=search_query)
                 | Q(siglum__icontains=search_query)
             )
@@ -246,7 +251,7 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
             # mirrors Browse Sources' country sort. PostgreSQL puts NULL sigla
             # (private collectors) last ascending, first descending.
             "country": [
-                "holding_institution__country",
+                "holding_institution__country__name",
                 "holding_institution__siglum",
                 "shelfmark",
             ],

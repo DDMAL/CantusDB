@@ -3,6 +3,7 @@ from typing import Optional
 import requests
 from django.core.management import BaseCommand
 
+from main_app.countries import country_code
 from main_app.identifiers import ExternalIdentifiers
 from main_app.models import Source, Institution, InstitutionIdentifier
 
@@ -191,7 +192,7 @@ class Command(BaseCommand):
 
                 iobj = {
                     "city": city.strip() if city else None,
-                    "country": country,
+                    "country_id": country_code(country),
                     "name": institution_name.strip(),
                 }
 

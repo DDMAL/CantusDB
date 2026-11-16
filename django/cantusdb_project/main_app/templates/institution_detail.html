@@ -6,10 +6,11 @@
         {% if institution.siglum %}({{ institution.siglum }}){% endif %}
     </h3>
     <h4>
-        {% if institution.city %}{{ institution.city }},{% else %}[No City],{% endif %} {{ institution.country }}
+        {% if institution.city %}{{ institution.city }},{% else %}[No City],{% endif %} {% if institution.country.getty_url %}<a href="{{ institution.country.getty_url }}">{{ institution.country }}</a>{% else %}{{ institution.country }}{% endif %}
     </h4>
 {% endblock %}
 {% block maincontent %}
+    <p class="small text-muted">Country names: <a href="https://www.getty.edu/research-conservation/tools-databases/vocabularies/tgn/">Getty Thesaurus of Geographic Names</a>, J. Paul Getty Trust, Getty Research Institute, <a href="https://opendatacommons.org/licenses/by/1-0/">ODC Attribution License</a>.</p>
     {% if institution_authorities %}
         {% for authority in institution_authorities %}
             <div class="row mb-3">

@@ -1,0 +1,2127 @@
+[
+  {
+    "code": "7016612",
+    "name": "Afghanistan",
+    "aliases": [
+      "AF",
+      "AFG",
+      "Afghan",
+      "Afghanistan, Islamic Republic of",
+      "Islamic Republic of Afghanistan"
+    ]
+  },
+  {
+    "code": "7006417",
+    "name": "Albania",
+    "aliases": [
+      "AL",
+      "ALB",
+      "Albania, Republic of",
+      "Albanian",
+      "Republic of Albania"
+    ]
+  },
+  {
+    "code": "7016752",
+    "name": "Algeria",
+    "aliases": [
+      "Algerian",
+      "DZ",
+      "DZA",
+      "Democratic and Popular Republic of Algeria",
+      "People's Democratic Republic of Algeria",
+      "People’s Democratic Republic of Algeria"
+    ]
+  },
+  {
+    "code": "1000061",
+    "name": "Andorra",
+    "aliases": [
+      "AD",
+      "AN",
+      "AND",
+      "Andorran",
+      "Principality of Andorra",
+      "Valleys of Andorra"
+    ]
+  },
+  {
+    "code": "1000149",
+    "name": "Angola",
+    "aliases": [
+      "AGO",
+      "AO",
+      "Angolan",
+      "Republic of Angola"
+    ]
+  },
+  {
+    "code": "1000009",
+    "name": "Antigua and Barbuda",
+    "aliases": [
+      "AC",
+      "ATG",
+      "Antiguan Barbudan"
+    ]
+  },
+  {
+    "code": "7006477",
+    "name": "Argentina",
+    "aliases": [
+      "AR",
+      "ARG",
+      "Argentine",
+      "Argentine Republic"
+    ]
+  },
+  {
+    "code": "7006651",
+    "name": "Armenia",
+    "aliases": [
+      "AM",
+      "ARM",
+      "Armenian",
+      "Republic of Armenia"
+    ]
+  },
+  {
+    "code": "7000490",
+    "name": "Australia",
+    "aliases": [
+      "AS",
+      "AUS",
+      "Australian"
+    ]
+  },
+  {
+    "code": "1000062",
+    "name": "Austria",
+    "aliases": [
+      "AT",
+      "AUT",
+      "Austrian",
+      "Republic of Austria"
+    ]
+  },
+  {
+    "code": "7006646",
+    "name": "Azerbaijan",
+    "aliases": [
+      "AJ",
+      "AZ",
+      "AZE",
+      "Azerbaijani",
+      "Azerbijan",
+      "Republic of Azerbaijan"
+    ]
+  },
+  {
+    "code": "7005332",
+    "name": "Bahamas",
+    "aliases": [
+      "BHS",
+      "BS",
+      "Bahama Islands",
+      "Bahamas, The",
+      "Bahamian",
+      "Commonwealth of the Bahamas",
+      "The Bahamas",
+      "The Commonwealth of the Bahamas"
+    ]
+  },
+  {
+    "code": "7016770",
+    "name": "Bahrain",
+    "aliases": [
+      "BHR",
+      "Bahraini",
+      "Kingdom of Bahrain"
+    ]
+  },
+  {
+    "code": "1000105",
+    "name": "Bangladesh",
+    "aliases": [
+      "BD",
+      "BGD",
+      "Bangladeshi",
+      "People's Republic of Bangladesh"
+    ]
+  },
+  {
+    "code": "7004770",
+    "name": "Barbados",
+    "aliases": [
+      "BB",
+      "BRB",
+      "Barbadian"
+    ]
+  },
+  {
+    "code": "7006657",
+    "name": "Belarus",
+    "aliases": [
+      "BLR",
+      "Belarusian",
+      "Belorussia",
+      "Belorussian",
+      "Byelorussian",
+      "Republic of Belarus",
+      "White Russia",
+      "רוסיה הלבנה"
+    ]
+  },
+  {
+    "code": "1000063",
+    "name": "Belgium",
+    "aliases": [
+      "BE",
+      "BEL",
+      "Belgian",
+      "Belgium, Kingdom of",
+      "Kingdom of Belgium"
+    ]
+  },
+  {
+    "code": "7005346",
+    "name": "Belize",
+    "aliases": [
+      "BLZ",
+      "BZ",
+      "Belizean"
+    ]
+  },
+  {
+    "code": "1000160",
+    "name": "Benin",
+    "aliases": [
+      "BEN",
+      "BJ",
+      "Benin, Republic of",
+      "Beninese",
+      "Republic of Benin"
+    ]
+  },
+  {
+    "code": "7014831",
+    "name": "Bhutan",
+    "aliases": [
+      "BT",
+      "BTN",
+      "Bhutanese",
+      "Kingdom of Bhutan"
+    ]
+  },
+  {
+    "code": "1000046",
+    "name": "Bolivia",
+    "aliases": [
+      "BL",
+      "BOL",
+      "Bolivia (Plurinational State of)",
+      "Bolivia, Plurinational State Of",
+      "Bolivia, Plurinational State of",
+      "Bolivian",
+      "Plurinational State of Bolivia"
+    ]
+  },
+  {
+    "code": "7006664",
+    "name": "Bosnia and Herzegovina",
+    "aliases": [
+      "BIH",
+      "Bosnia and Hercegovina",
+      "Bosnia-Herzegovina",
+      "Bosnian Herzegovinian"
+    ]
+  },
+  {
+    "code": "1000150",
+    "name": "Botswana",
+    "aliases": [
+      "BC",
+      "BW",
+      "BWA",
+      "Batswana",
+      "Republic of Botswana"
+    ]
+  },
+  {
+    "code": "1000047",
+    "name": "Brazil",
+    "aliases": [
+      "BR",
+      "BRA",
+      "Brazilian",
+      "Federative Republic of Brazil"
+    ]
+  },
+  {
+    "code": "1000107",
+    "name": "Brunei Darussalam",
+    "aliases": [
+      "BRN",
+      "BX",
+      "Brunei",
+      "Bruneian",
+      "Islamic Sultanate of Brunei",
+      "State of Brunei Darussalam",
+      "State of Brunei, Abode of Peace"
+    ]
+  },
+  {
+    "code": "7006413",
+    "name": "Bulgaria",
+    "aliases": [
+      "BGR",
+      "BU",
+      "Bulgarian",
+      "Republic of Bulgaria"
+    ]
+  },
+  {
+    "code": "1000208",
+    "name": "Burkina Faso",
+    "aliases": [
+      "BFA",
+      "Burkina Fasso",
+      "Burkinabe",
+      "UV"
+    ]
+  },
+  {
+    "code": "7001630",
+    "name": "Burundi",
+    "aliases": [
+      "BDI",
+      "BI",
+      "Burundian",
+      "Republic of Burundi"
+    ]
+  },
+  {
+    "code": "1000109",
+    "name": "Cambodia",
+    "aliases": [
+      "CB",
+      "Cambodian",
+      "Democratic Cambodia",
+      "KH",
+      "KHM",
+      "Kingdom of Cambodia"
+    ]
+  },
+  {
+    "code": "1000153",
+    "name": "Cameroon",
+    "aliases": [
+      "CM",
+      "CMR",
+      "Cameroonian",
+      "Republic of Cameroon"
+    ]
+  },
+  {
+    "code": "7005685",
+    "name": "Canada",
+    "aliases": [
+      "CA",
+      "CAN",
+      "Canadian"
+    ]
+  },
+  {
+    "code": "7001632",
+    "name": "Cape Verde",
+    "aliases": [
+      "CPV",
+      "CV",
+      "Cabo Verde",
+      "Cape Verdean",
+      "Republic of Cabo Verde",
+      "Republic of Cape Verde"
+    ]
+  },
+  {
+    "code": "1000155",
+    "name": "Central African Republic",
+    "aliases": [
+      "CAF",
+      "CT",
+      "Central African"
+    ]
+  },
+  {
+    "code": "1000156",
+    "name": "Chad",
+    "aliases": [
+      "Chadian",
+      "Republic of Chad",
+      "TCD"
+    ]
+  },
+  {
+    "code": "1000049",
+    "name": "Chile",
+    "aliases": [
+      "CHL",
+      "CL",
+      "Chile, Republic of",
+      "Chilean",
+      "Republic of Chile"
+    ]
+  },
+  {
+    "code": "1000111",
+    "name": "China",
+    "aliases": [
+      "CHN",
+      "China, People's Republic of",
+      "Chinese",
+      "People's Republic of China",
+      "People’s Republic of China"
+    ]
+  },
+  {
+    "code": "1000050",
+    "name": "Colombia",
+    "aliases": [
+      "CO",
+      "COL",
+      "Colombian",
+      "Republic of Colombia"
+    ]
+  },
+  {
+    "code": "1000157",
+    "name": "Comoros",
+    "aliases": [
+      "COM",
+      "Comorian",
+      "Comoro Islands",
+      "Federal Islamic Republic of the Comoros",
+      "Federal and Islamic Republic of the Comoros",
+      "KM",
+      "Republic of the Comoros",
+      "Union of the Comoros"
+    ]
+  },
+  {
+    "code": "1000158",
+    "name": "Congo (Republic of)",
+    "aliases": [
+      "COG",
+      "Congo (Brazzaville)",
+      "Congo Republic",
+      "Congo, Republic of the",
+      "Congo-Brazzaville",
+      "Republic of the Congo"
+    ]
+  },
+  {
+    "code": "7005364",
+    "name": "Costa Rica",
+    "aliases": [
+      "CR",
+      "CRI",
+      "CS",
+      "Costa Rican",
+      "Republic of Costa Rica"
+    ]
+  },
+  {
+    "code": "1000168",
+    "name": "Côte d'Ivoire",
+    "aliases": [
+      "CIV",
+      "Côte d’Ivoire",
+      "IV",
+      "Ivorian",
+      "Republic of Côte d'Ivoire",
+      "Republic of Côte d’Ivoire"
+    ]
+  },
+  {
+    "code": "7006663",
+    "name": "Croatia",
+    "aliases": [
+      "Croat",
+      "Croatian",
+      "HR",
+      "HRV",
+      "Republic of Croatia"
+    ]
+  },
+  {
+    "code": "7004624",
+    "name": "Cuba",
+    "aliases": [
+      "CU",
+      "CUB",
+      "Cuba, Republic of",
+      "Cuban",
+      "Republic of Cuba"
+    ]
+  },
+  {
+    "code": "1000112",
+    "name": "Cyprus",
+    "aliases": [
+      "CY",
+      "CYP",
+      "Cypriot",
+      "Cyprus, Republic of",
+      "Republic of Cyprus"
+    ]
+  },
+  {
+    "code": "1001780",
+    "name": "Czech Republic",
+    "aliases": [
+      "Bohemia",
+      "CZ",
+      "CZE",
+      "Czech",
+      "Czechia",
+      "EZ"
+    ]
+  },
+  {
+    "code": "1000159",
+    "name": "Democratic Republic of the Congo",
+    "aliases": [
+      "COD",
+      "Congo (DRC)",
+      "Congo (Democratic Republic)",
+      "Congo, Democratic Republic of the",
+      "Congo, The Democratic Republic Of",
+      "Congo-Kinshasa",
+      "DR Congo",
+      "Democratic Republic of Congo",
+      "RDC"
+    ]
+  },
+  {
+    "code": "1000066",
+    "name": "Denmark",
+    "aliases": [
+      "DA",
+      "DK",
+      "DNK",
+      "Danish",
+      "Kingdom of Denmark"
+    ]
+  },
+  {
+    "code": "7000331",
+    "name": "Dhivehi Raajje",
+    "aliases": [
+      "MDV",
+      "MV",
+      "Maldives",
+      "Maldivian",
+      "Republic of Maldives"
+    ]
+  },
+  {
+    "code": "7001644",
+    "name": "Djibouti",
+    "aliases": [
+      "DJ",
+      "DJI",
+      "Djiboutian",
+      "Republic of Djibouti"
+    ]
+  },
+  {
+    "code": "7004641",
+    "name": "Dominica",
+    "aliases": [
+      "Commonwealth of Dominica",
+      "DM",
+      "DMA"
+    ]
+  },
+  {
+    "code": "7005388",
+    "name": "Dominican Republic",
+    "aliases": [
+      "DOM",
+      "DR",
+      "Spanish Haiti"
+    ]
+  },
+  {
+    "code": "1000051",
+    "name": "Ecuador",
+    "aliases": [
+      "EC",
+      "ECU",
+      "Ecuador, Republic of",
+      "Ecuadorian",
+      "Republic of Ecuador"
+    ]
+  },
+  {
+    "code": "7016833",
+    "name": "Egypt",
+    "aliases": [
+      "Arab Republic of Egypt",
+      "EG",
+      "EGY",
+      "Egypt, Arab Republic of",
+      "Egyptian"
+    ]
+  },
+  {
+    "code": "7005441",
+    "name": "El Salvador",
+    "aliases": [
+      "Republic of El Salvador",
+      "SLV",
+      "SV",
+      "Salvador, El",
+      "Salvadoran"
+    ]
+  },
+  {
+    "code": "1000161",
+    "name": "Equatorial Guinea",
+    "aliases": [
+      "EK",
+      "Equatorial Guinea, Republic of",
+      "Equatorial Guinean",
+      "GNQ",
+      "GQ",
+      "Republic of Equatorial Guinea"
+    ]
+  },
+  {
+    "code": "7001658",
+    "name": "Eritrea",
+    "aliases": [
+      "ER",
+      "ERI",
+      "Eritrea, State of",
+      "Eritrean",
+      "State of Eritrea"
+    ]
+  },
+  {
+    "code": "7006540",
+    "name": "Estonia",
+    "aliases": [
+      "EE",
+      "EN",
+      "EST",
+      "Estonian",
+      "Republic of Estonia"
+    ]
+  },
+  {
+    "code": "7000489",
+    "name": "Ethiopia",
+    "aliases": [
+      "ET",
+      "ETH",
+      "Ethiopian",
+      "Federal Democratic Republic of Ethiopia"
+    ]
+  },
+  {
+    "code": "1000220",
+    "name": "Federated States of Micronesia",
+    "aliases": [
+      "FM",
+      "FSM",
+      "Micronesia",
+      "Micronesia, Federated States Of",
+      "Micronesia, Federated States of",
+      "Micronesian"
+    ]
+  },
+  {
+    "code": "7000493",
+    "name": "Fiji",
+    "aliases": [
+      "FJ",
+      "FJI",
+      "Fiji Islands",
+      "Fijian",
+      "Republic of Fiji"
+    ]
+  },
+  {
+    "code": "1000069",
+    "name": "Finland",
+    "aliases": [
+      "FI",
+      "FIN",
+      "Finland, Republic of",
+      "Finnish",
+      "Republic of Finland"
+    ]
+  },
+  {
+    "code": "1000070",
+    "name": "France",
+    "aliases": [
+      "FR",
+      "FRA",
+      "French",
+      "French Republic"
+    ]
+  },
+  {
+    "code": "1000164",
+    "name": "Gabon",
+    "aliases": [
+      "GAB",
+      "GB",
+      "Gabonese",
+      "Gabonese Republic"
+    ]
+  },
+  {
+    "code": "7006653",
+    "name": "Georgia",
+    "aliases": [
+      "GE",
+      "GEO",
+      "GG",
+      "Georgia, Republic of",
+      "Georgian",
+      "Republic of Georgia"
+    ]
+  },
+  {
+    "code": "7000084",
+    "name": "Germany",
+    "aliases": [
+      "BRD",
+      "DE",
+      "DEU",
+      "Federal Republic of Germany",
+      "German",
+      "West Germany"
+    ]
+  },
+  {
+    "code": "1000166",
+    "name": "Ghana",
+    "aliases": [
+      "GH",
+      "GHA",
+      "Ghanaian",
+      "Republic of Ghana"
+    ]
+  },
+  {
+    "code": "1000074",
+    "name": "Greece",
+    "aliases": [
+      "GR",
+      "GRC",
+      "Greek",
+      "Hellenic Republic"
+    ]
+  },
+  {
+    "code": "7004771",
+    "name": "Grenada",
+    "aliases": [
+      "GD",
+      "GJ",
+      "GRD",
+      "Granadian"
+    ]
+  },
+  {
+    "code": "7005493",
+    "name": "Guatemala",
+    "aliases": [
+      "GT",
+      "GTM",
+      "Guatemalan",
+      "Republic of Guatemala"
+    ]
+  },
+  {
+    "code": "1000167",
+    "name": "Guinea",
+    "aliases": [
+      "GIN",
+      "GN",
+      "GV",
+      "Guinean",
+      "Republic of Guinea"
+    ]
+  },
+  {
+    "code": "1000183",
+    "name": "Guinea-Bissau",
+    "aliases": [
+      "GNB",
+      "GW",
+      "Guinea-Bissauan",
+      "Guinean (Guinea-Bissauan)",
+      "PU",
+      "Republic of Guinea-Bissau"
+    ]
+  },
+  {
+    "code": "1000054",
+    "name": "Guyana",
+    "aliases": [
+      "Co-operative Republic of Guyana",
+      "Cooperative Republic of Guyana",
+      "GUY",
+      "GY",
+      "Guyanese"
+    ]
+  },
+  {
+    "code": "7005502",
+    "name": "Haiti",
+    "aliases": [
+      "HA",
+      "HT",
+      "HTI",
+      "Haitian",
+      "Republic of Haiti"
+    ]
+  },
+  {
+    "code": "7001168",
+    "name": "Holy See",
+    "aliases": [
+      "Holy See (Vatican City State)",
+      "State of Vatican City",
+      "State of the Vatican City",
+      "VA",
+      "VAT",
+      "VT",
+      "Vatican",
+      "Vatican City",
+      "Vatican City State",
+      "Vatican City State (Holy See)",
+      "Vatican Hill"
+    ]
+  },
+  {
+    "code": "7005554",
+    "name": "Honduras",
+    "aliases": [
+      "HN",
+      "HND",
+      "HO",
+      "Honduran",
+      "Republic of Honduras"
+    ]
+  },
+  {
+    "code": "7006278",
+    "name": "Hungary",
+    "aliases": [
+      "HU",
+      "HUN",
+      "Hungarian",
+      "Republic of Hungary"
+    ]
+  },
+  {
+    "code": "1000077",
+    "name": "Iceland",
+    "aliases": [
+      "IC",
+      "ISL",
+      "Icelandic",
+      "Republic of Iceland"
+    ]
+  },
+  {
+    "code": "7000198",
+    "name": "India",
+    "aliases": [
+      "IN",
+      "IND",
+      "Indian",
+      "Republic of India"
+    ]
+  },
+  {
+    "code": "1000116",
+    "name": "Indonesia",
+    "aliases": [
+      "ID",
+      "IDN",
+      "Indonesian",
+      "Republic of Indonesia"
+    ]
+  },
+  {
+    "code": "7000231",
+    "name": "Iran",
+    "aliases": [
+      "Empire of Iran",
+      "IR",
+      "IRN",
+      "Iran, Islamic Republic Of",
+      "Iranian",
+      "Islamic Republic of Iran"
+    ]
+  },
+  {
+    "code": "1000118",
+    "name": "Iraq",
+    "aliases": [
+      "IQ",
+      "IRQ",
+      "IZ",
+      "Iraqi",
+      "Republic of Iraq"
+    ]
+  },
+  {
+    "code": "1000078",
+    "name": "Ireland",
+    "aliases": [
+      "EI",
+      "IE",
+      "IRL",
+      "Irish",
+      "Irish Republic",
+      "Republic of Ireland"
+    ]
+  },
+  {
+    "code": "1000119",
+    "name": "Israel",
+    "aliases": [
+      "IL",
+      "ISR",
+      "Israeli",
+      "State of Israel"
+    ]
+  },
+  {
+    "code": "1000080",
+    "name": "Italy",
+    "aliases": [
+      "IT",
+      "ITA",
+      "Italian",
+      "Italian Republic",
+      "Republic of Italy"
+    ]
+  },
+  {
+    "code": "7005556",
+    "name": "Jamaica",
+    "aliases": [
+      "JAM",
+      "JM",
+      "Jamaican"
+    ]
+  },
+  {
+    "code": "1000120",
+    "name": "Japan",
+    "aliases": [
+      "JA",
+      "JP",
+      "JPN",
+      "Japanese"
+    ]
+  },
+  {
+    "code": "1000121",
+    "name": "Jordan",
+    "aliases": [
+      "Hashemite Kingdom of Jordan",
+      "JO",
+      "JOR",
+      "Jordanian"
+    ]
+  },
+  {
+    "code": "7014786",
+    "name": "Kazakhstan",
+    "aliases": [
+      "KAZ",
+      "KZ",
+      "Kasak",
+      "Kazakh",
+      "Republic of Kazakhstan"
+    ]
+  },
+  {
+    "code": "1000169",
+    "name": "Kenya",
+    "aliases": [
+      "KE",
+      "KEN",
+      "Republic of Kenya"
+    ]
+  },
+  {
+    "code": "1000217",
+    "name": "Kiribati",
+    "aliases": [
+      "I-Kiribati",
+      "KI",
+      "KIR",
+      "Kiribati, Repubic of",
+      "Republic of Kiribati"
+    ]
+  },
+  {
+    "code": "1000124",
+    "name": "Kuwait",
+    "aliases": [
+      "KU",
+      "KW",
+      "KWT",
+      "Koweit",
+      "Kuwaiti",
+      "Kuweit",
+      "State of Kuwait"
+    ]
+  },
+  {
+    "code": "7006655",
+    "name": "Kyrgyzstan",
+    "aliases": [
+      "KG",
+      "KGZ",
+      "Kyrgyz",
+      "Kyrgyz Republic"
+    ]
+  },
+  {
+    "code": "1000125",
+    "name": "Laos",
+    "aliases": [
+      "LA",
+      "LAO",
+      "Lao",
+      "Lao PDR",
+      "Lao People's Democratic Republic",
+      "Lao People’s Democratic Republic",
+      "Laotian"
+    ]
+  },
+  {
+    "code": "7006541",
+    "name": "Latvia",
+    "aliases": [
+      "LG",
+      "LV",
+      "LVA",
+      "Latvian",
+      "Republic of Latvia"
+    ]
+  },
+  {
+    "code": "1000126",
+    "name": "Lebanon",
+    "aliases": [
+      "LB",
+      "LBN",
+      "LE",
+      "Lebanese Republic",
+      "Republic of Lebanon"
+    ]
+  },
+  {
+    "code": "7001660",
+    "name": "Lesotho",
+    "aliases": [
+      "Basotho",
+      "Kingdom of Lesotho",
+      "LSO"
+    ]
+  },
+  {
+    "code": "1000171",
+    "name": "Liberia",
+    "aliases": [
+      "LBR",
+      "LR",
+      "Liberian",
+      "Republic of Liberia"
+    ]
+  },
+  {
+    "code": "1000172",
+    "name": "Libya",
+    "aliases": [
+      "Great Socialist People’s Libyan Arab Jamahiriya",
+      "LBY",
+      "LY",
+      "Libyan",
+      "State of Libya"
+    ]
+  },
+  {
+    "code": "7003515",
+    "name": "Liechtenstein",
+    "aliases": [
+      "LIE",
+      "Liechtensteiner",
+      "Principality of Liechtenstein"
+    ]
+  },
+  {
+    "code": "7006542",
+    "name": "Lithuania",
+    "aliases": [
+      "LH",
+      "LTU",
+      "Lithuanian",
+      "Lithuanian Soviet Socialist Republic",
+      "Republic of Lithuania"
+    ]
+  },
+  {
+    "code": "7003514",
+    "name": "Luxembourg",
+    "aliases": [
+      "Grand Duchy of Luxembourg",
+      "LU",
+      "LUX"
+    ]
+  },
+  {
+    "code": "1000173",
+    "name": "Madagascar",
+    "aliases": [
+      "MDG",
+      "Malagasy",
+      "Republic of Madagascar"
+    ]
+  },
+  {
+    "code": "7000726",
+    "name": "Malawi",
+    "aliases": [
+      "MI",
+      "MW",
+      "MWI",
+      "Malawian",
+      "Republic of Malawi"
+    ]
+  },
+  {
+    "code": "1000128",
+    "name": "Malaysia",
+    "aliases": [
+      "MY",
+      "MYS",
+      "Malaysian"
+    ]
+  },
+  {
+    "code": "1000175",
+    "name": "Mali",
+    "aliases": [
+      "ML",
+      "MLI",
+      "Malian",
+      "Republic of Mali"
+    ]
+  },
+  {
+    "code": "7005729",
+    "name": "Malta",
+    "aliases": [
+      "MLT",
+      "MT",
+      "Malta Island",
+      "Malta, Republic of",
+      "Maltese",
+      "Republic of Malta"
+    ]
+  },
+  {
+    "code": "7016730",
+    "name": "Marshall Islands",
+    "aliases": [
+      "MH",
+      "MHL",
+      "Marshallese",
+      "RM",
+      "Republic of the Marshall Islands"
+    ]
+  },
+  {
+    "code": "1000176",
+    "name": "Mauritania",
+    "aliases": [
+      "Islamic Republic of Mauritania",
+      "MR",
+      "MRT",
+      "Mauritanian"
+    ]
+  },
+  {
+    "code": "1000177",
+    "name": "Mauritius",
+    "aliases": [
+      "MP",
+      "MUS",
+      "Mauritian",
+      "Republic of Mauritius"
+    ]
+  },
+  {
+    "code": "7005560",
+    "name": "Mexico",
+    "aliases": [
+      "MEX",
+      "MX",
+      "Mexican",
+      "Mexican Republic",
+      "United Mexican States"
+    ]
+  },
+  {
+    "code": "7006656",
+    "name": "Moldova",
+    "aliases": [
+      "MD",
+      "MDA",
+      "Moldavia",
+      "Moldova, Republic Of",
+      "Moldovan",
+      "Republic of Moldova"
+    ]
+  },
+  {
+    "code": "7005758",
+    "name": "Monaco",
+    "aliases": [
+      "MC",
+      "MCO",
+      "Monacan",
+      "Monegasque",
+      "Principality of Monaco"
+    ]
+  },
+  {
+    "code": "7029379",
+    "name": "Mongolia",
+    "aliases": [
+      "MNG",
+      "Mongol Peoples Republic",
+      "Mongolian",
+      "Mongolian People’s Republic"
+    ]
+  },
+  {
+    "code": "7015657",
+    "name": "Montenegro",
+    "aliases": [
+      "ME",
+      "MJ",
+      "MNE",
+      "Montenegrin",
+      "Socialist Republic of Montenegro"
+    ]
+  },
+  {
+    "code": "1000179",
+    "name": "Morocco",
+    "aliases": [
+      "Kingdom of Morocco",
+      "MAR",
+      "MO",
+      "Moroccan"
+    ]
+  },
+  {
+    "code": "1000180",
+    "name": "Mozambique",
+    "aliases": [
+      "MOZ",
+      "MZ",
+      "Mozambican",
+      "Republic of Mozambique"
+    ]
+  },
+  {
+    "code": "1000108",
+    "name": "Myanmar",
+    "aliases": [
+      "BM",
+      "Birma (Myanmar)",
+      "Burmese",
+      "MM",
+      "MMR",
+      "Union of Burma"
+    ]
+  },
+  {
+    "code": "1000198",
+    "name": "Namibia",
+    "aliases": [
+      "NA",
+      "NAM",
+      "Namibian",
+      "Republic of Namibia",
+      "WA"
+    ]
+  },
+  {
+    "code": "7006158",
+    "name": "Nauru",
+    "aliases": [
+      "NR",
+      "NRO",
+      "NRU",
+      "Nauruan",
+      "Republic of Nauru",
+      "dei-Naoero"
+    ]
+  },
+  {
+    "code": "1000132",
+    "name": "Nepal",
+    "aliases": [
+      "Federal Democratic Republic of Nepal",
+      "NP",
+      "NPL",
+      "Nepalese"
+    ]
+  },
+  {
+    "code": "7016845",
+    "name": "Netherlands",
+    "aliases": [
+      "Holland",
+      "Kingdom of the Netherlands",
+      "NL",
+      "NLD",
+      "Netherlands, Kingdom of the",
+      "Netherlands, The",
+      "The Netherlands"
+    ]
+  },
+  {
+    "code": "1000226",
+    "name": "New Zealand",
+    "aliases": [
+      "NZ",
+      "NZL",
+      "New Zealander"
+    ]
+  },
+  {
+    "code": "7005562",
+    "name": "Nicaragua",
+    "aliases": [
+      "NIC",
+      "NU",
+      "Nicaraguan",
+      "Republic of Nicaragua"
+    ]
+  },
+  {
+    "code": "1000181",
+    "name": "Niger",
+    "aliases": [
+      "NE",
+      "NER",
+      "Nigerien",
+      "Republic of Niger",
+      "Republic of the Niger"
+    ]
+  },
+  {
+    "code": "1000182",
+    "name": "Nigeria",
+    "aliases": [
+      "Federal Republic of Nigeria",
+      "NGA",
+      "Naija",
+      "Nigerian"
+    ]
+  },
+  {
+    "code": "1000122",
+    "name": "North Korea",
+    "aliases": [
+      "Democratic People's Republic of Korea",
+      "Democratic People’s Republic of Korea",
+      "KP",
+      "Korea, Democratic People's Republic of",
+      "Korea, Democratic People’s Republic of",
+      "Korea, North",
+      "North Korean",
+      "PRK"
+    ]
+  },
+  {
+    "code": "7006667",
+    "name": "North Macedonia",
+    "aliases": [
+      "MK",
+      "MKD",
+      "Macedonia (FYR)",
+      "Macedonia (modern)",
+      "Macedonia, The Former Yugoslav Republic Of",
+      "Macedonian",
+      "Republic of North Macedonia"
+    ]
+  },
+  {
+    "code": "1000088",
+    "name": "Norway",
+    "aliases": [
+      "Kingdom of Norway",
+      "NO",
+      "NOR",
+      "Norwegian"
+    ]
+  },
+  {
+    "code": "1000131",
+    "name": "Oman",
+    "aliases": [
+      "OM",
+      "OMN",
+      "Omani",
+      "Sultanate of Oman"
+    ]
+  },
+  {
+    "code": "1000133",
+    "name": "Pakistan",
+    "aliases": [
+      "Islamic Republic of Pakistan",
+      "PAK",
+      "PK",
+      "Pakistan, Islamic Republic of",
+      "Pakistani"
+    ]
+  },
+  {
+    "code": "7005668",
+    "name": "Palau",
+    "aliases": [
+      "PLW",
+      "PS",
+      "PW",
+      "Pelauan",
+      "Republic of Belau",
+      "Republic of Palau"
+    ]
+  },
+  {
+    "code": "7005565",
+    "name": "Panama",
+    "aliases": [
+      "PAN",
+      "PM",
+      "Panamanian",
+      "Republic of Panama"
+    ]
+  },
+  {
+    "code": "7006160",
+    "name": "Papua New Guinea",
+    "aliases": [
+      "Independent State of Papua New Guinea",
+      "PG",
+      "PNG",
+      "PP",
+      "Papua New Guinean"
+    ]
+  },
+  {
+    "code": "1000055",
+    "name": "Paraguay",
+    "aliases": [
+      "PRY",
+      "PY",
+      "Paraguayan",
+      "Republic of Paraguay"
+    ]
+  },
+  {
+    "code": "1000056",
+    "name": "Peru",
+    "aliases": [
+      "PE",
+      "PER",
+      "Peruvian",
+      "Republic of Peru"
+    ]
+  },
+  {
+    "code": "1000135",
+    "name": "Philippines",
+    "aliases": [
+      "PH",
+      "PHL",
+      "Philippine",
+      "RP",
+      "Republic of the Philippines"
+    ]
+  },
+  {
+    "code": "7006366",
+    "name": "Poland",
+    "aliases": [
+      "PL",
+      "POL",
+      "Polish",
+      "Republic of Poland"
+    ]
+  },
+  {
+    "code": "1000090",
+    "name": "Portugal",
+    "aliases": [
+      "PO",
+      "PRT",
+      "PT",
+      "Portuguese",
+      "Portuguese Republic",
+      "Republic of Portugal"
+    ]
+  },
+  {
+    "code": "1000136",
+    "name": "Qatar",
+    "aliases": [
+      "QA",
+      "QAT",
+      "Qatari",
+      "State of Qatar"
+    ]
+  },
+  {
+    "code": "1000091",
+    "name": "Romania",
+    "aliases": [
+      "RO",
+      "ROU",
+      "Romanian",
+      "Roumania",
+      "Rumania"
+    ]
+  },
+  {
+    "code": "7002435",
+    "name": "Russia",
+    "aliases": [
+      "RS",
+      "RU",
+      "RUS",
+      "Russian Federation",
+      "Russian Socialist Federative Soviet Republic",
+      "Russian Soviet Federative Socialist Republic"
+    ]
+  },
+  {
+    "code": "7001682",
+    "name": "Rwanda",
+    "aliases": [
+      "RW",
+      "RWA",
+      "Republic of Rwanda",
+      "Rwandan",
+      "Rwandese"
+    ]
+  },
+  {
+    "code": "7005605",
+    "name": "Saint Kitts and Nevis",
+    "aliases": [
+      "Federation of Saint Christopher and Nevis",
+      "Federation of Saint Kitts and Nevis",
+      "KNA",
+      "Kittian Nevisian",
+      "St Kitts and Nevis"
+    ]
+  },
+  {
+    "code": "7004772",
+    "name": "Saint Lucia",
+    "aliases": [
+      "LC",
+      "LCA",
+      "Saint Lucian",
+      "St Lucia"
+    ]
+  },
+  {
+    "code": "7004773",
+    "name": "Saint Vincent and the Grenadines",
+    "aliases": [
+      "Saint Vincentian",
+      "St Vincent and Grenadines",
+      "VC",
+      "VCT"
+    ]
+  },
+  {
+    "code": "1000239",
+    "name": "Samoa",
+    "aliases": [
+      "Independent State of Samoa",
+      "Samoa, Independent State of",
+      "Samoan",
+      "WS",
+      "WSM"
+    ]
+  },
+  {
+    "code": "7005699",
+    "name": "San Marino",
+    "aliases": [
+      "Most Serene Republic of San Marino",
+      "Republic of San Marino",
+      "SM",
+      "SMR",
+      "Sammarinese"
+    ]
+  },
+  {
+    "code": "1000188",
+    "name": "Sao Tome and Principe",
+    "aliases": [
+      "Democratic Republic of Sao Tome and Principe",
+      "STP",
+      "Sao Tomean",
+      "São Tomé and Príncipe",
+      "São Toméan",
+      "TP"
+    ]
+  },
+  {
+    "code": "1000137",
+    "name": "Saudi Arabia",
+    "aliases": [
+      "Kingdom of Saudi Arabia",
+      "SA",
+      "SAU",
+      "Saudi Arabian"
+    ]
+  },
+  {
+    "code": "1000189",
+    "name": "Senegal",
+    "aliases": [
+      "Republic of Senegal",
+      "SEN",
+      "Senegalese"
+    ]
+  },
+  {
+    "code": "7006669",
+    "name": "Serbia",
+    "aliases": [
+      "RI",
+      "Republic of Serbia",
+      "Serbian"
+    ]
+  },
+  {
+    "code": "1000190",
+    "name": "Seychelles",
+    "aliases": [
+      "Republic of Seychelles",
+      "SYC"
+    ]
+  },
+  {
+    "code": "1000191",
+    "name": "Sierra Leone",
+    "aliases": [
+      "Republic of Sierra Leone",
+      "SL",
+      "SLE",
+      "Sierra Leonean",
+      "Sierra Leonian"
+    ]
+  },
+  {
+    "code": "7000381",
+    "name": "Singapore",
+    "aliases": [
+      "Republic of Singapore",
+      "SGP",
+      "Singaporean"
+    ]
+  },
+  {
+    "code": "7011765",
+    "name": "Slovakia",
+    "aliases": [
+      "LO",
+      "SK",
+      "SVK",
+      "Slovak",
+      "Slovak Republic",
+      "Slovakian"
+    ]
+  },
+  {
+    "code": "7006670",
+    "name": "Slovenia",
+    "aliases": [
+      "Republic of Slovenia",
+      "SI",
+      "SVN",
+      "Slovene"
+    ]
+  },
+  {
+    "code": "1000233",
+    "name": "Solomon Islands",
+    "aliases": [
+      "BP",
+      "SB",
+      "SLB",
+      "Solomon Islander"
+    ]
+  },
+  {
+    "code": "1000192",
+    "name": "Somalia",
+    "aliases": [
+      "Federal Republic of Somalia",
+      "SO",
+      "SOM",
+      "Somali",
+      "Somalian",
+      "The Somali Republic"
+    ]
+  },
+  {
+    "code": "1000193",
+    "name": "South Africa",
+    "aliases": [
+      "Republic of South Africa",
+      "SF",
+      "ZAF"
+    ]
+  },
+  {
+    "code": "7000299",
+    "name": "South Korea",
+    "aliases": [
+      "KOR",
+      "KS",
+      "Korea, Republic of",
+      "Republic of Korea",
+      "South Korean"
+    ]
+  },
+  {
+    "code": "7441551",
+    "name": "South Sudan",
+    "aliases": [
+      "OD",
+      "Republic of South Sudan",
+      "SS",
+      "SSD",
+      "South Sudanese",
+      "Sudan, South"
+    ]
+  },
+  {
+    "code": "1000095",
+    "name": "Spain",
+    "aliases": [
+      "ESP",
+      "Kingdom of Spain",
+      "SP",
+      "Spain, Kingdom of",
+      "Spanish",
+      "Spanish State"
+    ]
+  },
+  {
+    "code": "1000110",
+    "name": "Sri Lanka",
+    "aliases": [
+      "CE",
+      "Democratic Socialist Republic of Sri Lanka",
+      "LK",
+      "LKA",
+      "Sri Lankan"
+    ]
+  },
+  {
+    "code": "1000201",
+    "name": "Sudan",
+    "aliases": [
+      "Republic of the Sudan",
+      "SD",
+      "SDN",
+      "SU",
+      "Sudan, The",
+      "Sudanese"
+    ]
+  },
+  {
+    "code": "7015386",
+    "name": "Suriname",
+    "aliases": [
+      "NS",
+      "Republic of Suriname",
+      "SR",
+      "SUR",
+      "Surinam",
+      "Suriname, Republic of",
+      "Surinamese"
+    ]
+  },
+  {
+    "code": "7001725",
+    "name": "Swaziland",
+    "aliases": [
+      "Eswatini",
+      "Kingdom of Swaziland",
+      "SWZ",
+      "Swazi",
+      "WZ"
+    ]
+  },
+  {
+    "code": "1000097",
+    "name": "Sweden",
+    "aliases": [
+      "Kingdom of Sweden",
+      "SW",
+      "SWE",
+      "Swedish"
+    ]
+  },
+  {
+    "code": "7011731",
+    "name": "Switzerland",
+    "aliases": [
+      "CHE",
+      "Helvetic Confederation",
+      "Helvetic Republic",
+      "Swiss",
+      "Swiss Confederation"
+    ]
+  },
+  {
+    "code": "1000140",
+    "name": "Syria",
+    "aliases": [
+      "SY",
+      "SYR",
+      "Syrian",
+      "Syrian Arab Republic"
+    ]
+  },
+  {
+    "code": "1000141",
+    "name": "Taiwan",
+    "aliases": [
+      "China, Republic of (Taiwan)",
+      "Nationalist China",
+      "Province of China Taiwan",
+      "ROC",
+      "Republic of China (Taiwan)",
+      "T'aiwan",
+      "TW",
+      "TWN",
+      "Taiwan ROC",
+      "Taiwan, Province of China",
+      "Taiwan, Republic of China"
+    ]
+  },
+  {
+    "code": "7014835",
+    "name": "Tajikistan",
+    "aliases": [
+      "Republic of Tajikistan",
+      "TI",
+      "TJ",
+      "TJK",
+      "Tajik"
+    ]
+  },
+  {
+    "code": "1000203",
+    "name": "Tanzania",
+    "aliases": [
+      "TZ",
+      "TZA",
+      "Tanzania, United Republic of",
+      "Tanzanian",
+      "United Republic of Tanzania"
+    ]
+  },
+  {
+    "code": "1000142",
+    "name": "Thailand",
+    "aliases": [
+      "Kingdom of Thailand",
+      "TH",
+      "THA",
+      "Thai"
+    ]
+  },
+  {
+    "code": "1000165",
+    "name": "The Gambia",
+    "aliases": [
+      "GMB",
+      "Gambia",
+      "Gambia, The",
+      "Gambian",
+      "Islamic Republic of The Gambia"
+    ]
+  },
+  {
+    "code": "7003703",
+    "name": "Timor-Leste",
+    "aliases": [
+      "Democratic Republic of Timor-Leste",
+      "East Timor",
+      "TL",
+      "TLS"
+    ]
+  },
+  {
+    "code": "7016577",
+    "name": "Togo",
+    "aliases": [
+      "TG",
+      "TGO",
+      "Togolese",
+      "Togolese Republic"
+    ]
+  },
+  {
+    "code": "7000529",
+    "name": "Tonga",
+    "aliases": [
+      "Kingdom of Tonga",
+      "TON",
+      "Tongan"
+    ]
+  },
+  {
+    "code": "7004787",
+    "name": "Trinidad and Tobago",
+    "aliases": [
+      "Republic of Trinidad and Tobago",
+      "TTO",
+      "Trinidadian Tobagonian"
+    ]
+  },
+  {
+    "code": "1000205",
+    "name": "Tunisia",
+    "aliases": [
+      "Republic of Tunisia",
+      "TS",
+      "TUN",
+      "Tunisian",
+      "Tunisian Republic"
+    ]
+  },
+  {
+    "code": "1000144",
+    "name": "Turkey",
+    "aliases": [
+      "Republic of Turkey",
+      "TR",
+      "TU",
+      "TUR",
+      "Turkey, Republic of",
+      "Turkish"
+    ]
+  },
+  {
+    "code": "7006659",
+    "name": "Turkmenistan",
+    "aliases": [
+      "TKM",
+      "TM",
+      "TX",
+      "Turkmen"
+    ]
+  },
+  {
+    "code": "1000236",
+    "name": "Tuvalu",
+    "aliases": [
+      "TUV",
+      "TV",
+      "Tuvaluan"
+    ]
+  },
+  {
+    "code": "1000206",
+    "name": "Uganda",
+    "aliases": [
+      "Republic of Uganda",
+      "UG",
+      "UGA",
+      "Ugandan"
+    ]
+  },
+  {
+    "code": "7006660",
+    "name": "Ukraine",
+    "aliases": [
+      "UA",
+      "UKR",
+      "UP",
+      "Ukrainian"
+    ]
+  },
+  {
+    "code": "1000143",
+    "name": "United Arab Emirates",
+    "aliases": [
+      "AE",
+      "ARE",
+      "Emirian"
+    ]
+  },
+  {
+    "code": "7008591",
+    "name": "United Kingdom",
+    "aliases": [
+      "Britain",
+      "British",
+      "GBR",
+      "Great Britain",
+      "Great Britain and Northern Ireland, United Kingdom of",
+      "U.K.",
+      "UK",
+      "United Kingdom of Great Britain and Northern Ireland"
+    ]
+  },
+  {
+    "code": "7012149",
+    "name": "United States",
+    "aliases": [
+      "ABD",
+      "America",
+      "American",
+      "JAV",
+      "US",
+      "USA",
+      "United States of America",
+      "ZDA"
+    ]
+  },
+  {
+    "code": "1000058",
+    "name": "Uruguay",
+    "aliases": [
+      "Eastern Republic of Uruguay",
+      "Oriental Republic of Uruguay",
+      "URY",
+      "UY",
+      "Uruguayan"
+    ]
+  },
+  {
+    "code": "7006661",
+    "name": "Uzbekistan",
+    "aliases": [
+      "Republic of Uzbekistan",
+      "UZ",
+      "UZB",
+      "Uzbek"
+    ]
+  },
+  {
+    "code": "1000225",
+    "name": "Vanuatu",
+    "aliases": [
+      "NH",
+      "Republic of Vanuatu",
+      "VU",
+      "VUT",
+      "Vanuatuan"
+    ]
+  },
+  {
+    "code": "1000059",
+    "name": "Venezuela",
+    "aliases": [
+      "Bolivarian Republic of Venezuela",
+      "VE",
+      "VEN",
+      "Venezuela, Bolivarian Republic Of",
+      "Venezuela, Bolivarian Republic of"
+    ]
+  },
+  {
+    "code": "1000145",
+    "name": "Viet Nam",
+    "aliases": [
+      "Socialist Republic of Viet Nam",
+      "Socialist Republic of Vietnam",
+      "VM",
+      "VN",
+      "VNM",
+      "Vietnam",
+      "Vietnamese"
+    ]
+  },
+  {
+    "code": "7000261",
+    "name": "Yemen",
+    "aliases": [
+      "Arabia Felix / Arabia eudaímōn",
+      "Republic of Yemen",
+      "YE",
+      "YEM",
+      "YM",
+      "Yemen, Republic of",
+      "Yemeni"
+    ]
+  },
+  {
+    "code": "1000209",
+    "name": "Zambia",
+    "aliases": [
+      "Republic of Zambia",
+      "ZM",
+      "ZMB",
+      "Zambian"
+    ]
+  },
+  {
+    "code": "1000185",
+    "name": "Zimbabwe",
+    "aliases": [
+      "Republic of Zimbabwe",
+      "ZI",
+      "ZW",
+      "ZWE",
+      "Zimbabwean"
+    ]
+  },
+  {
+    "code": "unknown",
+    "name": "Unknown",
+    "aliases": [
+      "[Unknown Country]"
+    ]
+  },
+  {
+    "code": "not-recorded",
+    "name": "Not recorded",
+    "aliases": [
+      "[No Country]",
+      ""
+    ]
+  }
+]

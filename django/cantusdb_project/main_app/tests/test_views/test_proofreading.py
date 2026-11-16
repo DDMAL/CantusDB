@@ -250,7 +250,7 @@ class ProofreadingOverviewViewTest(TestCase):
             expected = sorted(
                 sources,
                 key=lambda s: (
-                    s.holding_institution.country,
+                    s.holding_institution.country.name,
                     s.holding_institution.siglum is None,
                     s.holding_institution.siglum or "",
                     s.shelfmark,

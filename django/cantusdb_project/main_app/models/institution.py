@@ -13,7 +13,7 @@ collectors regardless of whether they have a RISM siglum or not.
 
 class Institution(BaseModel):
     class Meta:
-        ordering = ["country", "city", "name"]
+        ordering = ["country__name", "city", "name"]
         constraints = [
             CheckConstraint(
                 check=~(Q(is_private_collector=True) & Q(siglum__isnull=False)),
@@ -49,7 +49,16 @@ class Institution(BaseModel):
     region = models.CharField(
         max_length=64, blank=True, null=True, help_text=region_help_text
     )
-    country = models.CharField(max_length=64, default="[No Country]")
+    country = models.ForeignKey(
+        "Country", on_delete=models.PROTECT, default="not-recorded"
+    )
+    country_legacy = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        editable=False,
+        help_text="Original country text retained when the Getty catalogue was introduced.",
+    )
     alternate_names = models.TextField(
         blank=True, null=True, help_text="Enter alternate names on separate lines."
     )

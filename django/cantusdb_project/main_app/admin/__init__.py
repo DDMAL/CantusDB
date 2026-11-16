@@ -1,3 +1,4 @@
+from main_app.admin.country import CountryAdmin
 from main_app.admin.century import CenturyAdmin
 from main_app.admin.chant import ChantAdmin
 from main_app.admin.differentia import DifferentiaAdmin

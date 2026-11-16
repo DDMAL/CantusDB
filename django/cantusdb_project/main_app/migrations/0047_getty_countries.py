@@ -1,0 +1,159 @@
+"""Reconcile institutions and their recoverable revisions with Getty TGN."""
+
+import json
+from pathlib import Path
+
+from django.db import migrations, models
+import django.db.models.deletion
+
+# This dated catalogue is frozen migration input. Add a new dated file for updates.
+CATALOGUE = json.loads(
+    (Path(__file__).parent.parent / "data" / "countries_20261115.json").read_text()
+)
+ALIASES = {
+    name.strip().casefold(): row["code"]
+    for row in CATALOGUE
+    for name in [row["name"], *row["aliases"]]
+}
+
+
+def code_for(value: str | None) -> str | None:
+    return ALIASES.get((value or "").strip().casefold())
+
+
+def institution_versions(apps, alias):
+    return (
+        apps.get_model("reversion", "Version")
+        .objects.using(alias)
+        .filter(content_type__app_label="main_app", content_type__model="institution")
+    )
+
+
+def forwards(apps, schema_editor) -> None:
+    alias = schema_editor.connection.alias
+    Country = apps.get_model("main_app", "Country")
+    Institution = apps.get_model("main_app", "Institution")
+    institutions = Institution.objects.using(alias)
+    unmapped = [
+        (pk, value)
+        for pk, value in institutions.values_list("pk", "country_legacy")
+        if code_for(value) is None
+    ]
+    if unmapped:
+        raise ValueError(
+            f"Reconcile these institution countries before migrating: {unmapped}"
+        )
+    Country.objects.using(alias).bulk_create(
+        [Country(code=row["code"], name=row["name"]) for row in CATALOGUE]
+    )
+    for institution in institutions.iterator():
+        institutions.filter(pk=institution.pk).update(
+            country_id=code_for(institution.country_legacy)
+        )
+
+    # The old field contained text. Leaving that text in Version.country would
+    # make Django interpret 'USA' as a foreign key and break revision recovery.
+    for version in institution_versions(apps, alias).iterator():
+        objects = json.loads(version.serialized_data)
+        for obj in objects:
+            fields = obj["fields"]
+            if obj["model"] != "main_app.institution" or "country" not in fields:
+                continue
+            original = fields["country"]
+            fields["country_legacy"] = original
+            # Historic unrecognized text remains visible in the recovery form.
+            fields["country"] = code_for(original) or "unknown"
+        version.serialized_data = json.dumps(objects)
+        version.save(using=alias, update_fields=["serialized_data"])
+
+
+def backwards(apps, schema_editor) -> None:
+    alias = schema_editor.connection.alias
+    Country = apps.get_model("main_app", "Country")
+    Institution = apps.get_model("main_app", "Institution")
+    names = dict(Country.objects.using(alias).values_list("code", "name"))
+
+    def original_or_current(code: str, original: str) -> str:
+        # New institutions have no pre-migration text. Restore the old default,
+        # rather than introducing an empty country into the old dropdown.
+        if not original and code == "not-recorded":
+            return "[No Country]"
+        # Retain original spellings, but do not undo an editor's later choice.
+        if (code_for(original) or "unknown") == code:
+            return original
+        return names[code]
+
+    institutions = Institution.objects.using(alias)
+    for institution in institutions.iterator():
+        institutions.filter(pk=institution.pk).update(
+            country_legacy=original_or_current(
+                institution.country_id, institution.country_legacy
+            )
+        )
+    for version in institution_versions(apps, alias).iterator():
+        objects = json.loads(version.serialized_data)
+        for obj in objects:
+            fields = obj["fields"]
+            if obj["model"] != "main_app.institution" or "country_legacy" not in fields:
+                continue
+            fields["country"] = original_or_current(
+                fields["country"], fields.pop("country_legacy")
+            )
+        version.serialized_data = json.dumps(objects)
+        version.save(using=alias, update_fields=["serialized_data"])
+
+
+class Migration(migrations.Migration):
+    dependencies = [
+        ("main_app", "0046_incipit_std_spelling"),
+        ("reversion", "0002_add_index_on_version_for_content_type_and_db"),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name="Country",
+            fields=[
+                (
+                    "code",
+                    models.CharField(max_length=32, primary_key=True, serialize=False),
+                ),
+                ("name", models.CharField(max_length=128, unique=True)),
+            ],
+            options={"ordering": ["name"], "verbose_name_plural": "countries"},
+        ),
+        migrations.RenameField("institution", "country", "country_legacy"),
+        migrations.AlterField(
+            model_name="institution",
+            name="country_legacy",
+            field=models.CharField(
+                max_length=64,
+                blank=True,
+                default="",
+                editable=False,
+                help_text="Original country text retained when the Getty catalogue was introduced.",
+            ),
+        ),
+        migrations.AddField(
+            model_name="institution",
+            name="country",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                to="main_app.country",
+            ),
+        ),
+        migrations.RunPython(forwards, backwards),
+        migrations.AlterField(
+            model_name="institution",
+            name="country",
+            field=models.ForeignKey(
+                default="not-recorded",
+                on_delete=django.db.models.deletion.PROTECT,
+                to="main_app.country",
+            ),
+        ),
+        migrations.AlterModelOptions(
+            name="institution",
+            options={"ordering": ["country__name", "city", "name"]},
+        ),
+    ]

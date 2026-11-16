@@ -33,6 +33,7 @@ class InstitutionAdmin(BaseModelAdmin):
         "is_private_collector",
         "is_private_collection",
     )
+    list_select_related = ("country",)
     search_fields = (
         "name",
         "siglum",
@@ -42,6 +43,7 @@ class InstitutionAdmin(BaseModelAdmin):
         "migrated_identifier",
     )
     readonly_fields = (
+        "country_legacy",
         "migrated_identifier",
         "created_by",
         "date_created",
@@ -59,6 +61,7 @@ class InstitutionAdmin(BaseModelAdmin):
                     "city",
                     "region",
                     "country",
+                    "country_legacy",
                     "alternate_names",
                     "former_sigla",
                     "private_notes",

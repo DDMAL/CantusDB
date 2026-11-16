@@ -1,4 +1,5 @@
 from main_app.models.base_model import BaseModel
+from main_app.models.country import Country
 from main_app.models.century import Century
 from main_app.models.chant import Chant
 from main_app.models.differentia import Differentia
@@ -22,6 +23,7 @@ from main_app.models.data_check_report import DataCheckReport
 
 __all__ = [
     "BaseModel",
+    "Country",
     "Century",
     "Chant",
     "Differentia",

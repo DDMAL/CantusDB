@@ -150,6 +150,8 @@ class TestImportCantoralesCommand(TestCase):
 
         self.assertEqual(Source.objects.filter(shelfmark="Ms. 1").count(), 1)
         source = Source.objects.get(shelfmark="Ms. 1")
+        self.assertEqual(source.holding_institution.country.name, "United States")
+        self.assertEqual(source.holding_institution.country_id, "7012149")
         self.assertTrue(source.published)
         self.assertIn(
             "Cantorales in the Americas and Beyond",

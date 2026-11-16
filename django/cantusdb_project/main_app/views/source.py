@@ -46,6 +46,7 @@ from django.views.generic import (
 )
 from django.views.generic.detail import SingleObjectMixin
 
+from main_app.countries import COUNTRY_CODES, COUNTRY_NAMES, matching_country_codes
 from main_app.forms import (
     SourceCreateForm,
     SourceEditForm,
@@ -494,9 +495,9 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context["countries"] = (
-            Institution.objects.values_list("country", flat=True)
+            Institution.objects.values_list("country__name", flat=True)
             .distinct()
-            .order_by("country")
+            .order_by("country__name")
         )
         context["provenances"] = (
             Provenance.objects.all().order_by("name").values("id", "name")
@@ -538,6 +539,13 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         return context
 
     def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        # Canonicalize old links so the country dropdown also retains its value.
+        country = request.GET.get("country", "")
+        code = COUNTRY_CODES.get(country.strip().casefold()) if country else None
+        if code and country != COUNTRY_NAMES[code]:
+            params = request.GET.copy()
+            params["country"] = COUNTRY_NAMES[code]
+            return HttpResponseRedirect(f"{request.path}?{params.urlencode()}")
         segment_id = self.kwargs.get("segment_id")
         if segment_id:
             self.segment = get_object_or_404(Segment, id=segment_id)
@@ -546,11 +554,11 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     def get_queryset(self) -> QuerySet[Source]:
         if self.user.is_superuser or self.user_is_global_viewer:
             queryset = Source.objects.select_related(
-                "provenance", "holding_institution"
+                "provenance", "holding_institution__country"
             ).prefetch_related("segment_m2m")
         else:
             queryset = self.published_and_assigned_sources.select_related(
-                "provenance", "holding_institution"
+                "provenance", "holding_institution__country"
             ).prefetch_related("segment_m2m")
 
         q_obj_filter = Q()
@@ -559,7 +567,11 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             q_obj_filter &= Q(segment_m2m=self.segment)
 
         if country_name := self.request.GET.get("country"):
-            q_obj_filter &= Q(holding_institution__country__icontains=country_name)
+            q_obj_filter &= Q(
+                holding_institution__country_id__in=matching_country_codes(
+                    country_name, prefer_exact=True
+                )
+            )
 
         # Handle direct date range filtering (e.g., 1400-1500) by keeping only
         # sources with a century that overlaps the range. This is skipped when
@@ -777,7 +789,7 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             # for a descending sort. A final `id` tiebreaker keeps ordering
             # deterministic when country/siglum/shelfmark are all equal.
             order_by_args = [
-                f"{sort_prefix}holding_institution__country",
+                f"{sort_prefix}holding_institution__country__name",
                 f"{sort_prefix}holding_institution__siglum",
                 f"{sort_prefix}shelfmark",
                 f"{sort_prefix}id",
