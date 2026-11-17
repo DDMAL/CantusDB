@@ -2,6 +2,8 @@ from typing import Any, Optional
 
 from django.conf import settings
 from django.db.models import Q
+from django.http import Http404, HttpRequest, HttpResponse
+from django.shortcuts import redirect
 from django.views.generic import TemplateView
 
 from main_app.models import Source
@@ -51,6 +53,18 @@ class CcdbChantSearchView(CcdbMixin, ChantSearchView):
 
     def get_segment_id(self) -> Optional[str]:
         return str(settings.CCDB_SEGMENT_ID)
+
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        # Older links could search several databases, so a bookmarked page may
+        # now be past the last page; send it to page 1 with the same search.
+        try:
+            return super().get(request, *args, **kwargs)
+        except Http404:
+            if "page" not in request.GET:
+                raise
+            params = request.GET.copy()
+            del params["page"]
+            return redirect(f"{request.path}?{params.urlencode()}")
 
     def get_context_data(self, **kwargs: Any) -> dict:
         context = super().get_context_data(**kwargs)

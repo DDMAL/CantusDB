@@ -44,3 +44,14 @@ class CcdbChantSearchTest(TestCase):
     def test_offers_no_database_selector(self) -> None:
         response = self.client.get(reverse("ccdb-chant-search"))
         self.assertNotContains(response, 'name="db"')
+
+    def test_a_page_past_the_last_goes_to_page_one(self) -> None:
+        url = reverse("ccdb-chant-search")
+        response = self.client.get(
+            url, {"op": "contains", "db": self.cantus.pk, "page": 2}
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, f"{url}?op=contains&db={self.cantus.pk}")
+        self.assertEqual(
+            self.incipits({"op": "contains", "page": 1}), {"Canadian chant"}
+        )
