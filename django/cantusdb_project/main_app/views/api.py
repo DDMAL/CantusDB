@@ -26,6 +26,7 @@ from main_app.models import (
 )
 from main_app.permissions import get_sources_visible_to_user
 from main_app.segments import is_sequence_source
+from main_app.params import int_param
 from next_chants import next_chants
 from cantusindex import get_json_from_ci_api
 
@@ -324,8 +325,9 @@ def ajax_melody_search(
     # source id and siglum are duplicate information, they both uniquely identify a source
     # if searching in a specific source, use `source`
     # if searching across all sources, use `siglum`
-    if source:
-        chants = chants.filter(source__id=source)
+    # Ignore a source that isn't a number, e.g. from an edited URL (#1484).
+    if (source_id := int_param(source)) is not None:
+        chants = chants.filter(source__id=source_id)
     elif siglum:
         chants = chants.filter(computed_siglum__icontains=siglum)
 

@@ -7,6 +7,7 @@ from django.templatetags.static import static
 from django.core.exceptions import BadRequest
 from django.utils.http import urlencode
 
+from main_app.params import int_param
 from main_app.views.api import (
     NODE_TYPES_AND_VIEWS,
     record_exists,
@@ -200,8 +201,11 @@ def redirect_chants(request) -> HttpResponse:
     if source_id is None:
         # source parameter must be provided
         raise BadRequest("Source parameter must be provided")
+    source_pk = int_param(source_id)
+    if source_pk is None:
+        raise BadRequest("Source parameter must be a source ID")
 
-    base_url: str = reverse("browse-chants", args=[source_id])
+    base_url: str = reverse("browse-chants", args=[source_pk])
 
     # optional search params
     feast_id: Optional[str] = request.GET.get("feast")
@@ -228,5 +232,8 @@ def redirect_source_inventory(request) -> HttpResponse:
     if source_id is None:
         # source parameter must be provided
         raise BadRequest("Source parameter must be provided")
-    url: str = reverse("source-inventory", args=[source_id])
+    source_pk = int_param(source_id)
+    if source_pk is None:
+        raise BadRequest("Source parameter must be a source ID")
+    url: str = reverse("source-inventory", args=[source_pk])
     return redirect(url, permanent=True)

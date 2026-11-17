@@ -53,6 +53,7 @@ from main_app.models import (
 )
 from main_app.permissions import CustomAccessMixin
 from main_app.segments import is_sequence_source
+from main_app.params import int_param
 
 from main_app.mixins import JSONResponseMixin
 from users.models import User
@@ -614,13 +615,11 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["search_form"] = ChantSearchForm(
             initial={
                 **(
-                    {"feast": feast_param}
-                    if feast_param and feast_param.isdigit()
-                    else {}
+                    {"feast": feast_param} if int_param(feast_param) is not None else {}
                 ),
                 **(
                     {"differentia_id": differentia_id_param}
-                    if differentia_id_param and differentia_id_param.isdigit()
+                    if int_param(differentia_id_param) is not None
                     else {}
                 ),
             }
@@ -702,7 +701,8 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         return context
 
     def get_segment_id(self) -> Optional[str]:
-        return self.request.GET.get("segment")
+        segment_id = int_param(self.request.GET.get("segment"))
+        return str(segment_id) if segment_id is not None else None
 
     def get_queryset(self) -> QuerySet[Chant]:
         # if user has just arrived on the Chant Search page, there will be no GET parameters.
@@ -762,11 +762,11 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             # The field names should be keys in the "GET" QueryDict if the search button has been
             # clicked, even if the user put nothing into the search form and hit "apply" immediately.
             # In that case, we return all chants + seqs filtered by the search form.
-            if service_id := self.request.GET.get("service"):
+            if (service_id := int_param(self.request.GET.get("service"))) is not None:
                 q_obj_filter &= Q(service__id=service_id)
 
-            if genre_id := self.request.GET.get("genre"):
-                q_obj_filter &= Q(genre__id=int(genre_id))
+            if (genre_id := int_param(self.request.GET.get("genre"))) is not None:
+                q_obj_filter &= Q(genre__id=genre_id)
 
             if cantus_id := self.request.GET.get("cantus_id"):
                 q_obj_filter &= Q(cantus_id__icontains=cantus_id)
@@ -782,14 +782,14 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                     q_obj_filter &= Q(volpiano__isnull=False)
 
             if feast_id := self.request.GET.get("feast"):
-                if feast_id.isdigit():
+                if int_param(feast_id) is not None:
                     q_obj_filter &= Q(feast_id=feast_id)
 
             if liturgical_function := self.request.GET.get("liturgical_function"):
                 q_obj_filter &= Q(liturgical_function=liturgical_function)
 
             if differentia_id := self.request.GET.get("differentia_id"):
-                if differentia_id.isdigit():
+                if int_param(differentia_id) is not None:
                     q_obj_filter &= Q(diff_db_id=differentia_id)
 
             # Filter the QuerySet with Q object
@@ -921,10 +921,13 @@ class MelodySearchView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # if searching in a specific source, pass the source into context
-        if self.request.GET.get("source"):
-            context["source"] = Source.objects.select_related(
-                "holding_institution"
-            ).get(id=self.request.GET.get("source"))
+        source_id = int_param(self.request.GET.get("source"))
+        if source_id is not None:
+            context["source"] = (
+                Source.objects.select_related("holding_institution")
+                .filter(id=source_id)
+                .first()
+            )
         return context
 
 
@@ -983,13 +986,11 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["search_form"] = ChantSearchForm(
             initial={
                 **(
-                    {"feast": feast_param}
-                    if feast_param and feast_param.isdigit()
-                    else {}
+                    {"feast": feast_param} if int_param(feast_param) is not None else {}
                 ),
                 **(
                     {"differentia_id": differentia_id_param}
-                    if differentia_id_param and differentia_id_param.isdigit()
+                    if int_param(differentia_id_param) is not None
                     else {}
                 ),
             }
@@ -1061,11 +1062,11 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
         # For every GET parameter other than incipit, add to the Q object
-        if service_id := self.request.GET.get("service"):
+        if (service_id := int_param(self.request.GET.get("service"))) is not None:
             q_obj_filter &= Q(service__id=service_id)
 
-        if genre_id := self.request.GET.get("genre"):
-            q_obj_filter &= Q(genre__id=int(genre_id))
+        if (genre_id := int_param(self.request.GET.get("genre"))) is not None:
+            q_obj_filter &= Q(genre__id=genre_id)
 
         if cantus_id := self.request.GET.get("cantus_id"):
             q_obj_filter &= Q(cantus_id__icontains=cantus_id)
@@ -1082,14 +1083,14 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             if melodies == "false":
                 q_obj_filter &= Q(volpiano__isnull=True)
         if feast_id := self.request.GET.get("feast"):
-            if feast_id.isdigit():
+            if int_param(feast_id) is not None:
                 q_obj_filter &= Q(feast_id=feast_id)
 
         if liturgical_function := self.request.GET.get("liturgical_function"):
             q_obj_filter &= Q(liturgical_function=liturgical_function)
 
         if differentia_id := self.request.GET.get("differentia_id"):
-            if differentia_id.isdigit():
+            if int_param(differentia_id) is not None:
                 q_obj_filter &= Q(diff_db_id=differentia_id)
 
         order_value = self.request.GET.get("order")
