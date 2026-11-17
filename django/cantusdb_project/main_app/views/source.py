@@ -67,6 +67,7 @@ from main_app.models import (
 )
 from main_app.models.source_url import SourceURL
 from main_app.permissions import CustomAccessMixin
+from main_app.segments import is_sequence_source
 from main_app.mixins import JSONResponseMixin
 from main_app.iiif_utils import (
     MAX_MANIFEST_UPLOAD_BYTES,
@@ -376,7 +377,7 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
         context = super().get_context_data(**kwargs)
 
         source = self.object
-        if source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists():
+        if is_sequence_source(source):
             # if this is a sequence source
             sequences = source.sequence_set.select_related("genre", "service")
             context["sequences"] = sequences.order_by("s_sequence")
@@ -905,7 +906,7 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
             self.user_can_submit_source_for_proofreading(source)
         )
 
-        if source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists():
+        if is_sequence_source(source):
             # if this is a sequence source
             context["sequences"] = source.sequence_set.order_by("s_sequence")
             context["folios"] = (
@@ -1043,7 +1044,7 @@ class SourceInventoryView(CustomAccessMixin, ListView):  # type: ignore[type-arg
         )
 
     def get_queryset(self) -> Union[QuerySet[Chant], QuerySet[Sequence]]:
-        if self.source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists():
+        if is_sequence_source(self.source):
             queryset = (
                 self.source.sequence_set.annotate(record_type=Value("sequence"))
                 .order_by("s_sequence")

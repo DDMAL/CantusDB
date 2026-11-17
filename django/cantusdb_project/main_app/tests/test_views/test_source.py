@@ -30,6 +30,7 @@ from main_app.forms import MAX_IMAGE_LINK_ROWS, SourceEditForm
 from main_app.models import (
     Chant,
     Differentia,
+    Segment,
     Sequence,
     Source,
     SourceIdentifier,
@@ -947,6 +948,64 @@ class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_detail.html")
+
+    def test_contributor_is_shown_only_on_unpublished_sources(self) -> None:
+        # #1687: useful to see who is working on a source until it's published
+        creator = make_fake_user()
+        self.client.force_login(self.users["superuser"])
+        for published, shown in ((True, False), (False, True)):
+            with self.subTest(published=published):
+                source = make_fake_source(published=published)
+                Source.objects.filter(pk=source.pk).update(created_by=creator)
+                response = self.client.get(reverse("source-detail", args=[source.id]))
+                if shown:
+                    self.assertContains(response, f"Contributor: <a")
+                    self.assertContains(response, creator.full_name)
+                else:
+                    self.assertNotContains(response, "Contributor:")
+
+    def test_sequence_database_source_with_only_chants_is_a_chant_source(self) -> None:
+        # #2252: a chant source also put in the Sequence Database segment kept
+        # its chants but lost every link and page that shows them.
+        segments = [
+            Segment.objects.get_or_create(id=segment_id, defaults={"name": name})[0]
+            for segment_id, name in (
+                (settings.CANTUS_SEGMENT_ID, "CANTUS Database"),
+                (settings.BOWER_SEGMENT_ID, "Bower Sequence Database"),
+            )
+        ]
+        source = make_fake_source(published=True, segment=segments)
+        chant = make_fake_chant(source=source)
+
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertFalse(response.context["bower_segment"])
+        self.assertTrue(response.context["has_chants"])
+        self.assertContains(response, reverse("browse-chants", args=[source.id]))
+
+        response = self.client.get(reverse("source-inventory", args=[source.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(chant, response.context["chants"])
+
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]), {"op": "contains"}
+        )
+        self.assertIn(chant, response.context["chants"])
+
+        response = self.client.get(reverse("csv-export", args=[source.id]))
+        self.assertIn(chant.cantus_id, response.content.decode())
+
+    def test_sequence_database_source_with_sequences_stays_a_sequence_source(
+        self,
+    ) -> None:
+        bower = Segment.objects.get_or_create(
+            id=settings.BOWER_SEGMENT_ID, defaults={"name": "Bower Sequence Database"}
+        )[0]
+        source = make_fake_source(published=True, segment=[bower])
+        sequence = make_fake_sequence(source=source)
+        make_fake_chant(source=source)
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertTrue(response.context["bower_segment"])
+        self.assertIn(sequence, response.context["sequences"])
 
     def test_add_image_links_entry_is_superuser_only(self) -> None:
         """The edit-options card's "Add image links" entry is superuser-only.

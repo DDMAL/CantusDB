@@ -52,6 +52,7 @@ from main_app.models import (
     Service,
 )
 from main_app.permissions import CustomAccessMixin
+from main_app.segments import is_sequence_source
 
 from main_app.mixins import JSONResponseMixin
 from users.models import User
@@ -497,7 +498,7 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
         )
 
         chants_current_folio = chants_in_source.filter(folio=chant.folio).order_by(
-            "c_sequence"
+            "c_sequence", "id"
         )
         context["exists_on_cantus_ultimus"] = source.exists_on_cantus_ultimus
         context["feasts_current_folio"] = get_chants_with_feasts(chants_current_folio)
@@ -1130,10 +1131,7 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         source_id = self.kwargs["source_pk"]
         source = Source.objects.get(id=source_id)
         queryset = (
-            source.sequence_set
-            if settings.BOWER_SEGMENT_ID
-            in source.segment_m2m.values_list("id", flat=True)
-            else source.chant_set
+            source.sequence_set if is_sequence_source(source) else source.chant_set
         )
 
         # Filter the QuerySet with Q object

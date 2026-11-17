@@ -25,6 +25,7 @@ from main_app.models import (
     Source,
 )
 from main_app.permissions import get_sources_visible_to_user
+from main_app.segments import is_sequence_source
 from next_chants import next_chants
 from cantusindex import get_json_from_ci_api
 
@@ -143,7 +144,7 @@ def csv_export(
         raise PermissionDenied
 
     # The Bower/sequence DB segment holds sources with sequences instead of chants
-    if settings.BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
+    if is_sequence_source(source):
         entries = source.sequence_set.order_by("id").select_related(
             "feast", "service", "genre", "diff_db"
         )

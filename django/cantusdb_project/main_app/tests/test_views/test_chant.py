@@ -91,6 +91,29 @@ class ChantDetailViewTest(ChantPermissionsTestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "chant_detail.html")
 
+    def test_sidebar_bolds_only_the_current_chant(self) -> None:
+        # #2233: another chant on the folio has the same sequence number
+        source = make_fake_source(published=True)
+        current = make_fake_chant(source=source, folio="063r", c_sequence=3)
+        twin = make_fake_chant(
+            source=source, folio="063r", c_sequence=3, feast=current.feast
+        )
+        # the incipit is derived on save, so set it afterwards
+        Chant.objects.filter(pk=current.pk).update(incipit="Domine exaudi")
+        Chant.objects.filter(pk=twin.pk).update(incipit="Miserere mihi")
+        response = self.client.get(reverse("chant-detail", args=[current.id]))
+        self.assertContains(response, "<b>Domine exaudi</b>", html=True)
+        self.assertContains(response, "Miserere mihi")
+        self.assertNotContains(response, "<b>Miserere mihi</b>", html=True)
+
+    def test_sidebar_shows_no_contributor_for_a_published_source(self) -> None:
+        # #1687
+        source = make_fake_source(published=True)
+        Source.objects.filter(pk=source.pk).update(created_by=make_fake_user())
+        chant = make_fake_chant(source=source)
+        response = self.client.get(reverse("chant-detail", args=[chant.id]))
+        self.assertNotContains(response, "Contributor:")
+
     def test_context_folios(self) -> None:
         # create a source and several chants in it
         source = make_fake_source()
