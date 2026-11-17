@@ -54,7 +54,7 @@ from main_app.models import (
 from main_app.permissions import CustomAccessMixin
 from main_app.segments import is_sequence_source
 
-from main_app.mixins import JSONResponseMixin
+from main_app.mixins import JSONResponseMixin, StripSearchParamsMixin
 from users.models import User
 
 
@@ -558,7 +558,7 @@ class ChantByCantusIDView(CustomAccessMixin, ListView):  # type: ignore[type-arg
         return context
 
 
-class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
+class ChantSearchView(StripSearchParamsMixin, CustomAccessMixin, ListView):  # type: ignore[type-arg]
     """
     Searches Chants and displays them as a list, accessed with ``chant-search/``
 
@@ -928,7 +928,7 @@ class MelodySearchView(TemplateView):
         return context
 
 
-class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
+class ChantSearchMSView(StripSearchParamsMixin, CustomAccessMixin, ListView):  # type: ignore[type-arg]
     """
     Searches chants/sequences in a certain manuscript, accessed with
     ``searchms/<int:source_pk>/``
