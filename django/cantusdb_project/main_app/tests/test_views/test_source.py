@@ -37,6 +37,7 @@ from main_app.models import (
     SourceURL,
 )
 from main_app.tests.make_fakes import (
+    PROOFREAD,
     make_fake_source,
     make_fake_segment,
     make_fake_feast,
@@ -1804,7 +1805,9 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
     def test_search_full_text(self):
         cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
-        chant = make_fake_chant(source=source, manuscript_full_text=faker.sentence())
+        chant = make_fake_chant(
+            **PROOFREAD, source=source, manuscript_full_text=faker.sentence()
+        )
         search_term = get_random_search_term(chant.manuscript_full_text)
         response = self.client.get(
             reverse("browse-chants", args=[source.id]), {"search_text": search_term}
@@ -1828,6 +1831,7 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         chant = make_fake_chant(
+            **PROOFREAD,
             source=source,
             manuscript_full_text_std_spelling=faker.sentence(),
         )

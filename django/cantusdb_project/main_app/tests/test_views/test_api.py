@@ -16,6 +16,7 @@ from django.urls import reverse
 from django.http import HttpResponse, JsonResponse
 
 from main_app.tests.make_fakes import (
+    PROOFREAD,
     make_cantus_fallback_institutions,
     make_fake_chant,
     make_fake_institution,
@@ -200,7 +201,7 @@ class AjaxMelodyViewTest(ChantPermissionsTestCase):
         cantus_id: str = "123456"
         number_of_chants: int = 7
         for _ in range(number_of_chants):
-            make_fake_chant(cantus_id=cantus_id)
+            make_fake_chant(**PROOFREAD, cantus_id=cantus_id)
 
         with self.subTest(subtest="ensure 200 response"):
             response: JsonResponse = self.client.get(
@@ -287,7 +288,7 @@ class AjaxMelodyViewTest(ChantPermissionsTestCase):
 
     def test_concordance_items(self):
         cantus_id: str = "345678"
-        chant: Chant = make_fake_chant(cantus_id=cantus_id)
+        chant: Chant = make_fake_chant(**PROOFREAD, cantus_id=cantus_id)
 
         response: JsonResponse = self.client.get(
             reverse("ajax-melody", args=[cantus_id])
@@ -347,7 +348,7 @@ class AjaxMelodySearchViewTest(TestCase):
             shelfmark="San Pietro B.79",
             holding_institution=make_fake_institution(siglum="V-CVbav"),
         )
-        chant = make_fake_chant(source=source, volpiano=self.VOLPIANO)
+        chant = make_fake_chant(**PROOFREAD, source=source, volpiano=self.VOLPIANO)
         # The stale value the search used to match on.
         Chant.objects.filter(id=chant.id).update(siglum="V-CVbav B.79")
 
@@ -366,6 +367,7 @@ class AjaxMelodySearchViewTest(TestCase):
         institutions = make_cantus_fallback_institutions()
         chants = {
             description: make_fake_chant(
+                **PROOFREAD,
                 source=make_fake_source(
                     published=True,
                     shelfmark=f"MS {number}",
@@ -393,6 +395,7 @@ class AjaxMelodySearchViewTest(TestCase):
         # returns the composed heading alongside the component columns it is
         # built from, which stay in the response for older cached scripts.
         chant = make_fake_chant(
+            **PROOFREAD,
             source=make_fake_source(
                 published=True,
                 shelfmark="Laud Misc. 299",
@@ -412,6 +415,7 @@ class AjaxMelodySearchViewTest(TestCase):
         # Searching within one source passes its id, and the id has always won
         # over whatever the (read-only) siglum box holds.
         searched = make_fake_chant(
+            **PROOFREAD,
             source=make_fake_source(
                 published=True,
                 shelfmark="Laud Misc. 299",
@@ -420,6 +424,7 @@ class AjaxMelodySearchViewTest(TestCase):
             volpiano=self.VOLPIANO,
         )
         other = make_fake_chant(
+            **PROOFREAD,
             source=make_fake_source(
                 published=True,
                 shelfmark="MS 1",
@@ -440,7 +445,7 @@ class AjaxMelodySearchViewTest(TestCase):
             shelfmark="MS 1",
             holding_institution=make_fake_institution(siglum="D-Bs"),
         )
-        make_fake_chant(source=source, volpiano=self.VOLPIANO)
+        make_fake_chant(**PROOFREAD, source=source, volpiano=self.VOLPIANO)
 
         results = self.search(siglum="D-Bs MS 1")
 
@@ -452,7 +457,7 @@ class JsonMelodyExportTest(TestCase):
         NUM_CHANTS = 10
         FAKE_CANTUS_ID = "111111"
         for _ in range(NUM_CHANTS):
-            make_fake_chant(cantus_id=FAKE_CANTUS_ID)
+            make_fake_chant(**PROOFREAD, cantus_id=FAKE_CANTUS_ID)
 
         response_1 = self.client.get(f"/json-melody/{FAKE_CANTUS_ID}")
         self.assertEqual(response_1.status_code, 200)
@@ -487,7 +492,7 @@ class JsonMelodyExportTest(TestCase):
             "srclink",
         }
         FAKE_CANTUS_ID = "111111"
-        make_fake_chant(cantus_id=FAKE_CANTUS_ID)
+        make_fake_chant(**PROOFREAD, cantus_id=FAKE_CANTUS_ID)
         response = self.client.get(reverse("json-melody-export", args=[FAKE_CANTUS_ID]))
         unpacked = json.loads(response.content)[0]
         response_fields = set(unpacked.keys())
@@ -497,12 +502,14 @@ class JsonMelodyExportTest(TestCase):
         FAKE_CANTUS_ID = "111111"
         published_source = make_fake_source(published=True)
         published_chant = make_fake_chant(
+            **PROOFREAD,
             cantus_id=FAKE_CANTUS_ID,
             manuscript_full_text_std_spelling="I'm a chant from a published source!",
             source=published_source,
         )
         unpublished_source = make_fake_source(published=False)
         unpublished_chant = make_fake_chant(
+            **PROOFREAD,
             cantus_id=FAKE_CANTUS_ID,
             manuscript_full_text_std_spelling="Help, I'm trapped in a JSON response factory! Can you help me escape...?",
             source=unpublished_source,
@@ -1024,7 +1031,7 @@ class JsonCidTest(TestCase):
         self.assertEqual(set(chant_keys), expected_keys)
 
     def test_values(self):
-        chant = make_fake_chant(cantus_id="100000")
+        chant = make_fake_chant(**PROOFREAD, cantus_id="100000")
 
         expected_values = {
             "siglum": chant.source.short_heading,

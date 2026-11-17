@@ -12,6 +12,7 @@ from main_app.models import (
 )
 from main_app.tests import mock_cantusindex_data
 from main_app.tests.make_fakes import (
+    PROOFREAD,
     make_fake_chant,
     make_fake_institution,
     make_fake_source,
@@ -236,6 +237,7 @@ class UpdateCachedConcordancesCommandTest(TestCase):
     def test_published_vs_unpublished(self):
         published_source: Source = make_fake_source(published=True)
         published_chant: Chant = make_fake_chant(
+            **PROOFREAD,
             source=published_source,
             manuscript_full_text_std_spelling="chant in a published source",
         )
@@ -254,7 +256,7 @@ class UpdateCachedConcordancesCommandTest(TestCase):
         self.assertEqual(expected_fulltext, observed_fulltext)
 
     def test_concordances_values(self):
-        chant: Chant = make_fake_chant()
+        chant: Chant = make_fake_chant(**PROOFREAD)
 
         concordances: list = update_cached_concordances.get_concordances()
         single_concordance: dict = concordances[0]
