@@ -1033,6 +1033,24 @@ class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
         # the list of sequences should be ordered by the "sequence" field
         self.assertEqual(response.context["sequences"].query.order_by, ("s_sequence",))
 
+    def test_sequences_show_order_and_folio_in_their_own_columns(self) -> None:
+        # #2327: the order within the source, then the folio, apart from the siglum
+        source = make_fake_source(
+            segment=[make_fake_segment(id=settings.BOWER_SEGMENT_ID)],
+            published=True,
+        )
+        sequence = make_fake_sequence(source=source)
+        Sequence.objects.filter(pk=sequence.pk).update(s_sequence="03", folio="125r")
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        page = response.content.decode()
+        self.assertLess(page.index(">Order</th>"), page.index(">Folio</th>"))
+        self.assertContains(
+            response, '<td class="text-wrap text-center">03</td>', html=True
+        )
+        self.assertContains(
+            response, '<td class="text-wrap text-center"><b>125r</b></td>', html=True
+        )
+
     def test_chant_list_link(self) -> None:
         cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         cantus_source = make_fake_source(segment=[cantus_segment])
@@ -1324,6 +1342,7 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
         response = self.client.get(reverse("source-inventory", args=[source.id]))
         html = str(response.content)
         self.assertIn(c_sequence, html)
+        self.assertIn(">Seq</th>", html)
 
     def test_sequence_column_for_sequence_source(self):
         bower_segment = make_fake_segment(
@@ -1335,6 +1354,7 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
         response = self.client.get(reverse("source-inventory", args=[source.id]))
         html = str(response.content)
         self.assertIn(s_sequence, html)
+        self.assertIn(">Order</th>", html)  # #2327
 
     def test_feast_column(self):
         source = make_fake_source(published=True)

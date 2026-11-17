@@ -892,6 +892,13 @@ class SourceBrowseChantsProofreadForm(forms.Form):
     )
 
 
+# Debra (#2327): for sequences, `s_sequence` is the order within the source,
+# not the position on the folio, so it is labelled "Order".
+SEQUENCE_ORDER_HELP = (
+    "The order of this sequence within the source (not its position on the folio)."
+)
+
+
 class SequenceEditForm(forms.ModelForm):
     class Meta:
         model = Sequence
@@ -933,6 +940,8 @@ class SequenceEditForm(forms.ModelForm):
             "cantus_id": TextInputWidget(),
             "image_link": TextInputWidget(),
         }
+        labels = {"s_sequence": "Order"}
+        help_texts = {"s_sequence": SEQUENCE_ORDER_HELP}
 
     genre = GenreServiceChoiceField(
         queryset=Genre.objects.all().order_by("name"), required=False
@@ -1118,6 +1127,8 @@ class AdminSequenceForm(forms.ModelForm):
             "other_fields_proofread": CheckboxWidget(),
             "chant_range": VolpianoAreaWidget(),
         }
+        labels = {"s_sequence": "Order"}
+        help_texts = {"s_sequence": SEQUENCE_ORDER_HELP}
 
     service = GenreServiceChoiceField(
         queryset=Service.objects.all().order_by("name"),

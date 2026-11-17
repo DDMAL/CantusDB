@@ -83,6 +83,17 @@ class SequenceListViewTest(SequencePermissionsTestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "sequence_list.html")
 
+    def test_order_and_folio_have_their_own_columns(self):
+        # #2327: the order within the source, then the folio, apart from the siglum
+        with_s_sequence(sequence_in(None, "MS 1", folio="125r"), "03")
+        response = self.client.get(reverse("sequence-list"))
+        page = response.content.decode()
+        self.assertLess(page.index(">Order</th>"), page.index(">Folio</th>"))
+        self.assertContains(response, '<td class="text-wrap">03</td>', html=True)
+        self.assertContains(
+            response, '<td class="text-wrap"><b>125r</b></td>', html=True
+        )
+
     def test_ordering(self):
         # The list sorts by the heading each row displays — the source's current
         # institution siglum and shelfmark — then by folio and sequence number.
@@ -301,6 +312,27 @@ class SequenceDetailViewTest(SequencePermissionsTestCase):
         response = self.client.get(reverse("sequence-detail", args=[sequence.id]))
         self.assertNotContains(response, "Incipit (standardized spelling)")
 
+    def test_order_is_shown_before_folio(self):
+        # #2327: `s_sequence` is the order within the source
+        sequence = with_s_sequence(make_fake_sequence(folio="125r"), "03")
+        response = self.client.get(reverse("sequence-detail", args=[sequence.id]))
+        page = response.content.decode()
+        self.assertLess(page.index(">Order</dt>"), page.index("<dt>Folio</dt>"))
+        self.assertNotIn("<dt>Sequence</dt>", page)
+
+    def test_concordances_show_order_and_folio_in_their_own_columns(self):
+        sequence = make_fake_sequence()
+        with_s_sequence(
+            make_fake_sequence(cantus_id=sequence.cantus_id, folio="125r"), "03"
+        )
+        response = self.client.get(reverse("sequence-detail", args=[sequence.id]))
+        self.assertContains(
+            response, '<td class="text-wrap text-center">03</td>', html=True
+        )
+        self.assertContains(
+            response, '<td class="text-wrap text-center"><b>125r</b></td>', html=True
+        )
+
     def test_concordances(self):
         sequence = make_fake_sequence()
         sequence_with_same_cantus_id = make_fake_sequence(cantus_id=sequence.cantus_id)
@@ -507,6 +539,16 @@ class SequenceEditViewTest(SequencePermissionsTestCase):
         response = self.client.get(reverse("sequence-edit", args=[sequence.id + 100]))
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
+
+    def test_order_field_is_labelled_above_folio(self):
+        # #2327: the field had no label on this page
+        sequence = make_fake_sequence()
+        response = self.client.get(reverse("sequence-edit", args=[sequence.id]))
+        self.assertContains(
+            response, '<label for="id_s_sequence">Order:</label>', html=True
+        )
+        page = response.content.decode()
+        self.assertLess(page.index('for="id_s_sequence"'), page.index('for="id_folio"'))
 
     def test_update_sequence(self):
         sequence = make_fake_sequence()
