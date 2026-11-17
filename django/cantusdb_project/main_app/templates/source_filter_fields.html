@@ -8,7 +8,8 @@
     Canadian Chant Database's sources are all Canadian manuscripts); input_class
     is added to the select fields.
 {% endcomment %}
-<div class="row align-items-center">
+<h6 class="small fw-bold mt-4 mb-0">Source-level filters</h6>
+<div class="row align-items-start">
     <div class="col-lg-6">
         <div class="row">
             {% if not hide_country %}
@@ -110,6 +111,8 @@
                         {{ source_completeness_label }}
                     </label>
                 </div>
+                {# Break after the second option, as on Browse Sources, whatever the column width. #}
+                {% if forloop.counter == 2 %}<div class="w-100"></div>{% endif %}
             {% endfor %}
         </div>
     </div>
