@@ -104,6 +104,8 @@ class CcdbChantSearchView(CcdbMixin, ChantSearchView):
         if keyword:
             source_qs = (
                 Source.objects.filter(segment_m2m__id__in=segment_ids)
+                # The source-level filters narrow this tab as well as the chants.
+                .filter(self.source_filters_q())
                 .filter(
                     Q(shelfmark__unaccent__icontains=keyword)
                     | Q(holding_institution__siglum__unaccent__icontains=keyword)

@@ -337,3 +337,15 @@ class CcdbChantSearchSourceFiltersTest(TestCase):
         self.assertEqual(
             {row.incipit for row in response.context["chants"]}, {"Italian chant"}
         )
+
+    def test_provenance_filters_the_sources_tab_too(self) -> None:
+        # the keyword matches both sources through their institution's siglum
+        response = self.client.get(
+            reverse("ccdb-chant-search"),
+            {"keyword": "CDN-Tst", "provenance": self.italy.id},
+        )
+        self.assertEqual(
+            [source.provenance for source in response.context["ccdb_sources"]],
+            [self.italy],
+        )
+        self.assertEqual(response.context["ccdb_source_count"], 1)
