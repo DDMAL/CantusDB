@@ -14,6 +14,7 @@ from django.contrib.admin.widgets import (
 from django.core.exceptions import ValidationError
 from django.forms.utils import pretty_name
 from django.forms.widgets import CheckboxSelectMultiple, HiddenInput
+from django.utils.functional import cached_property
 from dal import autocomplete  # type: ignore[import-untyped]
 from volpiano_display_utilities.cantus_text_syllabification import (
     syllabify_text,
@@ -1385,6 +1386,14 @@ class ImageLinkForm(forms.Form):
         return len(image_links)
 
 
+def _as_submitted(value: Any) -> str:
+    """`value` as text, the way a form submits it, with LF line breaks and no
+    surrounding whitespace."""
+    if value is None:
+        return ""
+    return str(value).replace("\r\n", "\n").strip()
+
+
 class BrowseChantsBulkEditForm(ChantTextWarningsMixin, forms.ModelForm):
     class Meta:
         model = Chant
@@ -1443,6 +1452,22 @@ class BrowseChantsBulkEditForm(ChantTextWarningsMixin, forms.ModelForm):
         self.fields["service"].choices = field_choices["service"]
         self.fields["genre"].choices = field_choices["genre"]
 
+    @cached_property
+    def changed_data(self) -> list[str]:
+        """The fields the user changed, so rows nobody touched aren't saved.
+
+        The browser submits every value as text: a feast id as "12", line
+        breaks as CRLF, and surrounding whitespace the field then strips.
+        Django would count each of those as a change from the saved value,
+        so saving the page re-saved every row and credited the editor with
+        all of them (#2297).
+        """
+        return [
+            name
+            for name in super().changed_data
+            if _as_submitted(self[name].initial) != _as_submitted(self[name].data)
+        ]
+
     def _clean_fk_field(self, field: str) -> Optional[Model]:
         id_str = self.cleaned_data[field]
         if id_str == "":
@@ -1467,7 +1492,10 @@ class BaseBrowseChantsBulkEditFormset(forms.BaseModelFormSet):
         Override the formset initialization to do a single
         query for the field choices instead of one query
         for each form in the formset.
+
+        `user`, if given, is recorded as the last editor of the chants saved.
         """
+        self.user = kwargs.pop("user", None)
         form_kwargs = kwargs.get("form_kwargs", {})
         feasts = Feast.objects.all().in_bulk()
         services = Service.objects.all().in_bulk()
@@ -1487,6 +1515,12 @@ class BaseBrowseChantsBulkEditFormset(forms.BaseModelFormSet):
         kwargs["form_kwargs"] = form_kwargs
         kwargs["prefix"] = "chant_set"
         super().__init__(*args, **kwargs)
+
+    def save_existing(self, form: Any, obj: Chant, commit: bool = True) -> Chant:
+        # Only called for the rows that changed.
+        if self.user is not None:
+            obj.last_updated_by = self.user
+        return super().save_existing(form, obj, commit=commit)
 
 
 BrowseChantsBulkEditFormset = forms.modelformset_factory(

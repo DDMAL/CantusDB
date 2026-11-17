@@ -13,6 +13,7 @@ from datetime import timedelta
 from typing import List, Dict, Any, Optional
 from urllib.parse import quote
 
+import reversion  # type: ignore[import-untyped]
 from celery import shared_task, Task
 from django.conf import settings
 from django.contrib.postgres.aggregates import ArrayAgg
@@ -614,7 +615,8 @@ def save_browse_chants_formset(
 ) -> Dict[str, Any]:
     self.update_state(state="PROCESSING")
     chants = Chant.objects.filter(id__in=chant_ids)
-    formset = BrowseChantsBulkEditFormset(data=data, queryset=chants)
+    user = User.objects.filter(pk=user_id).first() if user_id is not None else None
+    formset = BrowseChantsBulkEditFormset(data=data, queryset=chants, user=user)
     text_warnings: list[dict[str, Any]] = []
     with transaction.atomic():
         if source_id is not None and _bulk_edit_locked_out(
@@ -627,7 +629,13 @@ def save_browse_chants_formset(
                 "text_warnings": [],
             }
         if formset.is_valid():
-            formset.save()
+            # The revision middleware only runs for web requests, so record
+            # the bulk edit in the chants' history here.
+            with reversion.create_revision():
+                formset.save()
+                if user is not None:
+                    reversion.set_user(user)
+                reversion.set_comment("Bulk edit")
             text_warnings = [
                 {"form_num": form_num, **problem}
                 for form_num, form in enumerate(formset.forms)
