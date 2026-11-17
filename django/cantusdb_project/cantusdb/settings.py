@@ -229,6 +229,20 @@ BENEDICAMUS_DOMINO_SEGMENT_ID = 4065
 CCDB_SEGMENT_ID = 4066
 CANTORALES_SEGMENT_ID = 4067
 
+# Cantus IDs used in CantusDB on purpose that are not in Cantus Index; the
+# weekly "Cantus IDs not in Cantus Index" data check skips them.
+RESERVED_CANTUS_IDS = [
+    # uncertain, ambiguous: e.g. an incipit that could be one of two or more
+    # chants in that genre
+    "909999",
+    # illegible: visible script that is not clear enough to identify; also an
+    # erasure, or the original layer of a known palimpsest
+    "900000",
+    # no chant text or music survives in the (fragmented) source, but a rubric
+    # or another clue (such as a differentia) refers to one
+    "000000",
+]
+
 # Records migrated from OldCantus are attributed to this generic account
 # rather than a named editor. Chants attributed only to this account don't
 # show a "Record contributed by" / "Last modified by" line on the chant

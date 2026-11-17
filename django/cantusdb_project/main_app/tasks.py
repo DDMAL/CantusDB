@@ -67,7 +67,7 @@ def get_all_ci_ids() -> set[str] | None:
 def check_cantus_ids_not_in_ci(chant_ids: Optional[List[int]] = None) -> dict:
     """
     Returns chants whose cantus_id does not exist in Cantus Index,
-    split into published and unpublished.
+    split into published and unpublished. settings.RESERVED_CANTUS_IDS are skipped.
     """
     ci_ids = get_all_ci_ids()
     if ci_ids is None:
@@ -90,7 +90,10 @@ def check_cantus_ids_not_in_ci(chant_ids: Optional[List[int]] = None) -> dict:
         .distinct()
     )
 
-    invalid_ids = {cid for cid in local_ids if cid not in ci_ids}
+    reserved_ids = set(settings.RESERVED_CANTUS_IDS)
+    invalid_ids = {
+        cid for cid in local_ids if cid not in ci_ids and cid not in reserved_ids
+    }
 
     base_qs = qs.filter(cantus_id__in=invalid_ids).select_related(
         "source__holding_institution", "genre"
