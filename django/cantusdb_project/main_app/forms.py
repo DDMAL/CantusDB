@@ -37,6 +37,7 @@ from .models import (
     Differentia,
 )
 from .models.url_field import NormalizedURLFormField
+from .proofread_locks import PROOFREAD_FLAGS, lock_proofread_fields
 from .widgets import (
     TextInputWidget,
     VolpianoInputWidget,
@@ -310,7 +311,8 @@ class ChantTextWarningsMixin:
         data = cleaned_data if cleaned_data is not None else self.cleaned_data
         self.text_problems: list[dict[str, str]] = []
         for field_name, field in self.fields.items():
-            if not isinstance(field, ChantTextField):
+            if not isinstance(field, ChantTextField) or field.disabled:
+                # a disabled (locked) field can't have been edited
                 continue
             label = str(field.label) if field.label else pretty_name(field_name)
             self.text_problems.extend(
@@ -713,12 +715,26 @@ class ChantEditForm(ChantTextWarningsMixin, forms.ModelForm):
         required=False,
     )
 
+    def __init__(self, *args: Any, user_can_proofread: bool = False, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        if not user_can_proofread:
+            # Only proofreaders can tick the proofread boxes, choose who
+            # proofread the chant, or set its range. Others see them read-only.
+            for name in (*PROOFREAD_FLAGS, "proofread_by", "chant_range"):
+                self.fields[name].disabled = True
+        self.proofread_locks = lock_proofread_fields(
+            self, can_unlock=user_can_proofread
+        )
+
     def clean_manuscript_full_text_std_spelling(self) -> Optional[str]:
         """
         Provide a custom validation function for the
         manuscript_full_text_std_spelling field to ensure that
         if it initially contained text, it cannot be made blank.
         """
+        if self.fields["manuscript_full_text_std_spelling"].disabled:
+            # locked: the browser doesn't submit it, so keep the saved text
+            return self.cleaned_data["manuscript_full_text_std_spelling"]
         if (
             self["manuscript_full_text_std_spelling"].initial
             and not self["manuscript_full_text_std_spelling"].data
@@ -738,9 +754,12 @@ class ChantEditForm(ChantTextWarningsMixin, forms.ModelForm):
         # Call super().clean() to ensure that the form's built-in validation
         # is run before our custom validation.
         super().clean()
-        folio = self.cleaned_data["folio"]
-        c_sequence = self.cleaned_data["c_sequence"]
-        source = self.cleaned_data["source"]
+        folio = self.cleaned_data.get("folio")
+        c_sequence = self.cleaned_data.get("c_sequence")
+        source = self.cleaned_data.get("source")
+        if folio is None or c_sequence is None or source is None:
+            # a field failed its own validation, which already reported it
+            return self.cleaned_data
         if (
             source.chant_set.exclude(id=self.instance.id)
             .filter(folio=folio, c_sequence=c_sequence)
@@ -972,6 +991,12 @@ class ChantEditSyllabificationForm(ChantTextWarningsMixin, forms.ModelForm):
     manuscript_syllabized_full_text = CantusDBSyllabifiedLatinField(
         widget=TextAreaWidget, label="Syllabized full text"
     )
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        # There is no proofread box on this page, so a proofreader unlocks the
+        # text by unticking it on the chant edit page.
+        lock_proofread_fields(self)
 
 
 # The chant text fields the ``validate-chant-text`` endpoint checks, mapped to
@@ -1459,6 +1484,9 @@ class BrowseChantsBulkEditForm(ChantTextWarningsMixin, forms.ModelForm):
         field_choices = kwargs.pop("field_choices")
         self.field_objects: Dict[str, Dict[int, Model]] = kwargs.pop("field_objects")
         super().__init__(*args, **kwargs)
+        # There are no proofread boxes here, so a proofreader unlocks fields by
+        # unticking them on the chant edit page.
+        lock_proofread_fields(self)
         self.fields["feast"].choices = field_choices["feast"]
         self.fields["service"].choices = field_choices["service"]
         self.fields["genre"].choices = field_choices["genre"]
