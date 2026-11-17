@@ -351,14 +351,35 @@ function initializeCSVImport() {
     });
 }
 
+function initializeManifestUpload() {
+    const form = document.getElementById('iiifManifestUploadForm');
+    if (!form) return;
+    const input = document.getElementById('iiifManifestFile');
+    const error = document.getElementById('manifestUploadError');
+    function checkSize() {
+        const tooLarge = input.files.length > 0
+            && input.files[0].size > Number(input.dataset.maxBytes);
+        error.hidden = !tooLarge;
+        input.setCustomValidity(tooLarge ? error.textContent.trim() : '');
+        return !tooLarge;
+    }
+    input.addEventListener('change', checkSize);
+    form.addEventListener('submit', function (event) {
+        // Explain the limit here before nginx can reject the whole request.
+        if (!checkSize()) event.preventDefault();
+    });
+}
+
 if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', initializeCSVImport);
+    document.addEventListener('DOMContentLoaded', initializeManifestUpload);
 }
 
 // Exported for the Node tests; the browser loads this file as a plain script.
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         initializeCSVImport,
+        initializeManifestUpload,
         checkSharedImageLinks,
         csvLoadCallback,
         detectDelimiter,

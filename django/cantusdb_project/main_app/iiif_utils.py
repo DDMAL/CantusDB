@@ -19,6 +19,10 @@ import requests
 # response would be read into memory in full.
 MAX_MANIFEST_BYTES = 50 * 1024 * 1024
 
+# Uploaded files must fit under nginx's default 1 MiB request limit, including
+# the multipart form fields. Remote downloads do not pass through that limit.
+MAX_MANIFEST_UPLOAD_BYTES = 900 * 1024
+
 # Some IIIF hosts (e.g. IRHT/Biblissima's api.irht.cnrs.fr) sit behind an
 # anti-bot guard that serves HTTP 403 to the default python-requests
 # User-Agent. We identify honestly as CantusDB using the conventional
@@ -43,7 +47,7 @@ class CanvasInfo:
     canvas_index: int
 
 
-def fetch_manifest(manifest_url: str, timeout: int = 30) -> dict:
+def fetch_manifest(manifest_url: str, timeout: int = 30) -> object:
     """
     Fetch and parse a IIIF manifest JSON from the given URL.
 
@@ -53,7 +57,7 @@ def fetch_manifest(manifest_url: str, timeout: int = 30) -> dict:
             to the download as a whole.
 
     Returns:
-        Parsed manifest as a dictionary.
+        Parsed JSON value; extract_canvases validates the manifest structure.
 
     Raises:
         requests.Timeout: If the download outlasts `timeout`.
@@ -109,7 +113,8 @@ def _get_label_text(label: object) -> str:
             if isinstance(item, str):
                 return item
             if isinstance(item, dict):
-                return item.get("@value", str(item))
+                value = item.get("@value")
+                return value if isinstance(value, str) else str(item)
         return str(label[0]) if label else ""
     if isinstance(label, dict):
         # API 3.0: {"en": ["Folio 1r"], "none": ["f. 1r"]}
@@ -172,22 +177,22 @@ def _extract_image_url_v3(canvas: dict) -> str | None:
     return _as_url(body.get("id"))
 
 
-def extract_canvases(manifest: dict) -> list[CanvasInfo]:
+def extract_canvases(manifest: object) -> list[CanvasInfo]:
     """
     Extract canvas information from a IIIF manifest.
 
     Supports both Presentation API 2.x and 3.0.
 
     Args:
-        manifest: Parsed IIIF manifest dictionary.
+        manifest: Parsed JSON value, expected to be a IIIF manifest dictionary.
 
     Returns:
         List of CanvasInfo objects, one per canvas/page.
     """
     canvases: list[CanvasInfo] = []
 
-    # The manifest comes from a remote server and need not be an object at
-    # all. The view calls this outside the try/except that guards
+    # A fetched or uploaded manifest need not be a JSON object at all.
+    # The view calls this outside the try/except that guards
     # fetch_manifest, so anything raised here is an unhandled 500; return
     # empty instead and let the caller's "no canvases" path report it.
     if not isinstance(manifest, dict):
