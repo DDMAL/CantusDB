@@ -162,34 +162,6 @@ form.ccdb-filter-form select {
     background-color: var(--bs-gray-100);
 }
 
-/* Databases multi-select dropdown — styled to match form-select-sm siblings */
-.ccdb-db-dropdown-btn {
-    background-color: var(--bs-gray-100);
-    border: 1px solid #dee2e6;
-    border-radius: 0.25rem;
-    padding: 0.25rem 2.25rem 0.25rem 0.5rem;
-    font-size: 0.875rem;
-    line-height: 1.5;
-    width: 100%;
-    text-align: left;
-    /* Reuse the same dropdown arrow as Bootstrap's form-select */
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
-    background-size: 16px 12px;
-    cursor: pointer;
-}
-
-.ccdb-db-dropdown-btn:focus {
-    border-color: #cc3333;
-    box-shadow: 0 0 0 0.2rem rgba(204, 51, 51, 0.25);
-    outline: none;
-}
-
-.ccdb-db-dropdown-btn.show {
-    border-color: #cc3333;
-}
-
 table.ccdb-table th,
 table.ccdb-table td {
     background-color: var(--bs-gray-100);
