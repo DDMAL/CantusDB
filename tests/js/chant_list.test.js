@@ -33,7 +33,9 @@ function element() {
     };
 }
 
-function harness() {
+// `search` is the page's query string; `folios` are the folio values the bulk
+// edit rows submit.
+function harness({ search = "", folios = [] } = {}) {
     const ids = new Map();
     const byId = id => {
         if (!ids.has(id)) ids.set(id, element());
@@ -52,28 +54,35 @@ function harness() {
     const requests = [];
     const timers = [];
     let reloads = 0;
+    const assigned = [];
+    const href = `http://localhost/source/1/chants/${search}`;
     const context = {
         window: {
             addEventListener: (_type, callback) => callback(),
-            location: { href: "http://localhost/source/1/chants/", search: "", reload: () => reloads++ },
+            location: { href, search, reload: () => reloads++, assign: url => assigned.push(new URL(url)) },
         },
         document: {
-            URL: "http://localhost/source/1/chants/",
+            URL: href,
             getElementById: byId,
+            querySelector: () => element(),
             querySelectorAll: () => [],
             createElement: () => element(),
         },
         URL, URLSearchParams,
         FormData: class {
-            constructor() { this.values = new Map(names.map((name, index) => [name, fields[index].value])); }
+            constructor() {
+                this.values = new Map(names.map((name, index) => [name, fields[index].value]));
+                folios.forEach((folio, index) => this.values.set(`chant_set-${index}-folio`, folio));
+            }
             get(name) { return this.values.get(name); }
+            entries() { return this.values.entries(); }
         },
         fetch: (url, options) => new Promise((resolve, reject) => requests.push({ url, options, resolve, reject })),
         setTimeout: callback => timers.push(callback),
     };
     vm.runInNewContext(source, context);
     const h = {
-        byId, form, fields, requests, timers,
+        byId, form, fields, requests, timers, assigned,
         get reloads() { return reloads; },
         save: () => byId("bulkChantEditSubmit").fire("click"),
         async respond(request, data, status = 200) {
@@ -206,4 +215,48 @@ test("a failed submission releases controls and warning prose is inserted as tex
     const item = h.byId("formsetTextWarningAlert").children[1].children[0];
     assert.match(item.textContent, /<img/);
     assert.equal(item.innerHTML, undefined);
+});
+
+test("changing any filter on a later page starts from the first page", () => {
+    const controls = [["folioFilter", "183v"], ["genreFilter", "5"], ["feastFilter", "7"], ["feastSelect", "7"], ["search", "Ave"]];
+    for (const [id, value] of controls) {
+        const h = harness({ search: "?page=5&volpiano_proofread=True" });
+        const control = h.byId(id);
+        control.value = value;
+        control.options = [{ value }];
+        control.selectedIndex = 0;
+        control.fire("change");
+        const [next] = h.assigned;
+        assert.equal(next.searchParams.has("page"), false, id);
+        assert.equal(next.searchParams.get("volpiano_proofread"), "True", id);
+    }
+});
+
+test("a bulk save that moves every chant off the folio follows them to the new folio", async () => {
+    const h = harness({ search: "?folio=2r&page=2&genre=5", folios: ["1rb ", "1rb"] });
+    await h.start();
+    await h.complete(result());
+    assert.equal(h.reloads, 0);
+    assert.equal(h.assigned.length, 1);
+    assert.equal(h.assigned[0].search, "?folio=1rb&genre=5");
+});
+
+test("a bulk save that leaves chants on the folio reloads it", async () => {
+    for (const options of [{ search: "?folio=2r", folios: ["1rb", "2r"] }, { search: "", folios: ["1rb"] }]) {
+        const h = harness(options);
+        await h.start();
+        await h.complete(result());
+        assert.equal(h.reloads, 1);
+        assert.equal(h.assigned.length, 0);
+    }
+});
+
+test("Stop Editing after a save with warnings follows chants moved off the folio", async () => {
+    const h = harness({ search: "?folio=2r", folios: ["1rb", "1rb"] });
+    await h.start();
+    await h.complete(result([warning()]));
+    assert.equal(h.assigned.length, 0, "warnings stay visible first");
+    h.byId("bulkChantEditToggle").fire("click");
+    assert.equal(h.reloads, 0);
+    assert.equal(h.assigned[0].searchParams.get("folio"), "1rb");
 });

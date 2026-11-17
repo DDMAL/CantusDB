@@ -9,6 +9,7 @@ import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
+from django.core.paginator import Page, Paginator
 from django.db import transaction
 from django.db.models import (
     BooleanField,
@@ -124,6 +125,24 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
     extra_context = {
         "bulk_edit_formset": None,
     }
+
+    def paginate_queryset(
+        self, queryset: QuerySet[Chant], page_size: int
+    ) -> tuple[Paginator, Page, QuerySet[Chant], bool]:  # type: ignore[type-arg]
+        """Show the last page for a page number past the end, rather than a 404.
+
+        The list shrinks as chants are proofread or renumbered, so a page
+        number from an older URL can be out of range (#2300).
+        """
+        paginator = self.get_paginator(
+            queryset,
+            page_size,
+            orphans=self.get_paginate_orphans(),
+            allow_empty_first_page=self.get_allow_empty(),
+        )
+        number = self.request.GET.get(self.page_kwarg)
+        page = paginator.get_page(paginator.num_pages if number == "last" else number)
+        return (paginator, page, page.object_list, page.has_other_pages())
 
     def test_func(self) -> bool:
         """
@@ -279,14 +298,18 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
         )
         context["folios"] = folios
 
-        if folio := self.request.GET.get("folio"):
+        folio_list = list(folios)
+        folio = self.request.GET.get("folio")
+        if folio and folio in folio_list:
             # if browsing chants on a specific folio
-            index: int = list(folios).index(folio)
+            index: int = folio_list.index(folio)
             # get the previous and next folio, if available
-            context["previous_folio"] = folios[index - 1] if index != 0 else None
+            context["previous_folio"] = folio_list[index - 1] if index != 0 else None
             context["next_folio"] = (
-                folios[index + 1] if index < len(folios) - 1 else None
+                folio_list[index + 1] if index < len(folio_list) - 1 else None
             )
+        # A folio with no chants left (e.g. renumbered in Bulk Edit) just
+        # shows an empty list (#2298).
 
         # the options for the feast selector on the right, same as the source detail page
         context["feasts_with_folios"] = get_feast_selector_options(source)
