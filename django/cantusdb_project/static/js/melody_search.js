@@ -72,10 +72,12 @@ function melodySearch() {
 
     window.addEventListener("resize", changeDrawAreaPosition);
 
-    // check the page url for the `source` param, which indicates searching in a specific source
-    const urlParams = new URLSearchParams(window.location.search);
+    // The page includes the source's id only when the URL's `source` names an
+    // existing source; a mistyped or missing one searches all sources (#1484).
+    const sourceData = document.getElementById("melody-search-source");
+    const sourceId = sourceData && sourceData.textContent ? JSON.parse(sourceData.textContent) : null;
     // if searching in a specific source, make the siglum field read-only
-    if (urlParams.has("source")) {
+    if (sourceId !== null) {
         searchInSource = true;
         siglumField.readOnly = true;
     }
@@ -216,7 +218,7 @@ function melodySearch() {
         url.searchParams.append("mode", modeField.value);
         // if searching in a specific source, pass the source id as a search param
         if (searchInSource) {
-            url.searchParams.append("source", urlParams.get("source"));
+            url.searchParams.append("source", sourceId);
         }
 
 

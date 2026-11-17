@@ -25,7 +25,10 @@ class InvalidSearchParamsTest(TestCase):
         pages = [
             (reverse("browse-chants", args=[source]), ("feast", "genre")),
             (reverse("source-list"), ("segment", "provenance")),
-            (reverse("chant-search"), ("genre", "service", "segment")),
+            (
+                reverse("chant-search"),
+                ("genre", "service", "segment", "feast", "differentia_id"),
+            ),
             (reverse("chant-search-ms", args=[source]), ("genre", "service")),
             (reverse("melody-search"), ("source",)),
             (reverse("feast-list"), ("month",)),
@@ -33,8 +36,10 @@ class InvalidSearchParamsTest(TestCase):
         for url, params in pages:
             for param in params:
                 with self.subTest(url=url, param=param):
-                    response = self.client.get(url, {param: "abc"})
-                    self.assertEqual(response.status_code, 200)
+                    # "²" passes str.isdigit() but int() rejects it.
+                    for value in ("abc", "²"):
+                        response = self.client.get(url, {param: value})
+                        self.assertEqual(response.status_code, 200)
 
     def test_browse_chants_ignores_only_the_bad_filter(self) -> None:
         response = self.client.get(
@@ -51,7 +56,22 @@ class InvalidSearchParamsTest(TestCase):
     def test_oldcantus_redirects_reject_a_non_numeric_source(self) -> None:
         for name in ("redirect-chants", "redirect-source-inventory"):
             with self.subTest(name=name):
-                response = self.client.get(reverse(name), {"source": "abc"})
-                self.assertEqual(response.status_code, 400)
+                for value in ("abc", "²"):
+                    response = self.client.get(reverse(name), {"source": value})
+                    self.assertEqual(response.status_code, 400)
                 response = self.client.get(reverse(name), {"source": self.source.id})
                 self.assertEqual(response.status_code, 301)
+
+    def test_melody_search_ajax_ignores_a_non_numeric_source(self) -> None:
+        for value in ("abc", "²"):
+            with self.subTest(value=value):
+                response = self.client.get(
+                    reverse("ajax-melody-search"), {"notes": "g", "source": value}
+                )
+                self.assertEqual(response.status_code, 200)
+
+    def test_melody_search_passes_only_a_valid_source_to_the_page(self) -> None:
+        response = self.client.get(reverse("melody-search"), {"source": "abc"})
+        self.assertNotContains(response, 'id="melody-search-source"')
+        response = self.client.get(reverse("melody-search"), {"source": self.source.id})
+        self.assertContains(response, 'id="melody-search-source"')
