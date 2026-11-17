@@ -11,7 +11,7 @@
                     {% if model_name == selected_model_name %}
                         <b>{{ model_name|capfirst }}</b>
                     {% else %}
-                        <a href="?model={{ model_name }}">{{ model_name|capfirst }}</a>
+                        <a href="?model={{ model_name|urlencode }}">{{ model_name|capfirst }}</a>
                     {% endif %}
                 </div>
             {% endfor %}
