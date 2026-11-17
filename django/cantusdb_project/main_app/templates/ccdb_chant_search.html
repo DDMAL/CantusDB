@@ -86,14 +86,6 @@
                                    value="{{ request.GET.mode }}" />
                         </div>
                         <div class="form-group col-lg-3 col-sm-6 col-12">
-                            <label for="feast" class="small">Feast</label>
-                            <input type="text"
-                                   class="form-control form-control-sm ccdb-search-input"
-                                   name="feast"
-                                   id="feast"
-                                   value="{{ request.GET.feast }}" />
-                        </div>
-                        <div class="form-group col-lg-3 col-sm-6 col-12">
                             <label for="position" class="small">Position</label>
                             <input type="text"
                                    class="form-control form-control-sm ccdb-search-input"
@@ -109,6 +101,14 @@
                                 <option value="">- Any -</option>
                                 <option value="true" {% if request.GET.melodies == "true" %}selected{% endif %}>Chants with melodies</option>
                             </select>
+                        </div>
+                        <div class="form-group col-lg-6 col-sm-12 col-12">
+                            <label for="feast" class="small">Feast</label>
+                            <input type="text"
+                                   class="form-control form-control-sm ccdb-search-input"
+                                   name="feast"
+                                   id="feast"
+                                   value="{{ request.GET.feast }}" />
                         </div>
                     </div>
                     <div class="row align-items-end pt-2">
