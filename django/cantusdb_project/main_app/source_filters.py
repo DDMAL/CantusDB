@@ -21,6 +21,24 @@ SOURCE_FILTER_FIELDS: tuple[str, ...] = ("country", "provenance", "prodMethod")
 M = TypeVar("M", bound=Model)
 
 
+def to_int(value: Optional[str]) -> Optional[int]:
+    """`value` as an integer, or None if it isn't one (e.g. "abc" or "²")."""
+    try:
+        return int(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+
+
+def valid_choices(values: list[Optional[str]], choices: Any) -> list[int]:
+    """The `values` that are one of `choices` (an IntegerChoices), as integers;
+    anything else is dropped so an edited URL can't break the page (#1484)."""
+    return [
+        number
+        for value in values
+        if (number := to_int(value)) is not None and number in choices.values
+    ]
+
+
 class SourceFilterMixin:
     """Source filters for a view: query, active state and the form's options."""
 
@@ -60,16 +78,10 @@ class SourceFilterMixin:
         querystring can't break the page.
         """
 
-        def parse(param: str) -> Optional[int]:
-            raw = self.request.GET.get(param)
-            if not raw:
-                return None
-            try:
-                return int(raw)
-            except (TypeError, ValueError):
-                return None
-
-        return parse("dateStart"), parse("dateEnd")
+        return (
+            to_int(self.request.GET.get("dateStart")),
+            to_int(self.request.GET.get("dateEnd")),
+        )
 
     @cached_property
     def date_range_active(self) -> bool:
@@ -102,11 +114,18 @@ class SourceFilterMixin:
         True when some physical status boxes are unticked. The form submits
         every box when none is changed, which filters nothing.
         """
-        selected = set(self.request.GET.getlist("sourceCompleteness"))
-        all_values = {
-            str(value) for value, _ in Source.SourceCompletenessChoices.choices
-        }
+        selected = set(self.selected_source_completeness)
+        all_values = set(Source.SourceCompletenessChoices.values)
         return bool(selected) and selected != all_values
+
+    @cached_property
+    def selected_source_completeness(self) -> list[int]:
+        """The ticked physical statuses, ignoring values that aren't one,
+        e.g. from an edited URL (#1484)."""
+        return valid_choices(
+            self.request.GET.getlist("sourceCompleteness"),
+            Source.SourceCompletenessChoices,
+        )
 
     @cached_property
     def source_filters_active(self) -> bool:
@@ -142,14 +161,14 @@ class SourceFilterMixin:
                 q_obj_filter &= Q(century__min_date__lte=date_end_int)
 
         # Ignore an id that isn't a number, e.g. from an edited URL (#1484).
-        if (provenance_id := self.request.GET.get("provenance", "")).isdigit():
-            q_obj_filter &= Q(provenance__id=int(provenance_id))
+        if (provenance_id := to_int(self.request.GET.get("provenance"))) is not None:
+            q_obj_filter &= Q(provenance__id=provenance_id)
         if self.source_completeness_active:
-            q_obj_filter &= Q(
-                source_completeness__in=self.request.GET.getlist("sourceCompleteness")
-            )
-        if production_method := self.request.GET.get("prodMethod"):
-            q_obj_filter &= Q(production_method=production_method)
+            q_obj_filter &= Q(source_completeness__in=self.selected_source_completeness)
+        if production_methods := valid_choices(
+            [self.request.GET.get("prodMethod")], Source.ProductionMethodChoices
+        ):
+            q_obj_filter &= Q(production_method=production_methods[0])
         return q_obj_filter
 
     def filter_by_source(self, queryset: QuerySet[M]) -> QuerySet[M]:

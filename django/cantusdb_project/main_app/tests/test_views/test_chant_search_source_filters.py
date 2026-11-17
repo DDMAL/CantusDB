@@ -349,3 +349,23 @@ class CcdbChantSearchSourceFiltersTest(TestCase):
             [self.italy],
         )
         self.assertEqual(response.context["ccdb_source_count"], 1)
+
+
+class InvalidSourceFilterValuesTest(TestCase):
+    """Made-up filter values are ignored rather than causing an error (#1484)."""
+
+    def test_pages_with_source_filters_ignore_invalid_values(self) -> None:
+        make_fake_segment(id=settings.CANTUS_SEGMENT_ID, name="CANTUS Database")
+        make_fake_segment(id=settings.CCDB_SEGMENT_ID, name="Canadian Chant Database")
+        params = {
+            "sourceCompleteness": ["bogus", "²", "99"],
+            "prodMethod": ["bogus", "²", "99"],
+            "provenance": ["bogus", "²"],
+            "dateStart": ["²"],
+        }
+        for name in ("chant-search", "ccdb-chant-search", "source-list"):
+            for param, values in params.items():
+                for value in values:
+                    with self.subTest(page=name, param=param, value=value):
+                        response = self.client.get(reverse(name), {param: value})
+                        self.assertEqual(response.status_code, 200)
