@@ -18,7 +18,8 @@ services:
     env_file: ./config/envs/dev_env
     restart: always
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     command: [ "gunicorn", "--bind", ":8000", "cantusdb.wsgi:application", "--workers", "5" ]
 
   nginx:
@@ -49,6 +50,13 @@ services:
       - postgres_data:/var/lib/postgresql/data/
     restart: always
     command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+    # Ready only once it accepts TCP connections: while a fresh volume is being
+    # initialised, Postgres listens on its Unix socket only (#2207).
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 2s
+      timeout: 5s
+      retries: 30
 
   redis:
     build:
@@ -70,6 +78,9 @@ services:
     volumes:
       - ./django/cantusdb_project:/code/cantusdb_project
       - private_media_volume:/resources/private_media
+    depends_on:
+      postgres:
+        condition: service_healthy
     command: [ "celery", "-A", "cantusdb", "worker" ]
 
 volumes:
