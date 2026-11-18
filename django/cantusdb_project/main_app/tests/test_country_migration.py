@@ -38,6 +38,12 @@ class CountryMigrationTests(TransactionTestCase):
         absent = Institution.objects.create(
             name="Unrecorded", siglum="XX-Missing", country="[No Country]"
         )
+        duplicate = Institution.objects.create(
+            name="Other library", siglum="US-Other", country="  united STATES  "
+        )
+        local = Institution.objects.create(
+            name="Island library", siglum="XX-Island", country="Local territory"
+        )
         content_type, _ = ContentType.objects.get_or_create(
             app_label="main_app", model="institution"
         )
@@ -55,12 +61,35 @@ class CountryMigrationTests(TransactionTestCase):
             serialized_data=json.dumps(original),
             object_repr="Library",
         )
+        historical = json.loads(serializers.serialize("json", [duplicate]))
+        historical[0]["fields"]["country"] = "Vatican City"
+        history_only = Version.objects.create(
+            revision=revision,
+            object_id=str(duplicate.pk),
+            content_type=content_type,
+            db="default",
+            format="json",
+            serialized_data=json.dumps(historical),
+            object_repr=duplicate.name,
+        )
         timestamp = institution.date_updated
         apps = self.migrate(self.new)
         Institution = apps.get_model("main_app", "Institution")
         Version = apps.get_model("reversion", "Version")
         institution = Institution.objects.get(pk=institution.pk)
-        self.assertEqual(institution.country_id, "7012149")
+        Country = apps.get_model("main_app", "Country")
+        self.assertEqual(institution.country.getty_id, "7012149")
+        self.assertEqual(
+            Institution.objects.get(pk=duplicate.pk).country_id, institution.country_id
+        )
+        self.assertEqual(
+            Institution.objects.get(pk=local.pk).country.name, "Local territory"
+        )
+        self.assertIsNone(Institution.objects.get(pk=local.pk).country.getty_id)
+        self.assertSetEqual(
+            set(Country.objects.values_list("name", flat=True)),
+            {"Unknown", "Not recorded", "United States", "Local territory", "Holy See"},
+        )
         self.assertEqual(institution.country.name, "United States")
         columns = {
             column.name
@@ -71,19 +100,25 @@ class CountryMigrationTests(TransactionTestCase):
         self.assertNotIn("country_legacy", columns)
         self.assertNotIn("country_text", columns)
         self.assertEqual(institution.date_updated, timestamp)
-        self.assertEqual(Institution.objects.get(pk=unknown.pk).country_id, "unknown")
+        self.assertEqual(Institution.objects.get(pk=unknown.pk).country.name, "Unknown")
         self.assertEqual(
-            Institution.objects.get(pk=absent.pk).country_id, "not-recorded"
+            Institution.objects.get(pk=absent.pk).country.name, "Not recorded"
         )
         fields = json.loads(Version.objects.get(pk=version.pk).serialized_data)[0][
             "fields"
         ]
-        self.assertEqual(fields["country"], "unknown")
+        self.assertEqual(fields["country"], Country.objects.get(name="Unknown").pk)
         self.assertEqual(set(fields), set(original[0]["fields"]))
         self.assertNotIn("Land O' Tests", json.dumps(fields))
 
         from reversion.models import Version as LiveVersion
 
+        self.assertEqual(
+            LiveVersion.objects.get(
+                pk=history_only.pk
+            )._object_version.object.country.name,
+            "Holy See",
+        )
         recovered = LiveVersion.objects.get(pk=version.pk)._object_version.object
         self.assertEqual(recovered.country.name, "Unknown")
         self.assertFalse(hasattr(recovered, "country_legacy"))
@@ -126,9 +161,10 @@ class CountryMigrationTests(TransactionTestCase):
 
         # If someone edits the country after deployment, rollback keeps that edit.
         apps = self.migrate(self.new)
+        canada = apps.get_model("main_app", "Country").objects.create(name="Canada")
         apps.get_model("main_app", "Institution").objects.filter(
             pk=institution.pk
-        ).update(country_id="7005685")
+        ).update(country_id=canada.pk)
         apps = self.migrate(self.old)
         self.assertEqual(
             apps.get_model("main_app", "Institution")

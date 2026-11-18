@@ -10,7 +10,7 @@
     </h4>
 {% endblock %}
 {% block maincontent %}
-    <p class="small text-muted">Country names: <a href="https://www.getty.edu/research-conservation/tools-databases/vocabularies/tgn/">Getty Thesaurus of Geographic Names</a>, J. Paul Getty Trust, Getty Research Institute, <a href="https://opendatacommons.org/licenses/by/1-0/">ODC Attribution License</a>.</p>
+    {% if institution.country.getty_id %}<p class="small text-muted">Country authority: <a href="https://www.getty.edu/research-conservation/tools-databases/vocabularies/tgn/">Getty Thesaurus of Geographic Names</a>, J. Paul Getty Trust, Getty Research Institute, <a href="https://opendatacommons.org/licenses/by/1-0/">ODC Attribution License</a>.</p>{% endif %}
     {% if institution_authorities %}
         {% for authority in institution_authorities %}
             <div class="row mb-3">

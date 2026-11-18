@@ -17,7 +17,7 @@ from django.views.generic import ListView
 from django.views.generic.list import MultipleObjectMixin
 from django.utils import timezone
 
-from main_app.countries import matching_country_codes
+from main_app.countries import matching_countries
 from main_app.models import Chant, Source
 from main_app.permissions import CustomAccessMixin, annotate_proofreading_lock
 
@@ -61,11 +61,7 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
                 | Q(shelfmark__icontains=search_query)
                 | Q(holding_institution__name__icontains=search_query)
                 | Q(holding_institution__city__icontains=search_query)
-                | Q(
-                    holding_institution__country_id__in=matching_country_codes(
-                        search_query
-                    )
-                )
+                | Q(holding_institution__country__in=matching_countries(search_query))
                 | Q(title__icontains=search_query)
                 | Q(siglum__icontains=search_query)
             )

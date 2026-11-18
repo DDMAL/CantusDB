@@ -7,7 +7,7 @@ from django.core.management import call_command
 from django.test import TestCase
 
 from main_app.management.commands.import_cantorales import parse_centuries
-from main_app.models import Institution, Source, SourceURL
+from main_app.models import Country, Institution, Source, SourceURL
 from main_app.tests.make_fakes import (
     make_fake_century,
     make_fake_institution,
@@ -128,6 +128,7 @@ def _make_csv(
 
 class TestImportCantoralesCommand(TestCase):
     def setUp(self):
+        self.country = Country.objects.create(name="United States", aliases="US")
         make_fake_segment(
             name="Cantorales in the Americas and Beyond",
             id=settings.CANTORALES_SEGMENT_ID,
@@ -151,7 +152,7 @@ class TestImportCantoralesCommand(TestCase):
         self.assertEqual(Source.objects.filter(shelfmark="Ms. 1").count(), 1)
         source = Source.objects.get(shelfmark="Ms. 1")
         self.assertEqual(source.holding_institution.country.name, "United States")
-        self.assertEqual(source.holding_institution.country_id, "7012149")
+        self.assertEqual(source.holding_institution.country, self.country)
         self.assertTrue(source.published)
         self.assertIn(
             "Cantorales in the Americas and Beyond",

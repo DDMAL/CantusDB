@@ -22,7 +22,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 import reversion  # type: ignore[import-untyped]
 
-from main_app.countries import country_code
+from main_app.countries import import_country
 from main_app.models import (
     Century,
     Institution,
@@ -355,14 +355,11 @@ class Command(BaseCommand):
                         archive_name = row[COL_ARCHIVE].strip() or "[No Name]"
                         # Derive country from RISM prefix (US-xxx → US)
                         rism_country_code = rism.split("-")[0] if "-" in rism else ""
-                        country = {
-                            "US": "United States",
-                        }.get(rism_country_code, rism_country_code)
                         institution = Institution.objects.create(
                             siglum=rism,
                             name=archive_name,
                             city=city or None,
-                            country_id=country_code(country),
+                            country=import_country(rism_country_code),
                         )
                         institution_created_count += 1
                         self.stdout.write(

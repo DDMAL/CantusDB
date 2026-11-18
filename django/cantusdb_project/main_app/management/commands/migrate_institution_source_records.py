@@ -4,7 +4,7 @@ import requests
 from django.core.exceptions import ValidationError
 from django.core.management import BaseCommand
 
-from main_app.countries import country_code
+from main_app.countries import import_country
 from main_app.identifiers import ExternalIdentifiers
 from main_app.models import Source, Institution, InstitutionIdentifier
 
@@ -234,7 +234,7 @@ class Command(BaseCommand):
 
                 iobj = {
                     "city": main_city if main_city != "[Unknown]" else None,
-                    "country_id": country_code(inst_country),
+                    "country": import_country(inst_country),
                     "name": main_name,
                     "alternate_names": "\n".join(list(names)[1:]),
                 }

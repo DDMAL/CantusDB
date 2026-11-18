@@ -1,24 +1,54 @@
-"""Reconcile institutions and their recoverable revisions with Getty TGN."""
+"""Migrate institution country text and revisions to locally maintained records."""
 
 import json
-from pathlib import Path
 
+from django.core.validators import RegexValidator
 from django.db import migrations, models
+from django.db.models.functions import Lower
 import django.db.models.deletion
 
-# This dated catalogue is frozen migration input. Add a new dated file for updates.
-CATALOGUE = json.loads(
-    (Path(__file__).parent.parent / "data" / "countries_20261115.json").read_text()
+NOT_RECORDED = -1
+UNKNOWN = -2
+
+# Getty IDs for names used by Cantus and its legacy imports. These rows are
+# reconciliation hints: a country is inserted only when an institution uses it.
+# Each row contains the preferred name, TGN ID, and alternate names / RISM sigla.
+LEGACY_COUNTRIES = (
+    ("Australia", "7000490", "AUS"),
+    ("Austria", "1000062", "A"),
+    ("Belgium", "1000063", "B"),
+    ("Brazil", "1000047", "BR"),
+    ("Canada", "7005685", "CDN", "CA", "CAN"),
+    ("China", "1000111", "CN", "CHN", "People's Republic of China"),
+    ("Croatia", "7006663", "HR"),
+    ("Czech Republic", "1001780", "CZ", "Czechia"),
+    ("Denmark", "1000066", "DK"),
+    ("Ecuador", "1000051", "EC"),
+    ("Finland", "1000069", "FIN"),
+    ("France", "1000070", "F"),
+    ("Germany", "7000084", "D"),
+    ("Greece", "1000074", "GR"),
+    ("Holy See", "7001168", "V", "Vatican City", "Vatican"),
+    ("Hungary", "7006278", "H"),
+    ("Ireland", "1000078", "IRL"),
+    ("Italy", "1000080", "I"),
+    ("Netherlands", "7016845", "NL", "The Netherlands"),
+    ("New Zealand", "1000226", "NZ"),
+    ("Norway", "1000088", "N"),
+    ("Poland", "7006366", "PL"),
+    ("Portugal", "1000090", "P"),
+    ("Romania", "1000091", "RO"),
+    ("Slovakia", "7011765", "SK"),
+    ("Slovenia", "7006670", "SI"),
+    ("South Africa", "1000193", "SA", "ZA"),
+    ("Spain", "1000095", "E"),
+    ("Sweden", "1000097", "S"),
+    ("Switzerland", "7011731", "CH"),
+    ("Taiwan", "1000141", "T"),
+    ("Turkey", "1000144", "TR", "Türkiye"),
+    ("United Kingdom", "7008591", "GB", "UK", "U.K.", "GBR", "Great Britain"),
+    ("United States", "7012149", "US", "USA", "United States of America"),
 )
-ALIASES = {
-    name.strip().casefold(): row["code"]
-    for row in CATALOGUE
-    for name in [row["name"], *row["aliases"]]
-}
-
-
-def code_for(value: str | None) -> str | None:
-    return ALIASES.get((value or "").strip().casefold())
 
 
 def institution_versions(apps, alias):
@@ -29,67 +59,71 @@ def institution_versions(apps, alias):
     )
 
 
-def forwards(apps, schema_editor) -> None:
+def convert_versions(apps, alias, convert):
+    for version in institution_versions(apps, alias).iterator():
+        objects = json.loads(version.serialized_data)
+        for obj in objects:
+            fields = obj["fields"]
+            if obj["model"] == "main_app.institution" and "country" in fields:
+                fields["country"] = convert(fields["country"])
+        version.serialized_data = json.dumps(objects)
+        version.save(using=alias, update_fields=["serialized_data"])
+
+
+def forwards(apps, schema_editor):
     alias = schema_editor.connection.alias
-    Country = apps.get_model("main_app", "Country")
-    Institution = apps.get_model("main_app", "Institution")
-    institutions = Institution.objects.using(alias)
-    unmapped = [
-        (pk, value)
-        for pk, value in institutions.values_list("pk", "country_text")
-        if code_for(value) is None
-    ]
-    if unmapped:
-        raise ValueError(
-            f"Reconcile these institution countries before migrating: {unmapped}"
+    countries = apps.get_model("main_app", "Country").objects.using(alias)
+    institutions = apps.get_model("main_app", "Institution").objects.using(alias)
+    countries.create(pk=NOT_RECORDED, name="Not recorded", aliases="[No Country]")
+    countries.create(pk=UNKNOWN, name="Unknown", aliases="[Unknown Country]")
+    ids = {
+        "": NOT_RECORDED,
+        "not recorded": NOT_RECORDED,
+        "[no country]": NOT_RECORDED,
+        "unknown": UNKNOWN,
+        "[unknown country]": UNKNOWN,
+    }
+    known = {
+        label.casefold(): (name, getty_id, aliases)
+        for name, getty_id, *aliases in LEGACY_COUNTRIES
+        for label in [name, *aliases]
+    }
+
+    def country_id(value, *, historical=False):
+        text = (value or "").strip()
+        key = text.casefold()
+        if key in ids:
+            return ids[key]
+        if historical and key not in known:
+            # Old, unmatched text in a revision is not a new selectable country.
+            return UNKNOWN
+        name, getty_id, aliases = known.get(key, (text, None, []))
+        country = countries.create(
+            name=name, getty_id=getty_id, aliases="\n".join(aliases)
         )
-    Country.objects.using(alias).bulk_create(
-        [Country(code=row["code"], name=row["name"]) for row in CATALOGUE]
+        for label in [name, *aliases]:
+            ids[label.casefold()] = country.pk
+        return country.pk
+
+    values = (
+        institutions.order_by("country_text")
+        .values_list("country_text", flat=True)
+        .distinct()
     )
-    for institution in institutions.iterator():
-        institutions.filter(pk=institution.pk).update(
-            country_id=code_for(institution.country_text)
-        )
-
-    # The old field contained text. Leaving that text in Version.country would
-    # make Django interpret 'USA' as a foreign key and break revision recovery.
-    for version in institution_versions(apps, alias).iterator():
-        objects = json.loads(version.serialized_data)
-        for obj in objects:
-            fields = obj["fields"]
-            if obj["model"] != "main_app.institution" or "country" not in fields:
-                continue
-            original = fields["country"]
-            # Historical countries outside the catalogue become Unknown.
-            fields["country"] = code_for(original) or "unknown"
-        version.serialized_data = json.dumps(objects)
-        version.save(using=alias, update_fields=["serialized_data"])
+    for value in list(values):
+        institutions.filter(country_text=value).update(country_id=country_id(value))
+    convert_versions(apps, alias, lambda value: country_id(value, historical=True))
 
 
-def backwards(apps, schema_editor) -> None:
+def backwards(apps, schema_editor):
     alias = schema_editor.connection.alias
-    Country = apps.get_model("main_app", "Country")
-    Institution = apps.get_model("main_app", "Institution")
-    names = dict(Country.objects.using(alias).values_list("code", "name"))
-
-    def country_name(code: str) -> str:
-        # Restore the old missing-value default, but not discarded spellings.
-        return "[No Country]" if code == "not-recorded" else names[code]
-
-    institutions = Institution.objects.using(alias)
-    for institution in institutions.iterator():
-        institutions.filter(pk=institution.pk).update(
-            country_text=country_name(institution.country_id)
-        )
-    for version in institution_versions(apps, alias).iterator():
-        objects = json.loads(version.serialized_data)
-        for obj in objects:
-            fields = obj["fields"]
-            if obj["model"] != "main_app.institution" or "country" not in fields:
-                continue
-            fields["country"] = country_name(fields["country"])
-        version.serialized_data = json.dumps(objects)
-        version.save(using=alias, update_fields=["serialized_data"])
+    countries = apps.get_model("main_app", "Country").objects.using(alias)
+    institutions = apps.get_model("main_app", "Institution").objects.using(alias)
+    names = dict(countries.values_list("pk", "name"))
+    names[NOT_RECORDED] = "[No Country]"
+    for pk, name in names.items():
+        institutions.filter(country_id=pk).update(country_text=name)
+    convert_versions(apps, alias, lambda value: names[int(value)])
 
 
 class Migration(migrations.Migration):
@@ -103,12 +137,44 @@ class Migration(migrations.Migration):
             name="Country",
             fields=[
                 (
-                    "code",
-                    models.CharField(max_length=32, primary_key=True, serialize=False),
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
                 ),
-                ("name", models.CharField(max_length=128, unique=True)),
+                ("name", models.CharField(max_length=64)),
+                (
+                    "aliases",
+                    models.TextField(
+                        blank=True, help_text="Enter one alternate name per line."
+                    ),
+                ),
+                (
+                    "getty_id",
+                    models.CharField(
+                        "Getty TGN ID",
+                        max_length=32,
+                        blank=True,
+                        null=True,
+                        unique=True,
+                        validators=[
+                            RegexValidator(r"^[0-9]+$", "Enter a numeric Getty TGN ID.")
+                        ],
+                    ),
+                ),
             ],
-            options={"ordering": ["name"], "verbose_name_plural": "countries"},
+            options={
+                "ordering": ["name"],
+                "verbose_name_plural": "countries",
+                "constraints": [
+                    models.UniqueConstraint(
+                        Lower("name"), name="unique_country_name_ci"
+                    )
+                ],
+            },
         ),
         migrations.RenameField("institution", "country", "country_text"),
         migrations.AddField(
@@ -128,7 +194,7 @@ class Migration(migrations.Migration):
             model_name="institution",
             name="country",
             field=models.ForeignKey(
-                default="not-recorded",
+                default=NOT_RECORDED,
                 on_delete=django.db.models.deletion.PROTECT,
                 to="main_app.country",
             ),

@@ -179,6 +179,10 @@ class SegmentSettingsTest(TestCase):
             holding_institution=make_fake_institution(country="France"),
             segment=[retained],
         )
+        country = canadian.holding_institution.country
+        country.name = "Renamed Canada"
+        country.aliases = "Canada"
+        country.save()
         call_command("populate_canadian_chant_db", stdout=StringIO())
         self.assertCountEqual(canadian.segment_m2m.all(), [retained, ccdb])
         self.assertQuerySetEqual(other.segment_m2m.all(), [retained])

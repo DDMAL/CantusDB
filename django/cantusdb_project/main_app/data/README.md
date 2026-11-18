@@ -1,33 +1,28 @@
-# Country catalogue
+# Institution countries
 
-`countries_20261115.json` contains Getty TGN preferred English names and identifiers
-retrieved on 2026-11-15, plus CantusDB's separate Unknown and Not recorded entries.
-It includes 195 current nations returned by the Getty nation search. Historical
-nations (including Pandya) and results whose preferred type is not nation were
-excluded. Getty marks Germany as both current and historical; it is included.
-This is a geographic vocabulary, not a statement about recognition or sovereignty.
+Institutions share country records. In the Django admin, open **Countries** to
+add a country or correct its name. Add alternate spellings, translations, and
+RISM country codes under **Aliases**, one per line. When renaming a country,
+keep the former name as an alias if old search links or imports use it.
+Institution forms, imports, and search use the same records. If an import
+reports an unrecognized country, add the country or its alias and rerun the import.
 
-Sources:
+The Getty TGN ID is optional. Enter the numeric ID to link the country on
+institution pages. Migration 0047 includes names and IDs for countries found
+in Cantus data and legacy import mappings, reconciled with the
+[Getty Thesaurus of Geographic Names](https://www.getty.edu/research-conservation/tools-databases/vocabularies/tgn/)
+on 2026-11-15. Getty data is provided by the J. Paul Getty Trust, Getty
+Research Institute under the [ODC Attribution License](https://opendatacommons.org/licenses/by/1-0/).
 
-- https://www.getty.edu/vow/TGNServlet?english=Y&find=&place=nation&nation=&page=1
-  (all nine pages)
-- Each record's full display, for example:
-  https://www.getty.edu/vow/TGNFullDisplay?english=Y&find=&nation=&place=&subjectid=7012149
-- https://www.getty.edu/research-conservation/tools-databases/vocabularies/data-services/
+The migration creates one country per distinct institution country, combining
+known aliases such as USA and United States. It preserves other current names
+as local countries. Unknown and Not recorded remain separate choices.
+Institution revisions use the same records. A known country used only in a
+revision is retained for recovery. Unmatched historical text becomes Unknown.
 
-Names use the record's English-Preferred flag, even when the name differs from
-common modern usage (for example Holy See and Czech Republic). Aliases include
-current English names and alphabetic country codes; ambiguous aliases are omitted.
-The two bracketed legacy missing-value labels are CantusDB aliases.
-
-Contains information from the J. Paul Getty Trust, Getty Research Institute,
-Getty Thesaurus of Geographic Names, which is made available under the
-[ODC Attribution License](https://opendatacommons.org/licenses/by/1-0/).
-
-The catalogue is local so institution editing and migration work without network
-access. It is read-only in the admin. To add a newly represented territory or update
-a Getty name, verify the record with Getty and add a reviewed data migration and
-a new dated catalogue. Keep the dated JSON catalogue unchanged: migration 0047 uses it for conversion.
+If a development installation ran the earlier draft of 0047 that imported
+the full Getty catalogue, roll it back with that draft's code using
+`python manage.py migrate main_app 0046` before switching to this revision.
 
 Deploy code and schema together during a short maintenance window: pause public
 requests and background jobs, install the new code, run `python manage.py migrate`
@@ -48,17 +43,6 @@ configuration and resume the workers and scheduler.
 
 For rollback, pause traffic and jobs again, use the new code to run
 `python manage.py migrate main_app 0046`, then restore the previous code before
-resuming. Reverting code alone does not restore the old column. If forward migration
-rejects an unrecognized country, the transaction leaves the old schema intact;
-restore the previous code before reopening the site and reconcile the reported rows
-there before retrying.
-
-Migration 0047 converts existing institution countries and their revision history
-then discards the original country text. Unrecognized current countries stop the
-migration with institution IDs; reconcile those before retrying. Unrecognized
-historical values become Unknown. Revision recovery still works with the country
-references, but original spellings and unmatched historical country text are lost.
-Reversing the migration restores the free-text schema using each selected country's
-standard name, including edits made after deployment. Not recorded becomes the old
-`[No Country]` default. Rollback does not recover discarded spellings. The retired
-US cleanup command is unnecessary.
+resuming. Rollback restores the selected country names as text,
+including countries added or corrected in the admin. Not recorded becomes
+the old `[No Country]` default. Original spellings cannot be recovered.

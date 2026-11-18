@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import CheckConstraint, Q
 
-from main_app.models import BaseModel
+from main_app.models import BaseModel, Country
 
 region_help_text = """Province / State / Canton / County. Used to disambiguate cities, e.g., "London (Ontario)"."""
 city_help_text = """City / Town / Village / Settlement"""
@@ -50,7 +50,7 @@ class Institution(BaseModel):
         max_length=64, blank=True, null=True, help_text=region_help_text
     )
     country = models.ForeignKey(
-        "Country", on_delete=models.PROTECT, default="not-recorded"
+        Country, on_delete=models.PROTECT, default=Country.NOT_RECORDED
     )
     alternate_names = models.TextField(
         blank=True, null=True, help_text="Enter alternate names on separate lines."

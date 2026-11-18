@@ -14,7 +14,6 @@ from main_app.models.feast import Feast
 from main_app.models.genre import Genre
 from main_app.models.institution import Institution
 from main_app.models.country import Country
-from main_app.countries import COUNTRIES, COUNTRY_NAMES, country_code
 from main_app.models.notation import Notation
 from main_app.models.service import Service
 from main_app.models.project import Project
@@ -466,15 +465,7 @@ def make_fake_institution(
     city = city if city else faker.city()
     region = region if region else faker.country()
     if not isinstance(country, Country):
-        code = (
-            country_code(country)
-            if country is not None
-            else random.choice(COUNTRIES)["code"]
-        )
-        # TransactionTestCase flushes seeded reference data between tests.
-        country, _ = Country.objects.get_or_create(
-            code=code, defaults={"name": COUNTRY_NAMES[code]}
-        )
+        country, _ = Country.objects.get_or_create(name=country or faker.country())
 
     inst = Institution.objects.create(
         name=name,

@@ -7,7 +7,7 @@ from django.urls import reverse
 import reversion
 from reversion.models import Version
 
-from main_app.countries import country_code
+from main_app.countries import import_country
 from main_app.models import Country, Institution, Source
 from main_app.tests.make_fakes import (
     make_fake_institution,
@@ -18,28 +18,37 @@ from main_app.tests.make_fakes import (
 
 
 class CountryTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.usa = Country.objects.create(
+            name="United States",
+            getty_id="7012149",
+            aliases="US\nUSA\nUnited States of America",
+        )
+        cls.canada = Country.objects.create(name="Canada", aliases="CA")
+        cls.vatican = Country.objects.create(name="Holy See", aliases="Vatican City")
+
     def test_import_aliases_and_missing_values(self):
         for name in ("USA", "US", "United States of America", " united STATES "):
             with self.subTest(name=name):
-                self.assertEqual(country_code(name), "7012149")
-        self.assertEqual(country_code("Czechia"), country_code("Czech Republic"))
-        self.assertEqual(country_code("Vatican City"), country_code("Holy See"))
-        self.assertEqual(country_code("Unknown"), "unknown")
+                self.assertEqual(import_country(name), self.usa)
+        self.assertEqual(import_country("Vatican City"), self.vatican)
+        self.assertEqual(import_country("Unknown").pk, Country.UNKNOWN)
         for name in (None, "", "[No Country]", "Not recorded"):
-            self.assertEqual(country_code(name), "not-recorded")
-        with self.assertRaises(ValidationError):
-            country_code("UAS")
+            self.assertEqual(import_country(name).pk, Country.NOT_RECORDED)
+        with self.assertRaisesMessage(ValidationError, "Add the country or its alias"):
+            import_country("UAS")
 
     def test_institution_form_uses_validated_choices(self):
         request = RequestFactory().get("/")
         request.user = make_fake_user(is_superuser=True)
         model_admin = admin.site._registry[Institution]
         form_class = model_admin.get_form(request)
-        institution = make_fake_institution(country="USA")
+        institution = make_fake_institution(country=self.usa)
         data = {
             "name": institution.name,
             "siglum": institution.siglum,
-            "country": "7012149",
+            "country": self.usa.pk,
         }
         self.assertTrue(form_class(data, instance=institution).is_valid())
         data["country"] = "USA"
@@ -52,10 +61,10 @@ class CountryTests(TestCase):
         self.assertIn("Not recorded", list(choices.values()))
 
     def test_invalid_foreign_key_and_country_deletion_are_rejected(self):
-        institution = make_fake_institution(country="USA")
+        institution = make_fake_institution(country=self.usa)
         with self.assertRaises(ProtectedError):
             institution.country.delete()
-        institution.country_id = "USA"
+        institution.country_id = 9999999
         with self.assertRaises(ValidationError):
             institution.save()
 
@@ -67,9 +76,9 @@ class CountryTests(TestCase):
 
     def test_revision_can_restore_country(self):
         with reversion.create_revision():
-            institution = make_fake_institution(country="USA")
+            institution = make_fake_institution(country=self.usa)
         version = Version.objects.get_for_object(institution).first()
-        institution.country_id = country_code("Canada")
+        institution.country = self.canada
         institution.save()
         version.revision.revert()
         institution.refresh_from_db()
@@ -77,7 +86,7 @@ class CountryTests(TestCase):
 
     def test_old_country_filter_redirects_preserving_other_filters(self):
         source = make_fake_source(
-            holding_institution=make_fake_institution(country="USA"), published=True
+            holding_institution=make_fake_institution(country=self.usa), published=True
         )
         other = make_fake_source(
             holding_institution=make_fake_institution(country="Canada"), published=True
@@ -107,7 +116,9 @@ class CountryTests(TestCase):
             holding_institution=make_fake_institution(country="Unknown"), published=True
         )
         absent = make_fake_source(
-            holding_institution=make_fake_institution(country="[No Country]"),
+            holding_institution=make_fake_institution(
+                country=import_country("[No Country]")
+            ),
             published=True,
         )
         for name, included, excluded in (
@@ -124,22 +135,52 @@ class CountryTests(TestCase):
     def test_institution_detail_links_to_getty(self):
         make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         make_fake_segment(id=settings.BOWER_SEGMENT_ID)
-        institution = make_fake_institution(country="USA")
+        institution = make_fake_institution(country=self.usa)
         response = self.client.get(reverse("institution-detail", args=[institution.pk]))
         self.assertContains(response, "https://vocab.getty.edu/tgn/7012149")
         self.assertContains(response, "United States")
 
-    def test_catalogue_cannot_be_modified_in_admin(self):
-        request = RequestFactory().get("/")
-        request.user = make_fake_user(is_superuser=True)
-        model_admin = admin.site._registry[Country]
-        self.assertFalse(model_admin.has_add_permission(request))
-        self.assertFalse(model_admin.has_change_permission(request))
-        self.assertFalse(model_admin.has_delete_permission(request))
+    def test_admin_can_add_and_correct_a_country_and_its_aliases(self):
+        self.client.force_login(make_fake_user(is_superuser=True))
+        response = self.client.post(
+            reverse("admin:main_app_country_add"),
+            {"name": "Iceland", "aliases": "Islande", "getty_id": ""},
+        )
+        self.assertEqual(response.status_code, 302)
+        country = import_country("Islande")
+        institution = make_fake_institution(country=country)
+        response = self.client.post(
+            reverse("admin:main_app_country_change", args=[country.pk]),
+            {"name": "Ísland", "aliases": "Iceland\r\n  Islande  ", "getty_id": ""},
+        )
+        self.assertEqual(response.status_code, 302)
+        institution.refresh_from_db()
+        self.assertEqual(institution.country.name, "Ísland")
+        self.assertEqual(import_country("iceland"), institution.country)
+        source = make_fake_source(holding_institution=institution, published=True)
+        response = self.client.get(
+            reverse("source-list"), {"country": "Islande"}, follow=True
+        )
+        self.assertEqual(response.request["QUERY_STRING"], "country=%C3%8Dsland")
+        self.assertIn("Ísland", response.context["countries"])
+        self.assertIn(source, response.context["sources"])
+
+        response = self.client.post(
+            reverse("admin:main_app_country_change", args=[country.pk]),
+            {"name": "Ísland", "aliases": "UsA", "getty_id": ""},
+        )
+        self.assertContains(response, "already a name or alias for United States")
+        self.assertEqual(import_country("usa"), self.usa)
+        self.assertEqual(import_country("Islande"), country)
+        response = self.client.post(
+            reverse("admin:main_app_country_change", args=[Country.NOT_RECORDED]),
+            {"name": "Missing", "aliases": "", "getty_id": ""},
+        )
+        self.assertEqual(response.status_code, 403)
 
     def test_country_aliases_find_institutions_in_autocomplete(self):
         institution = make_fake_institution(
-            name="Library Alpha", city="Town", siglum="AA", country="USA"
+            name="Library Alpha", city="Town", siglum="AA", country=self.usa
         )
         other = make_fake_institution(
             name="Library Beta", city="Town", siglum="BB", country="Canada"
@@ -153,7 +194,7 @@ class CountryTests(TestCase):
     def test_country_aliases_find_sources_in_proofreading(self):
         source = make_fake_source(
             holding_institution=make_fake_institution(
-                name="Library Alpha", city="Town", siglum="AA", country="USA"
+                name="Library Alpha", city="Town", siglum="AA", country=self.usa
             ),
             shelfmark="Book One",
             title="",
@@ -189,7 +230,7 @@ class CountryTests(TestCase):
         )
         vatican = make_fake_source(
             holding_institution=make_fake_institution(
-                name="Library Gamma", city="Town", siglum="CC", country="Vatican City"
+                name="Library Gamma", city="Town", siglum="CC", country=self.vatican
             ),
             shelfmark="Book Three",
             title="",

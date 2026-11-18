@@ -1,42 +1,47 @@
-"""Local Getty TGN country catalogue; see data/README.md for provenance."""
-
-import json
-from pathlib import Path
-
 from django.core.exceptions import ValidationError
+from django.db.models import Q, QuerySet, TextField, Value
+from django.db.models.functions import Concat
 
-COUNTRIES = json.loads(
-    (Path(__file__).parent / "data" / "countries_20261115.json").read_text()
-)
-COUNTRY_NAMES = {row["code"]: row["name"] for row in COUNTRIES}
-COUNTRY_CODES = {
-    name.strip().casefold(): country["code"]
-    for country in COUNTRIES
-    for name in [country["name"], *country["aliases"]]
-}
+from main_app.models import Country
 
 
-def country_code(name: str | None) -> str:
-    """Resolve an import's country name; reject unrecognized values."""
-    try:
-        return COUNTRY_CODES[(name or "").strip().casefold()]
-    except KeyError:
-        raise ValidationError(f"Unrecognized country: {name!r}.") from None
+def _countries_with_alias_lines() -> QuerySet[Country]:
+    # Delimit the first and last alias too, so lookups can match whole lines.
+    return Country.objects.alias(
+        alias_lines=Concat(
+            Value("\n"), "aliases", Value("\n"), output_field=TextField()
+        )
+    )
 
 
-def matching_country_codes(
-    query: str, *, prefix: bool = False, prefer_exact: bool = False
-) -> list[str]:
-    """Include legacy names in searches and existing country filter URLs."""
-    query = query.strip().casefold()
-    # The country filter selects one country. General text searches must still
-    # match substrings: "ca" matches both Canada and the Vatican City alias.
-    if prefer_exact and query in COUNTRY_CODES:
-        return [COUNTRY_CODES[query]]
-    return list(
-        {
-            code
-            for name, code in COUNTRY_CODES.items()
-            if (name.startswith(query) if prefix else query in name)
-        }
+def find_country(name: str) -> Country | None:
+    label = name.strip()
+    if not label or "\n" in label or "\r" in label:
+        return None
+    return (
+        _countries_with_alias_lines()
+        .filter(Q(name__iexact=label) | Q(alias_lines__icontains=f"\n{label}\n"))
+        .first()
+    )
+
+
+def import_country(name: str | None) -> Country:
+    if not name or not name.strip():
+        return Country.objects.get(pk=Country.NOT_RECORDED)
+    country = find_country(name)
+    if country is None:
+        raise ValidationError(
+            f"Unrecognized country: {name!r}. Add the country or its alias in the admin."
+        )
+    return country
+
+
+def matching_countries(query: str, *, prefix: bool = False) -> QuerySet[Country]:
+    query = query.strip()
+    if prefix:
+        return _countries_with_alias_lines().filter(
+            Q(name__istartswith=query) | Q(alias_lines__icontains=f"\n{query}")
+        )
+    return Country.objects.filter(
+        Q(name__icontains=query) | Q(aliases__icontains=query)
     )

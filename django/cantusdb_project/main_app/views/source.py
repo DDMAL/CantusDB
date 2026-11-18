@@ -46,7 +46,7 @@ from django.views.generic import (
 )
 from django.views.generic.detail import SingleObjectMixin
 
-from main_app.countries import COUNTRY_CODES, COUNTRY_NAMES, matching_country_codes
+from main_app.countries import find_country, matching_countries
 from main_app.forms import (
     SourceCreateForm,
     SourceEditForm,
@@ -541,10 +541,10 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         # Canonicalize old links so the country dropdown also retains its value.
         country = request.GET.get("country", "")
-        code = COUNTRY_CODES.get(country.strip().casefold()) if country else None
-        if code and country != COUNTRY_NAMES[code]:
+        self.selected_country = find_country(country) if country else None
+        if self.selected_country and country != self.selected_country.name:
             params = request.GET.copy()
-            params["country"] = COUNTRY_NAMES[code]
+            params["country"] = self.selected_country.name
             return HttpResponseRedirect(f"{request.path}?{params.urlencode()}")
         segment_id = self.kwargs.get("segment_id")
         if segment_id:
@@ -567,11 +567,12 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             q_obj_filter &= Q(segment_m2m=self.segment)
 
         if country_name := self.request.GET.get("country"):
-            q_obj_filter &= Q(
-                holding_institution__country_id__in=matching_country_codes(
-                    country_name, prefer_exact=True
+            if self.selected_country:
+                q_obj_filter &= Q(holding_institution__country=self.selected_country)
+            else:
+                q_obj_filter &= Q(
+                    holding_institution__country__in=matching_countries(country_name)
                 )
-            )
 
         # Handle direct date range filtering (e.g., 1400-1500) by keeping only
         # sources with a century that overlaps the range. This is skipped when
