@@ -76,3 +76,18 @@ class JSONResponseMixin:
                 "A JSONResponseMixin must be used with a DetailView or ListView."
             ) from exc
         return template_response
+
+
+class StripSearchParamsMixin:
+    """
+    Remove leading and trailing whitespace from every search parameter, so
+    a search for " Alleluia" finds the same chants as "Alleluia" (#2005).
+    """
+
+    def setup(self, request: HttpRequest, *args: Any, **kwargs: Any) -> None:
+        params = request.GET.copy()
+        for key in params:
+            params.setlist(key, [value.strip() for value in params.getlist(key)])
+        params._mutable = False
+        request.GET = params
+        super().setup(request, *args, **kwargs)  # type: ignore[misc]
