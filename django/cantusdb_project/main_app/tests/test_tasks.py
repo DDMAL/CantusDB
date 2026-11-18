@@ -335,6 +335,33 @@ class CheckCantusIdsNotInCiTest(TestCase):
         self.assertIn(unpub_chant, result["unpublished"])
         self.assertNotIn(valid_chant, result["published"])
 
+    @patch("main_app.tasks.get_json_from_ci_api")
+    def test_reserved_cantus_ids_are_not_reported(self, mock_get_json) -> None:
+        # 909999 uncertain, 900000 illegible, 000000 no text or music survives
+        mock_get_json.return_value = [{"cid": "001234"}]
+        source = make_fake_source(published=True)
+        reserved = [
+            make_fake_chant(source=source, cantus_id=cid)
+            for cid in ("909999", "900000", "000000")
+        ]
+        unknown = make_fake_chant(source=source, cantus_id="909998")
+
+        result = check_cantus_ids_not_in_ci()
+        for chant in reserved:
+            self.assertNotIn(chant, result["published"])
+        self.assertIn(unknown, result["published"])
+
+    @patch("main_app.tasks.get_json_from_ci_api")
+    def test_reserved_cantus_ids_come_from_settings(self, mock_get_json) -> None:
+        mock_get_json.return_value = [{"cid": "001234"}]
+        source = make_fake_source(published=True)
+        listed = make_fake_chant(source=source, cantus_id="909998")
+        unlisted = make_fake_chant(source=source, cantus_id="909999")
+        with override_settings(RESERVED_CANTUS_IDS={"909998"}):
+            result = check_cantus_ids_not_in_ci()
+        self.assertNotIn(listed, result["published"])
+        self.assertIn(unlisted, result["published"])
+
 
 class CheckDuplicateFolioSequenceTest(TestCase):
     def test_duplicates_split_by_published(self) -> None:
