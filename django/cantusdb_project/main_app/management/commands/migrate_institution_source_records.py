@@ -3,6 +3,7 @@ from collections import defaultdict
 import requests
 from django.core.exceptions import ValidationError
 from django.core.management import BaseCommand
+from django.db import transaction
 
 from main_app.countries import import_country
 from main_app.identifiers import ExternalIdentifiers
@@ -113,6 +114,7 @@ class Command(BaseCommand):
         parser.add_argument("-d", "--dry-run", action="store_true")
         parser.add_argument("-m", "--empty", action="store_true")
 
+    @transaction.atomic
     def handle(self, *args, **options):
         if options["empty"]:
             print(self.style.WARNING("Deleting records..."))

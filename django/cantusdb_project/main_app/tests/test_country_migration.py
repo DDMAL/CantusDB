@@ -9,10 +9,10 @@ from django.utils import timezone
 
 class CountryMigrationTests(TransactionTestCase):
     old = [
-        ("main_app", "0046_incipit_std_spelling"),
+        ("main_app", "0047_notation_clavis_sequentiarum_labels"),
         ("reversion", "0002_add_index_on_version_for_content_type_and_db"),
     ]
-    new = [("main_app", "0047_getty_countries")]
+    new = [("main_app", "0048_getty_countries")]
 
     def migrate(self, target):
         executor = MigrationExecutor(connection)
@@ -22,6 +22,32 @@ class CountryMigrationTests(TransactionTestCase):
     def tearDown(self):
         self.migrate(self.new)
         super().tearDown()
+
+    def test_represented_countries_get_their_authority_ids_and_rism_aliases(self):
+        from main_app.countries import find_country
+
+        apps = self.migrate(self.old)
+        Institution = apps.get_model("main_app", "Institution")
+        represented = (
+            ("Argentina", "RA", "7006477"),
+            ("Japan", "J", "1000120"),
+            ("South Africa", "ZA", "1000193"),
+            ("Taiwan", "RC", "1000141"),
+            ("United Kingdom", "GB", "7008591"),
+        )
+        for name, siglum, _ in represented:
+            Institution.objects.create(
+                name="Library", siglum=f"{siglum}-Test", country=name
+            )
+
+        self.migrate(self.new)
+        for name, siglum, getty_id in represented:
+            with self.subTest(country=name):
+                country = find_country(siglum.lower())
+                self.assertEqual(country.name, name)
+                self.assertEqual(country.getty_id, getty_id)
+        self.assertIsNone(find_country("SA"))
+        self.assertIsNone(find_country("T"))
 
     def test_migration_discards_old_text_and_keeps_history_usable(self):
         apps = self.migrate(self.old)

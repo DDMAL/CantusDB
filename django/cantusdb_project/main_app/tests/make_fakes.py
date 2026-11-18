@@ -465,7 +465,10 @@ def make_fake_institution(
     city = city if city else faker.city()
     region = region if region else faker.country()
     if not isinstance(country, Country):
-        country, _ = Country.objects.get_or_create(name=country or faker.country())
+        country_name = country or faker.country()
+        country, _ = Country.objects.get_or_create(
+            name__iexact=country_name, defaults={"name": country_name}
+        )
 
     inst = Institution.objects.create(
         name=name,

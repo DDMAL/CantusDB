@@ -14,6 +14,7 @@ UNKNOWN = -2
 # reconciliation hints: a country is inserted only when an institution uses it.
 # Each row contains the preferred name, TGN ID, and alternate names / RISM sigla.
 LEGACY_COUNTRIES = (
+    ("Argentina", "7006477", "RA"),
     ("Australia", "7000490", "AUS"),
     ("Austria", "1000062", "A"),
     ("Belgium", "1000063", "B"),
@@ -32,6 +33,7 @@ LEGACY_COUNTRIES = (
     ("Hungary", "7006278", "H"),
     ("Ireland", "1000078", "IRL"),
     ("Italy", "1000080", "I"),
+    ("Japan", "1000120", "J"),
     ("Netherlands", "7016845", "NL", "The Netherlands"),
     ("New Zealand", "1000226", "NZ"),
     ("Norway", "1000088", "N"),
@@ -40,11 +42,11 @@ LEGACY_COUNTRIES = (
     ("Romania", "1000091", "RO"),
     ("Slovakia", "7011765", "SK"),
     ("Slovenia", "7006670", "SI"),
-    ("South Africa", "1000193", "SA", "ZA"),
+    ("South Africa", "1000193", "ZA"),
     ("Spain", "1000095", "E"),
     ("Sweden", "1000097", "S"),
     ("Switzerland", "7011731", "CH"),
-    ("Taiwan", "1000141", "T"),
+    ("Taiwan", "1000141", "RC"),
     ("Turkey", "1000144", "TR", "Türkiye"),
     ("United Kingdom", "7008591", "GB", "UK", "U.K.", "GBR", "Great Britain"),
     ("United States", "7012149", "US", "USA", "United States of America"),
@@ -128,7 +130,7 @@ def backwards(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("main_app", "0046_incipit_std_spelling"),
+        ("main_app", "0047_notation_clavis_sequentiarum_labels"),
         ("reversion", "0002_add_index_on_version_for_content_type_and_db"),
     ]
 

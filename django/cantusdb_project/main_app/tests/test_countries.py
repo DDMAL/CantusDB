@@ -1,13 +1,17 @@
+from contextlib import redirect_stdout
+from io import StringIO
+
 from django.conf import settings
 from django.contrib import admin
 from django.core.exceptions import ValidationError
+from django.core.management import call_command
 from django.db.models.deletion import ProtectedError
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 import reversion
 from reversion.models import Version
 
-from main_app.countries import import_country
+from main_app.countries import find_country, import_country
 from main_app.models import Country, Institution, Source
 from main_app.tests.make_fakes import (
     make_fake_institution,
@@ -38,6 +42,31 @@ class CountryTests(TestCase):
             self.assertEqual(import_country(name).pk, Country.NOT_RECORDED)
         with self.assertRaisesMessage(ValidationError, "Add the country or its alias"):
             import_country("UAS")
+
+    def test_ambiguous_alias_cannot_select_the_wrong_country(self):
+        Country.objects.filter(pk=self.canada.pk).update(aliases="USA")
+        self.assertIsNone(find_country("USA"))
+        with self.assertRaisesMessage(ValidationError, "Ambiguous country"):
+            import_country("USA")
+        self.assertEqual(import_country("United States"), self.usa)
+
+    def test_legacy_rebuild_rolls_back_when_a_country_is_missing(self):
+        institution = make_fake_institution(country="canada")
+        self.assertEqual(institution.country, self.canada)
+        source = make_fake_source(
+            holding_institution=institution,
+            title="Quito, Library, Ms. 1",
+            siglum="EC-Test Ms. 1",
+        )
+        for command in ("migrate_records", "migrate_institution_source_records"):
+            with self.subTest(command=command), redirect_stdout(StringIO()):
+                with self.assertRaisesMessage(
+                    ValidationError, "Unrecognized country: 'Ecuador'"
+                ):
+                    call_command(command, empty=True)
+                source.refresh_from_db()
+                self.assertEqual(source.holding_institution, institution)
+                self.assertFalse(Institution.objects.filter(siglum="XX-NN").exists())
 
     def test_institution_form_uses_validated_choices(self):
         request = RequestFactory().get("/")

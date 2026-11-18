@@ -2,6 +2,7 @@ from typing import Optional
 
 import requests
 from django.core.management import BaseCommand
+from django.db import transaction
 
 from main_app.countries import import_country
 from main_app.identifiers import ExternalIdentifiers
@@ -103,6 +104,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("-e", "--empty", action="store_true")
 
+    @transaction.atomic
     def handle(self, *args, **options):
         if options["empty"]:
             print(self.style.WARNING("Deleting records..."))
