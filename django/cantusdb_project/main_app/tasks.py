@@ -83,17 +83,14 @@ def check_cantus_ids_not_in_ci(chant_ids: Optional[List[int]] = None) -> dict:
         else Chant.objects.all()
     )
 
-    local_ids: list[str] = list(
+    local_ids: set[str] = set(
         qs.exclude(cantus_id__isnull=True)
         .exclude(cantus_id="")
         .values_list("cantus_id", flat=True)
         .distinct()
     )
 
-    reserved_ids = set(settings.RESERVED_CANTUS_IDS)
-    invalid_ids = {
-        cid for cid in local_ids if cid not in ci_ids and cid not in reserved_ids
-    }
+    invalid_ids = local_ids - ci_ids - settings.RESERVED_CANTUS_IDS
 
     base_qs = qs.filter(cantus_id__in=invalid_ids).select_related(
         "source__holding_institution", "genre"

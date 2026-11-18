@@ -357,7 +357,7 @@ class CheckCantusIdsNotInCiTest(TestCase):
         source = make_fake_source(published=True)
         listed = make_fake_chant(source=source, cantus_id="909998")
         unlisted = make_fake_chant(source=source, cantus_id="909999")
-        with override_settings(RESERVED_CANTUS_IDS=["909998"]):
+        with override_settings(RESERVED_CANTUS_IDS={"909998"}):
             result = check_cantus_ids_not_in_ci()
         self.assertNotIn(listed, result["published"])
         self.assertIn(unlisted, result["published"])
