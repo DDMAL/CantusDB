@@ -543,13 +543,14 @@ class JsonNodeExportTest(TestCase):
         self.assertEqual(response_3.status_code, 404)
 
     def test_json_node_for_chant(self):
-        chant = make_fake_chant()
+        chant = make_fake_chant(gabc="(c4) A(f)men(g) (::)")
         id = chant.id
 
         response = self.client.get(reverse("json-node-export", args=[id]))
         self.assertIsInstance(response, JsonResponse)
 
         unpacked_response = json.loads(response.content)
+        self.assertNotIn("gabc", unpacked_response)
 
         response_cantus_id = unpacked_response["cantus_id"]
         self.assertIsInstance(response_cantus_id, str)

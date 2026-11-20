@@ -228,6 +228,7 @@ BOWER_SEGMENT_ID = 4064
 BENEDICAMUS_DOMINO_SEGMENT_ID = 4065
 CCDB_SEGMENT_ID = 4066
 CANTORALES_SEGMENT_ID = 4067
+CHINESE_CATHOLIC_PLAINCHANT_SEGMENT_ID = 4068
 
 # Records migrated from OldCantus are attributed to this generic account
 # rather than a named editor. Chants attributed only to this account don't

@@ -1307,6 +1307,7 @@ class ChantCreateView(CustomAccessMixin, CreateView):  # type: ignore[type-arg]
         we copy the data dictionary and add the source id to it.
         """
         kwargs = super().get_form_kwargs()
+        kwargs["source"] = self.source
         if "data" in kwargs:
             kwargs["data"] = kwargs["data"].copy()
             kwargs["data"]["source"] = self.source.id
@@ -1527,6 +1528,7 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
         we copy the data and add the source id to it.
         """
         kwargs = super().get_form_kwargs()
+        kwargs["source"] = self.source
         if "data" in kwargs:
             kwargs["data"] = kwargs["data"].copy()
             kwargs["data"]["source"] = self.source.id
