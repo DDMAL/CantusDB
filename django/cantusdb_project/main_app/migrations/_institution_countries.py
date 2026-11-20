@@ -8,19 +8,27 @@ from ._institution_country_versions import convert_versions
 NOT_RECORDED, UNKNOWN = -1, -2
 
 
-def from_text(apps, schema_editor):
+def from_text(
+    apps,
+    schema_editor,
+    *,
+    catalogue=COUNTRIES,
+    by_label=IDS_BY_LABEL,
+    not_recorded=NOT_RECORDED,
+    unknown=UNKNOWN
+):
     db = schema_editor.connection.alias
     countries = apps.get_model("main_app", "Country").objects.using(db)
     institutions = apps.get_model("main_app", "Institution").objects.using(db)
-    ids = {"": NOT_RECORDED}
+    ids = {"": not_recorded}
     for pk, name, alias in (
-        (NOT_RECORDED, "Not recorded", "[No Country]"),
-        (UNKNOWN, "Unknown", "[Unknown Country]"),
+        (not_recorded, "Not recorded", "[No Country]"),
+        (unknown, "Unknown", "[Unknown Country]"),
     ):
         countries.create(pk=pk, name=name, aliases=alias)
         ids[name.casefold()] = ids[alias.casefold()] = pk
 
-    names = {pk: name for pk, name, *_ in COUNTRIES}
+    names = {pk: name for pk, name, *_ in catalogue}
     represented = {}
     spellings = defaultdict(list)
 
@@ -29,10 +37,10 @@ def from_text(apps, schema_editor):
         key = text.casefold()
         if key in ids:
             return ids[key]
-        pk = IDS_BY_LABEL.get(key)
+        pk = by_label.get(key)
         if pk is None:
             if historical:
-                return UNKNOWN
+                return unknown
             pk = countries.create(name=text).pk
         else:
             if pk not in represented:
@@ -55,12 +63,12 @@ def from_text(apps, schema_editor):
     countries.bulk_update([represented[pk] for pk in spellings], ["aliases"])
 
 
-def to_text(apps, schema_editor):
+def to_text(apps, schema_editor, *, not_recorded=NOT_RECORDED):
     db = schema_editor.connection.alias
     countries = apps.get_model("main_app", "Country").objects.using(db)
     institutions = apps.get_model("main_app", "Institution").objects.using(db)
     names = dict(countries.values_list("pk", "name"))
-    names[NOT_RECORDED] = "[No Country]"
+    names[not_recorded] = "[No Country]"
     for pk, name in names.items():
         institutions.filter(country_id=pk).update(country_text=name)
     convert_versions(apps, db, lambda value: names[int(value)])

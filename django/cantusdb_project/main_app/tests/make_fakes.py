@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Max
 
 from main_app.century_dates import century_name_to_dates
-from main_app.data.countries_v1 import IDS_BY_LABEL
+from main_app.data.countries_v2 import IDS_BY_LABEL
 from main_app.models.century import Century
 from main_app.models.chant import Chant
 from main_app.models.feast import Feast

@@ -3,8 +3,7 @@ from collections import defaultdict
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from main_app.data.countries_v1 import COUNTRIES
-from main_app.data.country_wikidata_v1 import WIKIDATA_BY_COUNTRY
+from main_app.data.countries_v2 import COUNTRIES
 from main_app.models import Country
 
 
@@ -25,7 +24,7 @@ class Command(BaseCommand):
                 owners[label].add(country.pk)
         added = []
         enriched = []
-        for pk, name, getty_id, *aliases in COUNTRIES:
+        for pk, name, getty_id, wikidata_id, *aliases in COUNTRIES:
             country = existing.get(pk)
             if country is None:
                 country = Country(pk=pk, name=name)
@@ -50,7 +49,7 @@ class Command(BaseCommand):
             country.aliases = "\n".join(spellings)
             country.authorities = {
                 "getty_tgn": getty_id,
-                "wikidata": WIKIDATA_BY_COUNTRY[pk],
+                "wikidata": wikidata_id,
             } | country.authorities
             country.catalogue_loaded = True
         Country.objects.bulk_create(added)

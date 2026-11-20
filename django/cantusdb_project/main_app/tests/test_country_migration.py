@@ -14,7 +14,7 @@ class CountryMigrationTests(TransactionTestCase):
         ("main_app", "0047_notation_clavis_sequentiarum_labels"),
         ("reversion", "0002_add_index_on_version_for_content_type_and_db"),
     ]
-    new = [("main_app", "0048_squashed_0052_institution_countries")]
+    new = [("main_app", "0048_squashed_0053_institution_countries")]
 
     def migrate(self, target):
         executor = MigrationExecutor(connection)
@@ -44,8 +44,11 @@ class CountryMigrationTests(TransactionTestCase):
             set(Country.objects.values_list("pk", flat=True)),
             {Country.NOT_RECORDED, Country.UNKNOWN},
         )
+        local = Country.objects.create(name="Local territory")
+        self.assertGreater(local.pk, 38)
         call_command("load_countries", stdout=StringIO())
-        self.assertEqual(Country.objects.count(), 38)
+        self.assertEqual(Country.objects.count(), 39)
+        self.assertEqual(Country.objects.get(name="Canada").pk, 6)
         self.assertEqual(
             Country.objects.get(pk=Country.CANADA).authorities,
             {"getty_tgn": "7005685", "wikidata": "Q16"},
@@ -58,7 +61,7 @@ class CountryMigrationTests(TransactionTestCase):
         apps = self.migrate([("main_app", "0049_country_authorities")])
         countries = apps.get_model("main_app", "Country").objects
         countries.create(
-            pk=LiveCountry.CANADA,
+            pk=-106,
             name="Canada",
             aliases="CA",
             authorities={"getty_tgn": "7005685"},
@@ -93,7 +96,7 @@ class CountryMigrationTests(TransactionTestCase):
         apps = self.migrate(self.new)
         institutions = apps.get_model("main_app", "Institution").objects
         for qid, version_id, expected_pk in zip(
-            ("Q16", "Q17"), version_ids, (LiveCountry.CANADA, -120)
+            ("Q16", "Q17"), version_ids, (LiveCountry.CANADA, 20)
         ):
             self.assertEqual(institutions.get(siglum=qid).country_id, expected_pk)
             self.assertEqual(
@@ -110,8 +113,74 @@ class CountryMigrationTests(TransactionTestCase):
         self.assertEqual(
             canada.authorities, {"getty_tgn": "7005685", "wikidata": "Q16"}
         )
-        self.assertEqual(LiveCountry.objects.get(pk=-120).name, "Nippon")
-        self.assertFalse(LiveCountry.objects.filter(pk__gt=0).exists())
+        self.assertEqual(LiveCountry.objects.get(pk=20).name, "Nippon")
+        self.assertFalse(LiveCountry.objects.filter(pk__gt=38).exists())
+
+    def test_positive_ids_preserve_colliding_local_countries_and_their_references(self):
+        from main_app.models import Country
+
+        previous = [("main_app", "0052_country_catalogue_loaded")]
+        apps = self.migrate(previous)
+        countries = apps.get_model("main_app", "Country").objects
+        institutions = apps.get_model("main_app", "Institution").objects
+        types = apps.get_model("contenttypes", "ContentType").objects
+        country_type, _ = types.get_or_create(app_label="main_app", model="country")
+        institution_type, _ = types.get_or_create(
+            app_label="main_app", model="institution"
+        )
+        logs = apps.get_model("admin", "LogEntry").objects
+        user = apps.get_model("users", "User").objects.create(
+            email="review@example.org"
+        )
+        versions = apps.get_model("reversion", "Version").objects
+        revision = apps.get_model("reversion", "Revision").objects.create(
+            date_created=timezone.now()
+        )
+        examples = [
+            (-106, "Dominion of Canada"),
+            (6, "Local territory"),
+            (37, "Another local country"),
+            (120, "Existing local country"),
+        ]
+        for pk, name in examples:
+            country = countries.create(pk=pk, name=name, aliases=name + " alias")
+            library = institutions.create(name=name, siglum=str(pk), country=country)
+            logs.create(
+                user_id=user.pk,
+                content_type=country_type,
+                object_id=str(pk),
+                object_repr=name,
+                action_flag=2,
+            )
+            versions.create(
+                revision=revision,
+                object_id=str(library.pk),
+                content_type=institution_type,
+                db="default",
+                format="json",
+                serialized_data=serializers.serialize("json", [library]),
+                object_repr=name,
+            )
+        self.migrate(self.new)
+        for old, name in examples:
+            country = Country.objects.get(name=name)
+            self.assertEqual(country.aliases, name + " alias")
+            if old == -106:
+                self.assertEqual(country.pk, Country.CANADA)
+            elif old == 120:
+                self.assertEqual(country.pk, old)
+            else:
+                self.assertGreater(country.pk, 120)
+            self.assertEqual(institutions.get(name=name).country_id, country.pk)
+            self.assertEqual(logs.get(object_repr=name).object_id, str(country.pk))
+            saved = json.loads(versions.get(object_repr=name).serialized_data)
+            self.assertEqual(saved[0]["fields"]["country"], country.pk)
+        high = max(Country.objects.values_list("pk", flat=True))
+        self.assertGreater(Country.objects.create(name="New local country").pk, high)
+        self.migrate(previous)
+        self.assertEqual(institutions.get(name="Dominion of Canada").country_id, -106)
+        self.assertEqual(logs.get(object_repr="Dominion of Canada").object_id, "-106")
+        self.assertGreater(institutions.get(name="Local territory").country_id, 120)
 
     def test_wikidata_reconciliation_preserves_rows_on_authority_conflict(self):
         from main_app.models import Country as LiveCountry
@@ -119,7 +188,7 @@ class CountryMigrationTests(TransactionTestCase):
         apps = self.migrate([("main_app", "0049_country_authorities")])
         countries = apps.get_model("main_app", "Country").objects
         target = countries.create(
-            pk=LiveCountry.CANADA, name="Canada", authorities={"wikidata": "Q99"}
+            pk=-106, name="Canada", authorities={"wikidata": "Q99"}
         )
         old = countries.create(
             name="Dominion of Canada", authorities={"wikidata": "Q16"}
@@ -132,7 +201,7 @@ class CountryMigrationTests(TransactionTestCase):
         self.assertEqual(countries.get(pk=target.pk).authorities, {"wikidata": "Q99"})
         countries.filter(pk=target.pk).update(authorities={})
         self.migrate(self.new)
-        self.assertEqual(institutions.get(pk=library.pk).country_id, target.pk)
+        self.assertEqual(institutions.get(pk=library.pk).country_id, LiveCountry.CANADA)
 
     def test_upgrade_from_previously_applied_0048_keeps_country_references(self):
         from main_app.models import Country as LiveCountry
@@ -191,9 +260,7 @@ class CountryMigrationTests(TransactionTestCase):
         )
 
         apps = self.migrate(intermediate)
-        country = apps.get_model("main_app", "Country").objects.get(
-            pk=LiveCountry.CANADA
-        )
+        country = apps.get_model("main_app", "Country").objects.get(pk=-106)
         self.assertEqual(country.getty_id, "7005685")
         self.assertEqual(
             apps.get_model("main_app", "Institution")

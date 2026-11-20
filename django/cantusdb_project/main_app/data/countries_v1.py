@@ -1,7 +1,7 @@
 """Frozen country identities for the institution country conversion and initial import.
 
-The explicit negative keys never collide with IDs allocated to local additions.
-Migrations replay this snapshot. Keep its values and keys fixed.
+Earlier PR migrations used negative keys. Keep this snapshot fixed so existing
+databases can upgrade. The current public IDs are defined in countries_v2.
 """
 
 CANADA_ID = -106

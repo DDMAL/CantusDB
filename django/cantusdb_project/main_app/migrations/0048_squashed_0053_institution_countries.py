@@ -3,7 +3,8 @@ from django.db.models.fields.json import KeyTextTransform
 from django.db.models.functions import Lower
 
 from ._country_authority_urls import unique_authority_urls
-from ._institution_countries import NOT_RECORDED, from_text, to_text
+from main_app.data.countries_v2 import NOT_RECORDED
+from ._positive_country_ids import from_text_positive, to_text_positive
 
 
 class Migration(migrations.Migration):
@@ -13,6 +14,7 @@ class Migration(migrations.Migration):
         ("main_app", "0050_reconcile_wikidata_country_ids"),
         ("main_app", "0051_country_authority_urls"),
         ("main_app", "0052_country_catalogue_loaded"),
+        ("main_app", "0053_positive_country_ids"),
     ]
     dependencies = [
         ("main_app", "0047_notation_clavis_sequentiarum_labels"),
@@ -57,6 +59,9 @@ class Migration(migrations.Migration):
                 "ordering": ["name"],
                 "verbose_name_plural": "countries",
                 "constraints": [
+                    models.CheckConstraint(
+                        condition=models.Q(pk__gt=0), name="positive_country_id"
+                    ),
                     models.UniqueConstraint(
                         Lower("name"), name="unique_country_name_ci"
                     ),
@@ -81,7 +86,7 @@ class Migration(migrations.Migration):
                 null=True, on_delete=models.PROTECT, to="main_app.country"
             ),
         ),
-        migrations.RunPython(from_text, to_text),
+        migrations.RunPython(from_text_positive, to_text_positive),
         migrations.RemoveField(model_name="institution", name="country_text"),
         migrations.AlterField(
             model_name="institution",

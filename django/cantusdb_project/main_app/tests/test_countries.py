@@ -380,6 +380,12 @@ class CountryTests(TestCase):
     def test_country_page_for_a_local_country_without_links(self):
         local = Country.objects.create(name="Local territory")
         self.assertContains(self.client.get(local.detail_url), "No external records")
+        self.assertRedirects(
+            self.client.get("/country/-106/"), "/country/6/", status_code=301
+        )
+        self.assertEqual(self.client.get("/country/-42/").status_code, 404)
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Country.objects.filter(pk=local.pk).update(id=-42)
         for pk in (Country.NOT_RECORDED, Country.UNKNOWN):
             self.assertEqual(
                 self.client.get(reverse("country-detail", args=[pk])).status_code, 404

@@ -1,9 +1,12 @@
 # Institution countries
 
 Institutions and their saved revisions refer to countries by their Cantus IDs.
-The curated countries have fixed negative IDs. The database allocates positive
-IDs to local additions. An administrator can rename a country without breaking
-references to it. The Canadian Chant Database uses Canada's fixed ID.
+The original 36 countries have fixed positive IDs, assigned once in the
+catalogue's original alphabetical order. Argentina is 1 and Canada is 6.
+“Not recorded” is 37 and “Unknown” is 38. The database allocates new local
+IDs starting at 39, even before the catalogue is loaded. Renaming or
+reordering countries leaves their IDs intact. The Canadian Chant Database
+uses Canada's fixed ID to find holdings.
 
 ## Database setup
 
@@ -11,7 +14,7 @@ Run `python manage.py migrate`, then `python manage.py load_countries`.
 Both commands work offline.
 
 On a fresh upgrade, Django applies one country migration,
-`0048_squashed_0052_institution_countries`. It creates the two missing-value
+`0048_squashed_0053_institution_countries`. It creates the two missing-value
 choices and the countries needed by existing institutions and saved revisions.
 It uses the catalogue to recognize old spellings and assign stable IDs. It
 retains alternate spellings found in those records. An empty database has
@@ -30,6 +33,14 @@ commands above. Django finishes the original chain in place. This preserves
 local edits and moves institutions and saved revisions to the stable IDs when
 earlier versions created duplicate countries. Conflicting authority IDs stop
 the migration and identify the rows to correct.
+
+On databases using the earlier negative IDs, `0053_positive_country_ids`
+updates the institutions, their saved revisions, and country admin history.
+A local record occupying one of the 38 reserved IDs moves to a new local ID
+with its references. Bookmarks for these displaced local records need their
+new URLs. Other local records keep their IDs. Old negative catalogue URLs
+redirect to their positive URLs. When rolling back this step,
+relocated local countries retain their newly allocated positive IDs.
 
 The original migration files remain available for these partial upgrades.
 `_institution_country_versions.py` is a helper used by migration code to

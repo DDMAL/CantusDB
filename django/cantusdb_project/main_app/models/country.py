@@ -7,8 +7,7 @@ from django.db.models.fields.json import KeyTextTransform
 from django.db.models.functions import Lower
 from django.urls import reverse
 
-from main_app.data.countries_v1 import CANADA_ID
-from main_app.data.country_wikidata_v1 import catalogue_ids
+from main_app.data import countries_v2 as catalogue
 from main_app.identifiers import ExternalIdentifiers, TYPE_PREFIX
 
 # These two catalogues also accept the compact IDs used by the country loader.
@@ -49,9 +48,9 @@ def parse_authority(label, value):
 
 
 class Country(models.Model):
-    NOT_RECORDED = -1
-    UNKNOWN = -2
-    CANADA = CANADA_ID
+    NOT_RECORDED = catalogue.NOT_RECORDED
+    UNKNOWN = catalogue.UNKNOWN
+    CANADA = catalogue.CANADA_ID
 
     name = models.CharField(max_length=64)
     aliases = models.TextField(
@@ -69,6 +68,9 @@ class Country(models.Model):
         ordering = ["name"]
         verbose_name_plural = "countries"
         constraints = [
+            models.CheckConstraint(
+                condition=models.Q(pk__gt=0), name="positive_country_id"
+            ),
             models.UniqueConstraint(Lower("name"), name="unique_country_name_ci"),
             models.UniqueConstraint(
                 KeyTextTransform("getty_tgn", "authorities"),
@@ -97,7 +99,7 @@ class Country(models.Model):
         }
 
     def catalogue_id(self):
-        ids = catalogue_ids(self.lookup_names(), self.authorities)
+        ids = catalogue.catalogue_ids(self.lookup_names(), self.authorities)
         if len(ids) > 1:
             raise ValidationError(
                 "The name, aliases, and identifiers refer to different countries."
@@ -170,7 +172,7 @@ class Country(models.Model):
         if self._state.adding:
             if self.pk is None:
                 self.pk = catalogue_pk
-            if self.pk is not None and self.pk < 0:
+            if self.pk is not None and self.pk < catalogue.FIRST_LOCAL_ID:
                 # A failed insert leaves the assigned key on this instance.
                 # A retry must still insert, even if its fields have changed.
                 force_insert = True
