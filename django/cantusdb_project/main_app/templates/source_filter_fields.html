@@ -4,14 +4,13 @@
     runs in static/js/source_filters.js, styled by static/css/source_filters.css;
     include both with this template.
 
-    Options: hide_country and hide_prod_method leave those fields out (the
-    Canadian Chant Database's sources are all Canadian manuscripts); input_class
-    is added to the select fields.
+    Options: hide_country leaves Country out (the Canadian Chant Database's
+    sources are all in Canada); input_class is added to the select fields.
 {% endcomment %}
 <h6 class="small fw-bold mt-4 mb-0">Source-level filters</h6>
 <div class="row align-items-start">
     <div class="col-lg-6">
-        <div class="row">
+        <div class="row gy-2">
             {% if not hide_country %}
             <div class="col-lg-6">
                 <label for="countryFilter" class="small form-label">Country</label>
@@ -35,6 +34,17 @@
                     <option value="">- Any -</option>
                     {% for provenance in provenances %}
                         <option value="{{ provenance.id }}">{{ provenance.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg-6">
+                <label for="prodMethodFilter" class="small form-label">Manuscript/Print</label>
+                <select id="prodMethodFilter"
+                        name="prodMethod"
+                        class="form-control form-select form-select-sm {{ input_class }}">
+                    <option value="">- Any -</option>
+                    {% for prod_method_value, prod_method_label in production_method_choices %}
+                        <option value="{{ prod_method_value }}">{{ prod_method_label }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -77,23 +87,10 @@
                 </div>
                 {% endif %}
             </div>
-            {% if not hide_prod_method %}
-            <div class="col-lg-6">
-                <label for="prodMethodFilter" class="small form-label">Manuscript/Print</label>
-                <select id="prodMethodFilter"
-                        name="prodMethod"
-                        class="form-control form-select form-select-sm {{ input_class }}">
-                    <option value="">- Any -</option>
-                    {% for prod_method_value, prod_method_label in production_method_choices %}
-                        <option value="{{ prod_method_value }}">{{ prod_method_label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            {% endif %}
         </div>
     </div>
-    {# With fields hidden on the left, give Physical Status their width so its options fit on two lines. #}
-    <div class="{% if hide_country or hide_prod_method %}col-lg-6{% else %}col-lg-4{% endif %}">
+    {# With Country hidden on the left, give Physical Status their width so its options fit on two lines. #}
+    <div class="{% if hide_country %}col-lg-6{% else %}col-lg-4{% endif %}">
         <label for="sourceCompletenessFilter" class="small form-label">
             Physical Status
         </label>

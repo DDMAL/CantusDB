@@ -320,14 +320,18 @@ class CcdbChantSearchSourceFiltersTest(TestCase):
             chant = make_fake_chant(source=source)
             Chant.objects.filter(pk=chant.pk).update(incipit=f"{incipit} chant")
 
-    def test_form_offers_provenance_year_and_physical_status(self) -> None:
+    def test_form_offers_every_source_filter_but_country(self) -> None:
         response = self.client.get(reverse("ccdb-chant-search"))
-        for name in ("provenance", "dateStart", "dateEnd", "sourceCompleteness"):
+        for name in (
+            "provenance",
+            "dateStart",
+            "dateEnd",
+            "prodMethod",
+            "sourceCompleteness",
+        ):
             with self.subTest(name=name):
                 self.assertContains(response, f'name="{name}"')
-        for name in ("country", "prodMethod"):
-            with self.subTest(name=name):
-                self.assertNotContains(response, f'name="{name}"')
+        self.assertNotContains(response, 'name="country"')
         self.assertContains(response, "js/source_filters.js")
 
     def test_provenance_filters_the_ccdb_search(self) -> None:
