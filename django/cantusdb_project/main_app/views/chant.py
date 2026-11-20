@@ -53,6 +53,7 @@ from main_app.models import (
 )
 from main_app.permissions import CustomAccessMixin
 from main_app.segments import is_sequence_source
+from main_app.source_filters import SourceFilterMixin
 
 from main_app.mixins import JSONResponseMixin
 from users.models import User
@@ -102,6 +103,16 @@ class ValidateChantTextView(LoginRequiredMixin, View):  # type: ignore[type-arg]
             )
         return JsonResponse({"problems": problems})
 
+
+# The source filters' GET params, kept in the pagination links (#2354).
+SOURCE_FILTER_PARAMS: tuple[str, ...] = (
+    "country",
+    "provenance",
+    "prodMethod",
+    "dateStart",
+    "dateEnd",
+    "sourceCompleteness",
+)
 
 ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
     # GET params belonging to the collapsible "Advanced search" section of
@@ -558,7 +569,7 @@ class ChantByCantusIDView(CustomAccessMixin, ListView):  # type: ignore[type-arg
         return context
 
 
-class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
+class ChantSearchView(SourceFilterMixin, CustomAccessMixin, ListView):  # type: ignore[type-arg]
     """
     Searches Chants and displays them as a list, accessed with ``chant-search/``
 
@@ -606,8 +617,11 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             )
             .values("id", "name")
         )
-        context["advanced_search_active"] = any(
-            self.request.GET.get(field) for field in ADVANCED_SEARCH_FIELDS
+        # country, provenance, date range, physical status, production method
+        context.update(self.source_filter_context())
+        context["advanced_search_active"] = (
+            any(self.request.GET.get(field) for field in ADVANCED_SEARCH_FIELDS)
+            or self.source_filters_active
         )
         feast_param = self.request.GET.get("feast")
         differentia_id_param = self.request.GET.get("differentia_id")
@@ -692,6 +706,15 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         if search_differentia_id:
             search_parameters.append(f"differentia_id={search_differentia_id}")
 
+        source_filter_params = [
+            (param, value)
+            for param in SOURCE_FILTER_PARAMS
+            for value in self.request.GET.getlist(param)
+            if value
+        ]
+        if source_filter_params:
+            search_parameters.append(urllib.parse.urlencode(source_filter_params))
+
         url_with_search_params: str = current_url + "?"
         if search_parameters:
             joined_search_parameters: str = "&".join(search_parameters)
@@ -754,6 +777,8 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             if segment_id := self.get_segment_id():
                 chant_set = chant_set.filter(source__segment_m2m=segment_id)
                 sequence_set = sequence_set.filter(source__segment_m2m=segment_id)
+            chant_set = self.filter_by_source(chant_set)
+            sequence_set = self.filter_by_source(sequence_set)
 
             queryset = with_sort_incipit(chant_set).union(
                 with_sort_incipit(sequence_set), all=True
@@ -860,6 +885,8 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             if segment_id := self.get_segment_id():
                 chant_set = chant_set.filter(source__segment_m2m=segment_id)
                 sequence_set = sequence_set.filter(source__segment_m2m=segment_id)
+            chant_set = self.filter_by_source(chant_set)
+            sequence_set = self.filter_by_source(sequence_set)
 
             # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
             queryset = with_sort_incipit(chant_set).union(
