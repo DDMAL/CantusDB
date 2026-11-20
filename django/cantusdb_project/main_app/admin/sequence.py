@@ -27,6 +27,7 @@ class SequenceAdmin(BaseModelAdmin):
     )
     exclude = EXCLUDE + (
         "c_sequence",
+        "gabc",
         "next_chant",
         "is_last_chant_in_feast",
         "visible_status",

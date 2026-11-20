@@ -134,6 +134,8 @@ class BaseChant(BaseModel):
     manuscript_full_text_proofread = models.BooleanField(blank=True, null=True)
     manuscript_syllabized_full_text = models.TextField(null=True, blank=True)
     volpiano = models.TextField(null=True, blank=True)
+    # ModelForm preserves the stored value if an older form omits this input.
+    gabc = models.TextField("GABC melody", null=True, blank=True, default=None)
     volpiano_proofread = models.BooleanField(blank=True, null=True)
     # The "volpiano_notes" and "volpiano_intervals" field are added in new Cantus to aid melody search.
     # "volpiano_notes" is extracted from the "volpiano" field, by eliminating all non-note characters
