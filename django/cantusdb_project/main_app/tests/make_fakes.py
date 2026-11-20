@@ -13,6 +13,7 @@ from main_app.models.chant import Chant
 from main_app.models.feast import Feast
 from main_app.models.genre import Genre
 from main_app.models.institution import Institution
+from main_app.models.country import Country
 from main_app.models.notation import Notation
 from main_app.models.service import Service
 from main_app.models.project import Project
@@ -442,7 +443,7 @@ def make_fake_institution(
     siglum: Optional[str] = None,
     city: Optional[str] = None,
     region: Optional[str] = None,
-    country: Optional[str] = None,
+    country: Optional[str | Country] = None,
     is_private_collector: bool = False,
 ) -> Institution:
     """
@@ -463,7 +464,11 @@ def make_fake_institution(
     name = name if name else faker.sentence()
     city = city if city else faker.city()
     region = region if region else faker.country()
-    country = country if country else faker.country()
+    if not isinstance(country, Country):
+        country_name = country or faker.country()
+        country, _ = Country.objects.get_or_create(
+            name__iexact=country_name, defaults={"name": country_name}
+        )
 
     inst = Institution.objects.create(
         name=name,

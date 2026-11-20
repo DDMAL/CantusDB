@@ -2,6 +2,7 @@ from dal import autocomplete
 from django.db.models import Q
 from django.contrib.auth import get_user_model
 
+from main_app.countries import matching_countries
 from main_app.models import (
     Century,
     Differentia,
@@ -139,6 +140,6 @@ class HoldingAutocomplete(autocomplete.Select2QuerySetView):
                 Q(name__icontains=self.q)
                 | Q(siglum__icontains=self.q)
                 | Q(city__istartswith=self.q)
-                | Q(country__istartswith=self.q)
+                | Q(country__in=matching_countries(self.q, prefix=True))
             )
         return qs

@@ -11,7 +11,7 @@ from django.test import RequestFactory, TestCase, override_settings
 from django.urls import clear_url_caches, resolve, reverse
 
 from main_app.management.commands.update_proofread_status import EXCLUDE
-from main_app.models import Segment
+from main_app.models import Country, Segment
 from main_app.tests.make_fakes import (
     make_fake_chant,
     make_fake_institution,
@@ -171,14 +171,17 @@ class SegmentSettingsTest(TestCase):
         ccdb = make_fake_segment(id=settings.CCDB_SEGMENT_ID, name="Renamed collection")
         make_fake_segment(name="Canadian Chant Database")
         retained = make_fake_segment(name="Another collection")
+        canada = Country.objects.create(pk=Country.CANADA, name="Canada")
         canadian = make_fake_source(
-            holding_institution=make_fake_institution(country="Canada"),
+            holding_institution=make_fake_institution(country=canada),
             segment=[retained],
         )
         other = make_fake_source(
             holding_institution=make_fake_institution(country="France"),
             segment=[retained],
         )
+        canada.name = "Renamed Canada"
+        canada.save()
         call_command("populate_canadian_chant_db", stdout=StringIO())
         self.assertCountEqual(canadian.segment_m2m.all(), [retained, ccdb])
         self.assertQuerySetEqual(other.segment_m2m.all(), [retained])

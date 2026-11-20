@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import CheckConstraint, Q
 
-from main_app.models import BaseModel
+from main_app.models import BaseModel, Country
 
 region_help_text = """Province / State / Canton / County. Used to disambiguate cities, e.g., "London (Ontario)"."""
 city_help_text = """City / Town / Village / Settlement"""
@@ -13,7 +13,7 @@ collectors regardless of whether they have a RISM siglum or not.
 
 class Institution(BaseModel):
     class Meta:
-        ordering = ["country", "city", "name"]
+        ordering = ["country__name", "city", "name"]
         constraints = [
             CheckConstraint(
                 check=~(Q(is_private_collector=True) & Q(siglum__isnull=False)),
@@ -49,7 +49,9 @@ class Institution(BaseModel):
     region = models.CharField(
         max_length=64, blank=True, null=True, help_text=region_help_text
     )
-    country = models.CharField(max_length=64, default="[No Country]")
+    country = models.ForeignKey(
+        Country, on_delete=models.PROTECT, null=True, blank=True
+    )
     alternate_names = models.TextField(
         blank=True, null=True, help_text="Enter alternate names on separate lines."
     )

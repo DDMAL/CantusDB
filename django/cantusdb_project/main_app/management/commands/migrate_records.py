@@ -1,8 +1,11 @@
+from functools import cache
 from typing import Optional
 
 import requests
 from django.core.management import BaseCommand
+from django.db import transaction
 
+from main_app.countries import import_country
 from main_app.identifiers import ExternalIdentifiers
 from main_app.models import Source, Institution, InstitutionIdentifier
 
@@ -102,7 +105,9 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("-e", "--empty", action="store_true")
 
+    @transaction.atomic
     def handle(self, *args, **options):
+        resolve_country = cache(import_country)
         if options["empty"]:
             print(self.style.WARNING("Deleting records..."))
             Source.objects.all().update(holding_institution=None)
@@ -191,7 +196,7 @@ class Command(BaseCommand):
 
                 iobj = {
                     "city": city.strip() if city else None,
-                    "country": country,
+                    "country": resolve_country(country),
                     "name": institution_name.strip(),
                 }
 

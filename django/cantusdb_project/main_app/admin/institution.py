@@ -33,6 +33,7 @@ class InstitutionAdmin(BaseModelAdmin):
         "is_private_collector",
         "is_private_collection",
     )
+    list_select_related = ("country",)
     search_fields = (
         "name",
         "siglum",

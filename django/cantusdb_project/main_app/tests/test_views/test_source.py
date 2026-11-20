@@ -2728,7 +2728,7 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
                 key=lambda source: (
                     source.holding_institution is None,
                     (
-                        source.holding_institution.country
+                        source.holding_institution.country.name
                         if source.holding_institution
                         else ""
                     ),

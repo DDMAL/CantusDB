@@ -224,7 +224,7 @@
                 {% for source in sources %}
                     <tr>
                         <td class="text-wrap" style="text-align:center">
-                            <b>{{ source.holding_institution.country }}</b>
+                            <b>{{ source.holding_institution.country|default_if_none:"" }}</b>
                         </td>
                         <td class="text-wrap" style="text-align:center">
                             {% if source.holding_institution %}

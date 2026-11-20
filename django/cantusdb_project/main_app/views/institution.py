@@ -36,11 +36,11 @@ class InstitutionListView(CustomAccessMixin, ListView):  # type: ignore[type-arg
         qset = Institution.objects.annotate(num_sources=Subquery(sources)).filter(
             num_sources__gt=0
         )
-        return qset
+        return qset.select_related("country")
 
 
 class InstitutionDetailView(CustomAccessMixin, DetailView):  # type: ignore[type-arg]
-    model = Institution
+    queryset = Institution.objects.select_related("country")
     context_object_name = "institution"
     template_name = "institution_detail.html"
     test_req = False

@@ -1,9 +1,12 @@
 from collections import defaultdict
+from functools import cache
 
 import requests
 from django.core.exceptions import ValidationError
 from django.core.management import BaseCommand
+from django.db import transaction
 
+from main_app.countries import import_country
 from main_app.identifiers import ExternalIdentifiers
 from main_app.models import Source, Institution, InstitutionIdentifier
 
@@ -112,7 +115,9 @@ class Command(BaseCommand):
         parser.add_argument("-d", "--dry-run", action="store_true")
         parser.add_argument("-m", "--empty", action="store_true")
 
+    @transaction.atomic
     def handle(self, *args, **options):
+        resolve_country = cache(import_country)
         if options["empty"]:
             print(self.style.WARNING("Deleting records..."))
             Source.objects.all().update(holding_institution=None)
@@ -233,7 +238,7 @@ class Command(BaseCommand):
 
                 iobj = {
                     "city": main_city if main_city != "[Unknown]" else None,
-                    "country": inst_country,
+                    "country": resolve_country(inst_country),
                     "name": main_name,
                     "alternate_names": "\n".join(list(names)[1:]),
                 }
