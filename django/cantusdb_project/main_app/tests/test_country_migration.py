@@ -12,7 +12,7 @@ class CountryMigrationTests(TransactionTestCase):
         ("main_app", "0047_notation_clavis_sequentiarum_labels"),
         ("reversion", "0002_add_index_on_version_for_content_type_and_db"),
     ]
-    new = [("main_app", "0049_country_authorities")]
+    new = [("main_app", "0050_reconcile_wikidata_country_ids")]
 
     def migrate(self, target):
         executor = MigrationExecutor(connection)
@@ -22,6 +22,89 @@ class CountryMigrationTests(TransactionTestCase):
     def tearDown(self):
         self.migrate(self.new)
         super().tearDown()
+
+    def test_wikidata_only_rows_keep_holdings_and_history_when_reconciled(self):
+        from main_app.models import Country as LiveCountry
+        from reversion.models import Version as LiveVersion
+
+        apps = self.migrate([("main_app", "0049_country_authorities")])
+        countries = apps.get_model("main_app", "Country").objects
+        countries.create(
+            pk=LiveCountry.CANADA,
+            name="Canada",
+            aliases="CA",
+            authorities={"getty_tgn": "7005685"},
+        )
+        version_ids = []
+        content_type, _ = apps.get_model(
+            "contenttypes", "ContentType"
+        ).objects.get_or_create(app_label="main_app", model="institution")
+        revision = apps.get_model("reversion", "Revision").objects.create(
+            date_created=timezone.now()
+        )
+        for name, qid in (("Dominion of Canada", "Q16"), ("Nippon", "Q17")):
+            country = countries.create(
+                name=name, aliases="Local " + qid, authorities={"wikidata": qid}
+            )
+            institution = apps.get_model("main_app", "Institution").objects.create(
+                name="Library", siglum=qid, country=country
+            )
+            version_ids.append(
+                apps.get_model("reversion", "Version")
+                .objects.create(
+                    revision=revision,
+                    object_id=str(institution.pk),
+                    content_type=content_type,
+                    db="default",
+                    format="json",
+                    serialized_data=serializers.serialize("json", [institution]),
+                    object_repr=institution.name,
+                )
+                .pk
+            )
+        apps = self.migrate(self.new)
+        institutions = apps.get_model("main_app", "Institution").objects
+        for qid, version_id, expected_pk in zip(
+            ("Q16", "Q17"), version_ids, (LiveCountry.CANADA, -120)
+        ):
+            self.assertEqual(institutions.get(siglum=qid).country_id, expected_pk)
+            self.assertEqual(
+                LiveVersion.objects.get(
+                    pk=version_id
+                )._object_version.object.country_id,
+                expected_pk,
+            )
+        canada = LiveCountry.objects.get(pk=LiveCountry.CANADA)
+        self.assertEqual(canada.name, "Canada")
+        self.assertEqual(
+            canada.aliases.splitlines(), ["CA", "Dominion of Canada", "Local Q16"]
+        )
+        self.assertEqual(
+            canada.authorities, {"getty_tgn": "7005685", "wikidata": "Q16"}
+        )
+        self.assertEqual(LiveCountry.objects.get(pk=-120).name, "Nippon")
+        self.assertFalse(LiveCountry.objects.filter(pk__gt=0).exists())
+
+    def test_wikidata_reconciliation_preserves_rows_on_authority_conflict(self):
+        from main_app.models import Country as LiveCountry
+
+        apps = self.migrate([("main_app", "0049_country_authorities")])
+        countries = apps.get_model("main_app", "Country").objects
+        target = countries.create(
+            pk=LiveCountry.CANADA, name="Canada", authorities={"wikidata": "Q99"}
+        )
+        old = countries.create(
+            name="Dominion of Canada", authorities={"wikidata": "Q16"}
+        )
+        institutions = apps.get_model("main_app", "Institution").objects
+        library = institutions.create(name="Library", siglum="CDN-X", country=old)
+        with self.assertRaisesMessage(ValueError, "conflicting wikidata IDs"):
+            self.migrate(self.new)
+        self.assertEqual(institutions.get(pk=library.pk).country_id, old.pk)
+        self.assertEqual(countries.get(pk=target.pk).authorities, {"wikidata": "Q99"})
+        countries.filter(pk=target.pk).update(authorities={})
+        self.migrate(self.new)
+        self.assertEqual(institutions.get(pk=library.pk).country_id, target.pk)
 
     def test_upgrade_from_previously_applied_0048_keeps_country_references(self):
         from main_app.models import Country as LiveCountry

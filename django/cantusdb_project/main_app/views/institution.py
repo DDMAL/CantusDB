@@ -40,7 +40,7 @@ class InstitutionListView(CustomAccessMixin, ListView):  # type: ignore[type-arg
 
 
 class InstitutionDetailView(CustomAccessMixin, DetailView):  # type: ignore[type-arg]
-    model = Institution
+    queryset = Institution.objects.select_related("country")
     context_object_name = "institution"
     template_name = "institution_detail.html"
     test_req = False

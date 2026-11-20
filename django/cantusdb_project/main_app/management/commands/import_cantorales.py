@@ -15,6 +15,7 @@ and no contributor User.
 import csv
 import os
 import re
+from functools import cache
 from typing import Any, Optional
 
 from django.conf import settings
@@ -209,6 +210,8 @@ class Command(BaseCommand):
             )
             return
 
+        resolve_country = cache(import_country)
+
         # Pre-fetch century lookup
         century_by_name = {c.name: c for c in Century.objects.all()}
 
@@ -359,7 +362,7 @@ class Command(BaseCommand):
                             siglum=rism,
                             name=archive_name,
                             city=city or None,
-                            country=import_country(rism_country_code),
+                            country=resolve_country(rism_country_code),
                         )
                         institution_created_count += 1
                         self.stdout.write(

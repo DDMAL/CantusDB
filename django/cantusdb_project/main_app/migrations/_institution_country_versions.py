@@ -1,4 +1,4 @@
-"""Shared by 0048 and 0049. Convert the country field in saved institution revisions."""
+"""Convert the country field in saved institution revisions."""
 
 import json
 

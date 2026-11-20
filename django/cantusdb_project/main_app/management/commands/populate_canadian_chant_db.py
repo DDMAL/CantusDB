@@ -9,7 +9,7 @@ class Command(BaseCommand):
         ccdb_segment = Segment.objects.get(id=settings.CCDB_SEGMENT_ID)
         canadian_sources = Source.objects.filter(
             holding_institution__country_id=Country.CANADA
-        )
+        ).exclude(segment_m2m=ccdb_segment)
         for source in canadian_sources:
             source.segment_m2m.add(ccdb_segment)
             source.save()

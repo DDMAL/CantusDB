@@ -186,3 +186,9 @@ class SegmentSettingsTest(TestCase):
         call_command("populate_canadian_chant_db", stdout=StringIO())
         self.assertCountEqual(canadian.segment_m2m.all(), [retained, ccdb])
         self.assertQuerySetEqual(other.segment_m2m.all(), [retained])
+        canadian.refresh_from_db()
+        assigned_at = canadian.date_updated
+        with self.assertNumQueries(2):
+            call_command("populate_canadian_chant_db", stdout=StringIO())
+        canadian.refresh_from_db()
+        self.assertEqual(canadian.date_updated, assigned_at)

@@ -37,7 +37,7 @@ class CountryTests(TestCase):
         self.assertEqual(self.canada.pk, Country.CANADA)
         call_command("load_countries", stdout=StringIO())
         japan = import_country("J")
-        self.assertEqual(japan.authorities, {"getty_tgn": "1000120"})
+        self.assertEqual(japan.authorities, {"getty_tgn": "1000120", "wikidata": "Q17"})
         original_count = Country.objects.count()
         japan.name = "Nippon"
         japan.aliases = ""
@@ -54,10 +54,38 @@ class CountryTests(TestCase):
         duplicate = Country(name="Japan")
         with self.assertRaises(ValidationError):
             duplicate.full_clean()
-        with self.assertRaises(IntegrityError), transaction.atomic():
-            duplicate.save()
+        for _ in range(2):
+            with self.assertRaises(IntegrityError), transaction.atomic():
+                duplicate.save()
         japan.refresh_from_db()
-        self.assertEqual(japan.name, "Nippon")
+        self.assertEqual(
+            (japan.name, japan.aliases, japan.authorities),
+            ("Nippon", "", {"wikidata": "Q17"}),
+        )
+
+    def test_wikidata_only_country_uses_catalogue_id_before_loading(self):
+        self.canada.delete()
+        self.client.force_login(make_fake_user(is_superuser=True))
+        url = reverse("admin:main_app_country_add")
+        response = self.client.post(
+            url,
+            {
+                "name": "Dominion of Canada",
+                "aliases": "",
+                "authorities": '{"wikidata":"Q16"}',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        canada = Country.objects.get(pk=Country.CANADA)
+        self.assertEqual(canada.name, "Dominion of Canada")
+        call_command("load_countries", stdout=StringIO())
+        self.assertFalse(Country.objects.filter(name="Canada").exists())
+        response = self.client.post(
+            url, {"name": "Canada", "aliases": "", "authorities": ""}
+        )
+        self.assertContains(response, "This catalogue country already exists")
+        with self.assertRaises(ValidationError):
+            Country(name="Japan", authorities={"wikidata": "Q16"}).save()
 
     def test_admin_validates_and_saves_multiple_authorities(self):
         self.client.force_login(make_fake_user(is_superuser=True))

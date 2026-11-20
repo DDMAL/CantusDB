@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.management import call_command
 from django.test import TestCase
 
+from main_app.countries import import_country
 from main_app.management.commands.import_cantorales import parse_centuries
 from main_app.models import Country, Institution, Source, SourceURL
 from main_app.tests.make_fakes import (
@@ -157,6 +158,29 @@ class TestImportCantoralesCommand(TestCase):
         self.assertIn(
             "Cantorales in the Americas and Beyond",
             source.segment_m2m.values_list("name", flat=True),
+        )
+
+    def test_country_lookup_is_reused_only_within_one_import(self):
+        for run in (1, 2):
+            csv = (
+                _make_csv(rism=f"US-A{run}", shelfmark=f"A{run}")
+                + "\n"
+                + _make_csv(rism=f"US-B{run}", shelfmark=f"B{run}").splitlines()[-1]
+            )
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".csv") as file:
+                file.write(csv)
+                file.flush()
+                with patch(
+                    "main_app.management.commands.import_cantorales.CSV_FILENAME",
+                    file.name,
+                ), patch(
+                    "main_app.management.commands.import_cantorales.import_country",
+                    wraps=import_country,
+                ) as lookup:
+                    call_command("import_cantorales", stdout=io.StringIO())
+                lookup.assert_called_once_with("US")
+        self.assertEqual(
+            Source.objects.filter(holding_institution__country=self.country).count(), 4
         )
 
     def test_origins_stored_as_free_text_provenance_notes(self):

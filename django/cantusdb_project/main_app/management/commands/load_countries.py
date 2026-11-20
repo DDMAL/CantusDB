@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from main_app.data.countries_v1 import COUNTRIES
+from main_app.data.country_wikidata_v1 import WIKIDATA_BY_COUNTRY
 from main_app.models import Country
 
 
@@ -26,7 +27,10 @@ class Command(BaseCommand):
                 pk=pk,
                 name=name,
                 aliases="\n".join(aliases),
-                authorities={"getty_tgn": getty_id},
+                authorities={
+                    "getty_tgn": getty_id,
+                    "wikidata": WIKIDATA_BY_COUNTRY[pk],
+                },
             )
             for label in country.lookup_names():
                 if label in owners:
