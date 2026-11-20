@@ -23,7 +23,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 import reversion  # type: ignore[import-untyped]
 
-from main_app.countries import import_country
+from main_app.countries import import_rism_country
 from main_app.models import (
     Century,
     Institution,
@@ -210,7 +210,7 @@ class Command(BaseCommand):
             )
             return
 
-        resolve_country = cache(import_country)
+        resolve_country = cache(import_rism_country)
 
         # Pre-fetch century lookup
         century_by_name = {c.name: c for c in Century.objects.all()}

@@ -466,10 +466,8 @@ def make_fake_institution(
     region = region if region else faker.country()
     if not isinstance(country, Country):
         country_name = country or faker.country()
-        known_pk = Country(name=country_name).catalogue_id()
-        lookup = {"pk": known_pk} if known_pk else {"name__iexact": country_name}
         country, _ = Country.objects.get_or_create(
-            **lookup, defaults={"name": country_name}
+            name__iexact=country_name, defaults={"name": country_name}
         )
 
     inst = Institution.objects.create(

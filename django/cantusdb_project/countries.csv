@@ -1,37 +1,37 @@
-id,name,getty_tgn,wikidata,aliases
-1,Argentina,7006477,Q414,RA
-2,Australia,7000490,Q408,AUS
-3,Austria,1000062,Q40,A
-4,Belgium,1000063,Q31,B
-5,Brazil,1000047,Q155,BR
-6,Canada,7005685,Q16,CDN|CA|CAN
-7,China,1000111,Q148,CN|CHN|People's Republic of China
-8,Croatia,7006663,Q224,HR
-9,Czech Republic,1001780,Q213,CZ|Czechia
-10,Denmark,1000066,Q35,DK
-11,Ecuador,1000051,Q736,EC
-12,Finland,1000069,Q33,FIN
-13,France,1000070,Q142,F
-14,Germany,7000084,Q183,D
-15,Greece,1000074,Q41,GR
-16,Holy See,7001168,Q237,V|Vatican City|Vatican
-17,Hungary,7006278,Q28,H
-18,Ireland,1000078,Q27,IRL
-19,Italy,1000080,Q38,I
-20,Japan,1000120,Q17,J
-21,Netherlands,7016845,Q55,NL|The Netherlands
-22,New Zealand,1000226,Q664,NZ
-23,Norway,1000088,Q20,N
-24,Poland,7006366,Q36,PL
-25,Portugal,1000090,Q45,P
-26,Romania,1000091,Q218,RO
-27,Slovakia,7011765,Q214,SK
-28,Slovenia,7006670,Q215,SI
-29,South Africa,1000193,Q258,ZA
-30,Spain,1000095,Q29,E
-31,Sweden,1000097,Q34,S
-32,Switzerland,7011731,Q39,CH
-33,Taiwan,1000141,Q865,RC
-34,Turkey,1000144,Q43,TR|Türkiye
-35,United Kingdom,7008591,Q145,GB|UK|U.K.|GBR|Great Britain
-36,United States,7012149,Q30,US|USA|United States of America
+id,name,rism_code,aliases,getty_tgn,wikidata
+1,Argentina,RA,,https://vocab.getty.edu/tgn/7006477,https://www.wikidata.org/wiki/Q414
+2,Australia,AUS,,https://vocab.getty.edu/tgn/7000490,https://www.wikidata.org/wiki/Q408
+3,Austria,A,,https://vocab.getty.edu/tgn/1000062,https://www.wikidata.org/wiki/Q40
+4,Belgium,B,,https://vocab.getty.edu/tgn/1000063,https://www.wikidata.org/wiki/Q31
+5,Brazil,BR,,https://vocab.getty.edu/tgn/1000047,https://www.wikidata.org/wiki/Q155
+6,Canada,CDN,CA|CAN,https://vocab.getty.edu/tgn/7005685,https://www.wikidata.org/wiki/Q16
+7,China,CN,CHN|People's Republic of China,https://vocab.getty.edu/tgn/1000111,https://www.wikidata.org/wiki/Q148
+8,Croatia,HR,,https://vocab.getty.edu/tgn/7006663,https://www.wikidata.org/wiki/Q224
+9,Czech Republic,CZ,Czechia,https://vocab.getty.edu/tgn/1001780,https://www.wikidata.org/wiki/Q213
+10,Denmark,DK,,https://vocab.getty.edu/tgn/1000066,https://www.wikidata.org/wiki/Q35
+11,Ecuador,EC,,https://vocab.getty.edu/tgn/1000051,https://www.wikidata.org/wiki/Q736
+12,Finland,FIN,,https://vocab.getty.edu/tgn/1000069,https://www.wikidata.org/wiki/Q33
+13,France,F,,https://vocab.getty.edu/tgn/1000070,https://www.wikidata.org/wiki/Q142
+14,Germany,D,,https://vocab.getty.edu/tgn/7000084,https://www.wikidata.org/wiki/Q183
+15,Greece,GR,,https://vocab.getty.edu/tgn/1000074,https://www.wikidata.org/wiki/Q41
+16,Holy See,V,Vatican City|Vatican,https://vocab.getty.edu/tgn/7001168,https://www.wikidata.org/wiki/Q237
+17,Hungary,H,,https://vocab.getty.edu/tgn/7006278,https://www.wikidata.org/wiki/Q28
+18,Ireland,IRL,,https://vocab.getty.edu/tgn/1000078,https://www.wikidata.org/wiki/Q27
+19,Italy,I,,https://vocab.getty.edu/tgn/1000080,https://www.wikidata.org/wiki/Q38
+20,Japan,J,,https://vocab.getty.edu/tgn/1000120,https://www.wikidata.org/wiki/Q17
+21,Netherlands,NL,The Netherlands,https://vocab.getty.edu/tgn/7016845,https://www.wikidata.org/wiki/Q55
+22,New Zealand,NZ,,https://vocab.getty.edu/tgn/1000226,https://www.wikidata.org/wiki/Q664
+23,Norway,N,,https://vocab.getty.edu/tgn/1000088,https://www.wikidata.org/wiki/Q20
+24,Poland,PL,,https://vocab.getty.edu/tgn/7006366,https://www.wikidata.org/wiki/Q36
+25,Portugal,P,,https://vocab.getty.edu/tgn/1000090,https://www.wikidata.org/wiki/Q45
+26,Romania,RO,,https://vocab.getty.edu/tgn/1000091,https://www.wikidata.org/wiki/Q218
+27,Slovakia,SK,,https://vocab.getty.edu/tgn/7011765,https://www.wikidata.org/wiki/Q214
+28,Slovenia,SI,,https://vocab.getty.edu/tgn/7006670,https://www.wikidata.org/wiki/Q215
+29,South Africa,ZA,,https://vocab.getty.edu/tgn/1000193,https://www.wikidata.org/wiki/Q258
+30,Spain,E,,https://vocab.getty.edu/tgn/1000095,https://www.wikidata.org/wiki/Q29
+31,Sweden,S,,https://vocab.getty.edu/tgn/1000097,https://www.wikidata.org/wiki/Q34
+32,Switzerland,CH,,https://vocab.getty.edu/tgn/7011731,https://www.wikidata.org/wiki/Q39
+33,Taiwan,RC,,https://vocab.getty.edu/tgn/1000141,https://www.wikidata.org/wiki/Q865
+34,Turkey,TR,Türkiye,https://vocab.getty.edu/tgn/1000144,https://www.wikidata.org/wiki/Q43
+35,United Kingdom,GB,UK|U.K.|GBR|Great Britain,https://vocab.getty.edu/tgn/7008591,https://www.wikidata.org/wiki/Q145
+36,United States of America,US,USA|United States,https://vocab.getty.edu/tgn/7012149,https://www.wikidata.org/wiki/Q30

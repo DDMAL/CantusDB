@@ -495,7 +495,8 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context["countries"] = (
-            Institution.objects.values_list("country__name", flat=True)
+            Institution.objects.exclude(country=None)
+            .values_list("country__name", flat=True)
             .distinct()
             .order_by("country__name")
         )
@@ -567,7 +568,12 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             q_obj_filter &= Q(segment_m2m=self.segment)
 
         if country_name := self.request.GET.get("country"):
-            if self.selected_country:
+            if country_name.strip().casefold() in ("[no country]", "not recorded"):
+                q_obj_filter &= Q(
+                    holding_institution__isnull=False,
+                    holding_institution__country__isnull=True,
+                )
+            elif self.selected_country:
                 q_obj_filter &= Q(holding_institution__country=self.selected_country)
             else:
                 q_obj_filter &= Q(

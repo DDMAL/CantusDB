@@ -5,51 +5,65 @@ from django.db.models.functions import Concat
 from main_app.models import Country
 
 
-def _countries_with_alias_lines() -> QuerySet[Country]:
-    # Delimit the first and last alias too, so lookups can match whole lines.
-    return Country.objects.alias(
-        alias_lines=Concat(
-            Value("\n"), "aliases", Value("\n"), output_field=TextField()
-        )
-    )
-
-
 def find_country(name: str, *, reject_ambiguous: bool = False) -> Country | None:
-    label = name.strip()
-    if not label or "\n" in label or "\r" in label:
+    # The list has a few dozen entries. Use the same Unicode folding as admin validation.
+    label = name.strip().casefold()
+    if label == "[unknown country]":
+        label = "unknown"
+    if not label:
+        return None
+    matches = [
+        country
+        for country in Country.objects.only("name", "aliases", "rism_code")
+        if label in country.lookup_names()
+    ]
+    if len(matches) == 1:
+        return matches[0]
+    if matches and reject_ambiguous:
+        raise ValidationError(
+            f"Ambiguous country: {name!r}. Correct the conflicting entries in the admin."
+        )
+    return None
+
+
+def import_rism_country(code: str) -> Country | None:
+    if not code.strip():
         return None
     try:
-        return _countries_with_alias_lines().get(
-            Q(name__iexact=label) | Q(alias_lines__icontains=f"\n{label}\n")
-        )
+        return Country.objects.get(rism_code__iexact=code.strip())
     except Country.DoesNotExist:
-        return None
-    except Country.MultipleObjectsReturned:
-        # Concurrent admin edits can give two countries the same alias.
-        if reject_ambiguous:
-            raise ValidationError(
-                f"Ambiguous country: {name!r}. Correct the conflicting alias in the admin."
-            ) from None
-        return None
-
-
-def import_country(name: str | None) -> Country:
-    if not name or not name.strip():
-        return Country.objects.get(pk=Country.NOT_RECORDED)
-    country = find_country(name, reject_ambiguous=True)
-    if country is None:
         raise ValidationError(
-            f"Unrecognized country: {name!r}. Add the country or its alias in the admin."
+            f"Unrecognized RISM country code: {code!r}. Check the Country admin."
+        ) from None
+
+
+def import_country(name: str | None) -> Country | None:
+    label = (name or "").strip()
+    if label.casefold() in ("", "[no country]", "not recorded"):
+        return None
+    country = find_country(label, reject_ambiguous=True)
+    if country is not None:
+        return country
+    if label.casefold() in ("[unknown country]", "unknown"):
+        # Legacy rebuilds distinguish an explicit unknown from the blank used for prints.
+        country, _ = Country.objects.get_or_create(
+            name__iexact="Unknown", defaults={"name": "Unknown"}
         )
-    return country
+        return country
+    raise ValidationError(
+        f"Unrecognized country: {name!r}. Add the country or its alias in the admin."
+    )
 
 
 def matching_countries(query: str, *, prefix: bool = False) -> QuerySet[Country]:
     query = query.strip()
+    code = Q(rism_code__iexact=query)
     if prefix:
-        return _countries_with_alias_lines().filter(
-            Q(name__istartswith=query) | Q(alias_lines__icontains=f"\n{query}")
+        return Country.objects.alias(
+            alias_lines=Concat(Value("\n"), "aliases", output_field=TextField())
+        ).filter(
+            Q(name__istartswith=query) | Q(alias_lines__icontains=f"\n{query}") | code
         )
     return Country.objects.filter(
-        Q(name__icontains=query) | Q(aliases__icontains=query)
+        Q(name__icontains=query) | Q(aliases__icontains=query) | code
     )

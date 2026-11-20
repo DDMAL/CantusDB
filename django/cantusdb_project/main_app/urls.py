@@ -1,5 +1,4 @@
 from django.urls import include, path
-from django.views.generic import TemplateView
 from django.conf import settings
 from django.contrib.auth.views import (
     LoginView,
@@ -26,7 +25,6 @@ from main_app.views.api import (
     get_task_status,
 )
 from main_app.views.institution import InstitutionListView, InstitutionDetailView
-from main_app.views.country import CountryDetailView, legacy_country_redirect
 from main_app.views.redirect import (
     redirect_chants,
     redirect_genre,
@@ -276,13 +274,6 @@ urlpatterns = [
         name="indexer-list",
     ),
     # institution
-    path(
-        "about/country-data/",
-        TemplateView.as_view(template_name="country_data_credits.html"),
-        name="country-data-credits",
-    ),
-    path("country/<int:pk>/", CountryDetailView.as_view(), name="country-detail"),
-    path("country/-<int:old_number>/", legacy_country_redirect),
     path(
         "institutions/",
         InstitutionListView.as_view(),

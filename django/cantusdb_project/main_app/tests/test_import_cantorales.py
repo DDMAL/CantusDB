@@ -6,7 +6,7 @@ from django.conf import settings
 from django.core.management import call_command
 from django.test import TestCase
 
-from main_app.countries import import_country
+from main_app.countries import import_rism_country
 from main_app.management.commands.import_cantorales import parse_centuries
 from main_app.models import Country, Institution, Source, SourceURL
 from main_app.tests.make_fakes import (
@@ -129,7 +129,9 @@ def _make_csv(
 
 class TestImportCantoralesCommand(TestCase):
     def setUp(self):
-        self.country = Country.objects.create(name="United States", aliases="US")
+        self.country = Country.objects.create(
+            name="United States of America", rism_code="US"
+        )
         make_fake_segment(
             name="Cantorales in the Americas and Beyond",
             id=settings.CANTORALES_SEGMENT_ID,
@@ -152,7 +154,9 @@ class TestImportCantoralesCommand(TestCase):
 
         self.assertEqual(Source.objects.filter(shelfmark="Ms. 1").count(), 1)
         source = Source.objects.get(shelfmark="Ms. 1")
-        self.assertEqual(source.holding_institution.country.name, "United States")
+        self.assertEqual(
+            source.holding_institution.country.name, "United States of America"
+        )
         self.assertEqual(source.holding_institution.country, self.country)
         self.assertTrue(source.published)
         self.assertIn(
@@ -174,8 +178,8 @@ class TestImportCantoralesCommand(TestCase):
                     "main_app.management.commands.import_cantorales.CSV_FILENAME",
                     file.name,
                 ), patch(
-                    "main_app.management.commands.import_cantorales.import_country",
-                    wraps=import_country,
+                    "main_app.management.commands.import_cantorales.import_rism_country",
+                    wraps=import_rism_country,
                 ) as lookup:
                     call_command("import_cantorales", stdout=io.StringIO())
                 lookup.assert_called_once_with("US")
@@ -209,7 +213,7 @@ class TestImportCantoralesCommand(TestCase):
         untouched: curated scalar fields are preserved, no unexpected editor is
         added, and the Cantorales segment is not attached.
         """
-        institution = make_fake_institution(siglum="US-NYcu", country="United States")
+        institution = make_fake_institution(siglum="US-NYcu", country=self.country)
         source = make_fake_source(
             holding_institution=institution,
             shelfmark="Ms. 1",
@@ -273,7 +277,7 @@ class TestImportCantoralesCommand(TestCase):
 
     def test_idempotent(self):
         """Running the command twice should not create duplicate sources."""
-        institution = make_fake_institution(siglum="US-NYcu", country="United States")
+        institution = make_fake_institution(siglum="US-NYcu", country=self.country)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
             f.write(_make_csv())
@@ -299,7 +303,7 @@ class TestImportCantoralesCommand(TestCase):
         rather than incidental. This test locks that in against future changes
         to the match key or to the set of skip conditions.
         """
-        institution = make_fake_institution(siglum="US-NYcu", country="United States")
+        institution = make_fake_institution(siglum="US-NYcu", country=self.country)
         make_fake_source(
             holding_institution=institution,
             shelfmark="Ms. 1",
@@ -331,7 +335,7 @@ class TestImportCantoralesCommand(TestCase):
         created users. Creation is now deferred to the point where the row is
         known to be importable, the same guarantee as for Institution.
         """
-        institution = make_fake_institution(siglum="US-NYcu", country="United States")
+        institution = make_fake_institution(siglum="US-NYcu", country=self.country)
         make_fake_source(
             holding_institution=institution,
             shelfmark="Ms. 1",

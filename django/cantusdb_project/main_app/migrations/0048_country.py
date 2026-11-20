@@ -1,18 +1,9 @@
-"""Migrate institution country text and revisions to locally maintained records."""
-
-from django.core.validators import RegexValidator
 from django.db import migrations, models
 from django.db.models.functions import Lower
-import django.db.models.deletion
-
-from ._institution_countries import NOT_RECORDED, from_text, to_text
 
 
 class Migration(migrations.Migration):
-    dependencies = [
-        ("main_app", "0047_notation_clavis_sequentiarum_labels"),
-        ("reversion", "0002_add_index_on_version_for_content_type_and_db"),
-    ]
+    dependencies = [("main_app", "0047_notation_clavis_sequentiarum_labels")]
 
     operations = [
         migrations.CreateModel(
@@ -35,16 +26,21 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "getty_id",
+                    "rism_code",
                     models.CharField(
-                        "Getty TGN ID",
-                        max_length=32,
+                        "RISM country code",
                         blank=True,
+                        max_length=8,
                         null=True,
                         unique=True,
-                        validators=[
-                            RegexValidator(r"^[0-9]+$", "Enter a numeric Getty TGN ID.")
-                        ],
+                    ),
+                ),
+                (
+                    "authorities",
+                    models.JSONField(
+                        blank=True,
+                        default=dict,
+                        help_text="Enter a JSON object of database names and full record URLs.",
                     ),
                 ),
             ],
@@ -58,31 +54,20 @@ class Migration(migrations.Migration):
                 ],
             },
         ),
+        # IDs 1–36 belong to the original catalogue, including countries loaded later.
+        migrations.RunSQL(
+            "ALTER SEQUENCE main_app_country_id_seq START WITH 37 RESTART WITH 37",
+            migrations.RunSQL.noop,
+        ),
         migrations.RenameField("institution", "country", "country_text"),
         migrations.AddField(
             model_name="institution",
             name="country",
             field=models.ForeignKey(
-                null=True,
-                on_delete=django.db.models.deletion.PROTECT,
-                to="main_app.country",
-            ),
-        ),
-        migrations.RunPython(from_text, to_text),
-        # This temporary column is only needed while mapping the old strings.
-        # On reversal Django recreates it before backwards fills canonical names.
-        migrations.RemoveField("institution", "country_text"),
-        migrations.AlterField(
-            model_name="institution",
-            name="country",
-            field=models.ForeignKey(
-                default=NOT_RECORDED,
-                on_delete=django.db.models.deletion.PROTECT,
-                to="main_app.country",
+                blank=True, null=True, on_delete=models.PROTECT, to="main_app.country"
             ),
         ),
         migrations.AlterModelOptions(
-            name="institution",
-            options={"ordering": ["country__name", "city", "name"]},
+            name="institution", options={"ordering": ["country__name", "city", "name"]}
         ),
     ]

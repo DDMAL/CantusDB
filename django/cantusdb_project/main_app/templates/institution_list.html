@@ -14,7 +14,7 @@
         <tbody>
             {% for institution in institutions %}
                 <tr>
-                    <td class="text-wrap">{{ institution.country }}</td>
+                    <td class="text-wrap">{{ institution.country|default_if_none:"" }}</td>
                     <td>
                         {% if institution.city %}
                             {{ institution.city }}

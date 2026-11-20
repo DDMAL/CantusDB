@@ -1,3 +1,4 @@
+from functools import cache
 from typing import Optional
 
 import requests
@@ -106,6 +107,7 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        resolve_country = cache(import_country)
         if options["empty"]:
             print(self.style.WARNING("Deleting records..."))
             Source.objects.all().update(holding_institution=None)
@@ -194,7 +196,7 @@ class Command(BaseCommand):
 
                 iobj = {
                     "city": city.strip() if city else None,
-                    "country": import_country(country),
+                    "country": resolve_country(country),
                     "name": institution_name.strip(),
                 }
 

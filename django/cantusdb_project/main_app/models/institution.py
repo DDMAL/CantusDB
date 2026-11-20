@@ -50,7 +50,7 @@ class Institution(BaseModel):
         max_length=64, blank=True, null=True, help_text=region_help_text
     )
     country = models.ForeignKey(
-        Country, on_delete=models.PROTECT, default=Country.NOT_RECORDED
+        Country, on_delete=models.PROTECT, null=True, blank=True
     )
     alternate_names = models.TextField(
         blank=True, null=True, help_text="Enter alternate names on separate lines."

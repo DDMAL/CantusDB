@@ -1,61 +1,78 @@
-from collections import defaultdict
+import csv
+from pathlib import Path
 
+from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from main_app.country_catalogue import catalogue_countries
 from main_app.models import Country
 
 
 class Command(BaseCommand):
-    help = "Import each country in countries.csv with its aliases and authority IDs."
+    help = "Add the curated countries and fill missing RISM codes, aliases, and authority URLs."
 
     @transaction.atomic
     def handle(self, *args, **options):
-        # Serialize concurrent imports on a row present in every migrated database.
-        Country.objects.select_for_update().get(pk=Country.NOT_RECORDED)
-        existing = {
-            country.pk: country
-            for country in Country.objects.select_for_update().order_by("pk")
+        countries = {
+            c.pk: c for c in Country.objects.select_for_update().order_by("pk")
         }
-        owners = defaultdict(set)
-        for country in existing.values():
-            for label in country.lookup_names():
-                owners[label].add(country.pk)
-        added = []
-        enriched = []
-        for pk, name, getty_id, wikidata_id, aliases in catalogue_countries():
-            country = existing.get(pk)
-            if country is None:
-                country = Country(pk=pk, name=name)
-                added.append(country)
-            elif country.catalogue_loaded:
-                continue
-            else:
-                enriched.append(country)
-            known = country.lookup_names()
-            spellings = country.aliases.splitlines()
-            for label in (name, *aliases):
-                key = label.casefold()
-                conflicts = owners[key] - {pk}
-                if conflicts:
-                    other = existing[min(conflicts)]
+        added, updated = [], []
+        seen = set()
+        with (Path(settings.BASE_DIR) / "countries.csv").open(
+            encoding="utf-8", newline=""
+        ) as source:
+            for row in csv.DictReader(source):
+                try:
+                    pk = int(row["id"])
+                except ValueError as exc:
+                    raise CommandError(f"Invalid country ID: {row['id']!r}.") from exc
+                if not 1 <= pk <= 36 or pk in seen:
                     raise CommandError(
-                        f"{name} conflicts with an existing name or alias for {other.name}."
+                        f"Catalogue IDs must be distinct and between 1 and 36. Found {pk}."
                     )
-                if key not in known:
-                    spellings.append(label)
-                    known.add(key)
-            country.aliases = "\n".join(spellings)
-            country.authorities = {
-                "getty_tgn": getty_id,
-                "wikidata": wikidata_id,
-            } | country.authorities
-            country.catalogue_loaded = True
+                seen.add(pk)
+                country = countries.get(pk)
+                if country is None:
+                    country = Country(pk=pk, name=row["name"])
+                    countries[pk] = country
+                    added.append(country)
+                before = (country.rism_code, country.aliases, country.authorities)
+                country.rism_code = country.rism_code or row["rism_code"]
+                known = country.lookup_names()
+                aliases = country.aliases.splitlines()
+                for name in [row["name"], *row["aliases"].split("|")]:
+                    if name and name.casefold() not in known:
+                        aliases.append(name)
+                        known.add(name.casefold())
+                country.aliases = "\n".join(aliases)
+                authorities = dict(country.authorities)
+                labels = {label.casefold() for label in authorities}
+                for label, url in (
+                    ("Getty TGN", row["getty_tgn"]),
+                    ("Wikidata", row["wikidata"]),
+                ):
+                    if (
+                        label.casefold() not in labels
+                        and url not in authorities.values()
+                    ):
+                        authorities[label] = url
+                country.authorities = authorities
+                try:
+                    country.clean_fields()
+                    country.validate_country(countries.values())
+                except ValidationError as exc:
+                    raise CommandError(
+                        f"Country {pk} ({row['name']}): {' '.join(exc.messages)}"
+                    ) from exc
+                if not country._state.adding and before != (
+                    country.rism_code,
+                    country.aliases,
+                    country.authorities,
+                ):
+                    updated.append(country)
         Country.objects.bulk_create(added)
-        Country.objects.bulk_update(
-            enriched, ["aliases", "authorities", "catalogue_loaded"]
-        )
+        Country.objects.bulk_update(updated, ["rism_code", "aliases", "authorities"])
         self.stdout.write(
-            f"Added {len(added)} countries. Enriched {len(enriched)} existing countries."
+            f"Added {len(added)} countries. Updated {len(updated)} countries."
         )

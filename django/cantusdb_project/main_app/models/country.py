@@ -3,212 +3,97 @@ import re
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db import models
-from django.db.models.fields.json import KeyTextTransform
 from django.db.models.functions import Lower
-from django.urls import reverse
-
-from main_app.country_catalogue import catalogue_ids
-from main_app.identifiers import ExternalIdentifiers, TYPE_PREFIX
-
-# These two catalogues also accept the compact IDs used by the country loader.
-CATALOGUE_SHORTCUTS = {
-    "getty_tgn": ("Getty TGN", r"[0-9]{1,32}", "https://vocab.getty.edu/tgn/"),
-    "wikidata": (
-        "Wikidata",
-        r"Q[1-9][0-9]*",
-        TYPE_PREFIX[ExternalIdentifiers.WIKIDATA][1],
-    ),
-}
-validate_record_url = URLValidator(schemes=["https", "http"])
 
 
-def parse_authority(label, value):
-    if not isinstance(label, str) or not label.strip() or not isinstance(value, str):
-        raise ValidationError(
-            {"authorities": "Enter a database name and a record URL."}
+def clean_authorities(records):
+    if records is None:
+        return {}
+    if not isinstance(records, dict):
+        raise ValidationError("Enter a JSON object of database names and record URLs.")
+    validate_url = URLValidator(schemes=["http", "https"])
+    authorities = {}
+    labels = set()
+    for label, url in records.items():
+        if not isinstance(label, str) or not label.strip() or not isinstance(url, str):
+            raise ValidationError("Enter a database name and a full record URL.")
+        label, url = label.strip(), url.strip()
+        validate_url(url)
+        item = re.fullmatch(
+            r"https?://www\.wikidata\.org/(?:entity|wiki)/(Q[1-9][0-9]*)", url
         )
-    label, value = label.strip(), value.strip()
-    for key, (title, pattern, prefix) in CATALOGUE_SHORTCUTS.items():
-        if label.casefold() in (key, title.casefold()):
-            identifier = value.removeprefix(prefix)
-            if not re.fullmatch(pattern, identifier):
-                raise ValidationError({"authorities": f"Invalid {title} ID."})
-            return key, identifier
-    try:
-        validate_record_url(value)
-    except ValidationError:
-        raise ValidationError(
-            {"authorities": f"Enter a full HTTP or HTTPS record URL for {label}."}
-        ) from None
-    # A different spelling of the label still identifies the same catalogue record.
-    for key, (_, pattern, prefix) in CATALOGUE_SHORTCUTS.items():
-        if value.startswith(prefix) and re.fullmatch(pattern, value[len(prefix) :]):
-            return key, value[len(prefix) :]
-    return label, value
+        if item:
+            url = f"https://www.wikidata.org/wiki/{item[1]}"
+        if label.casefold() in labels or url in authorities.values():
+            raise ValidationError(f"Duplicate database name or record URL for {label}.")
+        labels.add(label.casefold())
+        authorities[label] = url
+    return authorities
 
 
 class Country(models.Model):
     CANADA = 6
-    NOT_RECORDED = 37
-    UNKNOWN = 38
-    FIRST_LOCAL_ID = 39
 
     name = models.CharField(max_length=64)
     aliases = models.TextField(
         blank=True, help_text="Enter one alternate name per line."
     )
-    catalogue_loaded = models.BooleanField(default=False, editable=False)
+    rism_code = models.CharField(
+        "RISM country code", max_length=8, unique=True, null=True, blank=True
+    )
     authorities = models.JSONField(
         default=dict,
         blank=True,
-        help_text="Enter database names and full record URLs. Getty TGN and Wikidata also accept short IDs. "
-        'Example for Canada: {"GeoNames": "https://www.geonames.org/6251999/", "wikidata": "Q16"}.',
+        help_text="Enter a JSON object of database names and full record URLs.",
     )
 
     class Meta:
         ordering = ["name"]
         verbose_name_plural = "countries"
         constraints = [
-            models.CheckConstraint(
-                condition=models.Q(pk__gt=0), name="positive_country_id"
-            ),
-            models.UniqueConstraint(Lower("name"), name="unique_country_name_ci"),
-            models.UniqueConstraint(
-                KeyTextTransform("getty_tgn", "authorities"),
-                name="unique_country_getty_tgn",
-            ),
-            models.UniqueConstraint(
-                KeyTextTransform("wikidata", "authorities"),
-                name="unique_country_wikidata",
-            ),
+            models.UniqueConstraint(Lower("name"), name="unique_country_name_ci")
         ]
 
-    def __str__(self) -> str:
+    def __str__(self):
         return self.name
 
-    @property
-    def detail_url(self):
-        if self.pk not in (self.UNKNOWN, self.NOT_RECORDED):
-            return reverse("country-detail", args=[self.pk])
-        return None
-
-    def lookup_names(self) -> set[str]:
+    def lookup_names(self):
         return {
-            value.strip().casefold()
-            for value in [self.name, *self.aliases.splitlines()]
-            if value.strip()
+            value.casefold()
+            for value in (self.name, *self.aliases.splitlines(), self.rism_code or "")
+            if value
         }
-
-    def catalogue_id(self):
-        ids = catalogue_ids(self.lookup_names(), self.authorities)
-        if len(ids) > 1:
-            raise ValidationError(
-                "The name, aliases, and identifiers refer to different countries."
-            )
-        pk = next(iter(ids), None)
-        if self.pk is not None and pk not in (None, self.pk):
-            raise ValidationError(
-                "These details belong to a different catalogue country."
-            )
-        return pk
-
-    def validate_authorities(self):
-        if self.authorities is None:
-            self.authorities = {}
-        if not isinstance(self.authorities, dict):
-            raise ValidationError(
-                {"authorities": "Enter a JSON object of country authorities."}
-            )
-        normalized = {}
-        labels = set()
-        urls = set()
-        for label, raw_value in self.authorities.items():
-            key, value = parse_authority(label, raw_value)
-            if key.casefold() in labels:
-                raise ValidationError({"authorities": f"{label} is listed twice."})
-            if value in urls:
-                raise ValidationError(
-                    {"authorities": f"The record URL for {label} is listed twice."}
-                )
-            if key not in CATALOGUE_SHORTCUTS:
-                urls.add(value)
-            labels.add(key.casefold())
-            normalized[key] = value
-        self.authorities = normalized
-        return urls
 
     def clean(self):
         super().clean()
+        self.validate_country(Country.objects.exclude(pk=self.pk))
+
+    def validate_country(self, other_countries):
         self.name = self.name.strip()
         self.aliases = "\n".join(
             line.strip() for line in self.aliases.splitlines() if line.strip()
         )
-        custom_urls = self.validate_authorities()
-        existing_pks = set()
-        labels = self.lookup_names()
-        for other in Country.objects.exclude(pk=self.pk):
-            if custom_urls.intersection(other.authorities.values()):
+        self.rism_code = self.rism_code.strip().upper() if self.rism_code else None
+        if not self.name:
+            raise ValidationError({"name": "Enter a country name."})
+        try:
+            self.authorities = clean_authorities(self.authorities)
+        except ValidationError as exc:
+            raise ValidationError({"authorities": exc.messages}) from exc
+        names = self.lookup_names()
+        if names.intersection(("[no country]", "not recorded")):
+            raise ValidationError(
+                "For an unrecorded country, leave the institution’s country blank."
+            )
+        urls = set(self.authorities.values())
+        for other in other_countries:
+            if other.pk == self.pk:
+                continue
+            if overlap := names & other.lookup_names():
+                raise ValidationError(
+                    f"{min(overlap)!r} is already a name, alias, or RISM code for {other.name}."
+                )
+            if urls.intersection(other.authorities.values()):
                 raise ValidationError(
                     {"authorities": f"A record URL already belongs to {other.name}."}
                 )
-            overlap = labels & other.lookup_names()
-            if overlap:
-                raise ValidationError(
-                    f"{min(overlap)!r} is already a name or alias for {other.name}."
-                )
-            existing_pks.add(other.pk)
-        reserved_pk = self.catalogue_id()
-        if self.pk is None and reserved_pk in existing_pks:
-            raise ValidationError(
-                "This catalogue country already exists. Edit its existing record."
-            )
-
-    def save(
-        self, force_insert=False, force_update=False, using=None, update_fields=None
-    ):
-        self.validate_authorities()
-        # Adding a recognised country in the admin before running the loader
-        # must give it the same ID as importing it. Never overwrite a renamed row.
-        catalogue_pk = self.catalogue_id()
-        if self._state.adding:
-            if self.pk is None:
-                self.pk = catalogue_pk
-            if self.pk is not None and self.pk < self.FIRST_LOCAL_ID:
-                # A failed insert leaves the assigned key on this instance.
-                # A retry must still insert, even if its fields have changed.
-                force_insert = True
-        elif not force_insert and update_fields is None:
-            # Only the loader writes its receipt. An edit opened before it ran
-            # must not mark the country as eligible to load again.
-            deferred = self.get_deferred_fields()
-            update_fields = [
-                field.name
-                for field in self._meta.concrete_fields
-                if field.editable
-                and not field.primary_key
-                and field.attname not in deferred
-            ]
-        return super().save(
-            force_insert=force_insert,
-            force_update=force_update,
-            using=using,
-            update_fields=update_fields,
-        )
-
-    @property
-    def authority_links(self):
-        links = []
-        for key, (label, pattern, prefix) in CATALOGUE_SHORTCUTS.items():
-            value = self.authorities.get(key)
-            if isinstance(value, str) and re.fullmatch(pattern, value):
-                links.append((label, prefix + value))
-        for label in sorted(
-            self.authorities.keys() - CATALOGUE_SHORTCUTS.keys(), key=str.casefold
-        ):
-            url = self.authorities[label]
-            try:
-                validate_record_url(url)
-            except ValidationError:
-                continue
-            links.append((label, url))
-        return links

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from functools import cache
 
 import requests
 from django.core.exceptions import ValidationError
@@ -116,6 +117,7 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        resolve_country = cache(import_country)
         if options["empty"]:
             print(self.style.WARNING("Deleting records..."))
             Source.objects.all().update(holding_institution=None)
@@ -236,7 +238,7 @@ class Command(BaseCommand):
 
                 iobj = {
                     "city": main_city if main_city != "[Unknown]" else None,
-                    "country": import_country(inst_country),
+                    "country": resolve_country(inst_country),
                     "name": main_name,
                     "alternate_names": "\n".join(list(names)[1:]),
                 }
