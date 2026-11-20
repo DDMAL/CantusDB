@@ -2,9 +2,12 @@
 
 from django.db import models
 
-from main_app.data import countries_v2 as catalogue
 from ._institution_countries import from_text, to_text
 from ._institution_country_versions import convert_versions
+from ._legacy_country_lookup import IDS_BY_LABEL, NAMES
+
+NOT_RECORDED, UNKNOWN, FIRST_LOCAL_ID = 37, 38, 39
+LEGACY_TO_POSITIVE = {pk: -pk - 100 for pk in NAMES} | {-1: NOT_RECORDED, -2: UNKNOWN}
 
 
 def reserve_sequence(schema_editor, first_id, highest_pk=0):
@@ -24,19 +27,19 @@ def reserve_sequence(schema_editor, first_id, highest_pk=0):
 
 
 def from_text_positive(apps, schema_editor):
-    reserve_sequence(schema_editor, catalogue.FIRST_LOCAL_ID)
+    reserve_sequence(schema_editor, FIRST_LOCAL_ID)
     from_text(
         apps,
         schema_editor,
-        catalogue=catalogue.COUNTRIES,
-        by_label=catalogue.IDS_BY_LABEL,
-        not_recorded=catalogue.NOT_RECORDED,
-        unknown=catalogue.UNKNOWN,
+        names={LEGACY_TO_POSITIVE[pk]: name for pk, name in NAMES.items()},
+        by_label={label: LEGACY_TO_POSITIVE[pk] for label, pk in IDS_BY_LABEL.items()},
+        not_recorded=NOT_RECORDED,
+        unknown=UNKNOWN,
     )
 
 
 def to_text_positive(apps, schema_editor):
-    to_text(apps, schema_editor, not_recorded=catalogue.NOT_RECORDED)
+    to_text(apps, schema_editor, not_recorded=NOT_RECORDED)
 
 
 def replace_values(rows, field, mapping):
@@ -62,7 +65,7 @@ def rekey(apps, schema_editor, *, forwards):
     with schema_editor.connection.cursor() as cursor:
         cursor.execute("LOCK TABLE main_app_country IN ACCESS EXCLUSIVE MODE")
     existing = set(countries.values_list("pk", flat=True))
-    legacy = catalogue.LEGACY_TO_POSITIVE
+    legacy = LEGACY_TO_POSITIVE
     if forwards:
         # Older databases could allocate any positive ID to a local country,
         # including a slot for a catalogue entry that has not been loaded yet.
@@ -70,9 +73,7 @@ def rekey(apps, schema_editor, *, forwards):
         displaced = sorted(
             pk for pk in existing if pk in reserved or (pk <= 0 and pk not in legacy)
         )
-        reserve_sequence(
-            schema_editor, catalogue.FIRST_LOCAL_ID, max(existing | reserved)
-        )
+        reserve_sequence(schema_editor, FIRST_LOCAL_ID, max(existing | reserved))
         moved = {}
         if displaced:
             with schema_editor.connection.cursor() as cursor:

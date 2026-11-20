@@ -8,7 +8,6 @@ from django.contrib.auth import get_user_model
 from django.db.models import Max
 
 from main_app.century_dates import century_name_to_dates
-from main_app.data.countries_v2 import IDS_BY_LABEL
 from main_app.models.century import Century
 from main_app.models.chant import Chant
 from main_app.models.feast import Feast
@@ -467,7 +466,7 @@ def make_fake_institution(
     region = region if region else faker.country()
     if not isinstance(country, Country):
         country_name = country or faker.country()
-        known_pk = IDS_BY_LABEL.get(country_name.strip().casefold())
+        known_pk = Country(name=country_name).catalogue_id()
         lookup = {"pk": known_pk} if known_pk else {"name__iexact": country_name}
         country, _ = Country.objects.get_or_create(
             **lookup, defaults={"name": country_name}

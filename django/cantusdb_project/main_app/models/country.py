@@ -7,7 +7,7 @@ from django.db.models.fields.json import KeyTextTransform
 from django.db.models.functions import Lower
 from django.urls import reverse
 
-from main_app.data import countries_v2 as catalogue
+from main_app.country_catalogue import catalogue_ids
 from main_app.identifiers import ExternalIdentifiers, TYPE_PREFIX
 
 # These two catalogues also accept the compact IDs used by the country loader.
@@ -48,9 +48,10 @@ def parse_authority(label, value):
 
 
 class Country(models.Model):
-    NOT_RECORDED = catalogue.NOT_RECORDED
-    UNKNOWN = catalogue.UNKNOWN
-    CANADA = catalogue.CANADA_ID
+    CANADA = 6
+    NOT_RECORDED = 37
+    UNKNOWN = 38
+    FIRST_LOCAL_ID = 39
 
     name = models.CharField(max_length=64)
     aliases = models.TextField(
@@ -99,7 +100,7 @@ class Country(models.Model):
         }
 
     def catalogue_id(self):
-        ids = catalogue.catalogue_ids(self.lookup_names(), self.authorities)
+        ids = catalogue_ids(self.lookup_names(), self.authorities)
         if len(ids) > 1:
             raise ValidationError(
                 "The name, aliases, and identifiers refer to different countries."
@@ -172,7 +173,7 @@ class Country(models.Model):
         if self._state.adding:
             if self.pk is None:
                 self.pk = catalogue_pk
-            if self.pk is not None and self.pk < catalogue.FIRST_LOCAL_ID:
+            if self.pk is not None and self.pk < self.FIRST_LOCAL_ID:
                 # A failed insert leaves the assigned key on this instance.
                 # A retry must still insert, even if its fields have changed.
                 force_insert = True

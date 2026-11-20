@@ -16,13 +16,17 @@ Both commands work offline.
 On a fresh upgrade, Django applies one country migration,
 `0048_squashed_0053_institution_countries`. It creates the two missing-value
 choices and the countries needed by existing institutions and saved revisions.
-It uses the catalogue to recognize old spellings and assign stable IDs. It
-retains alternate spellings found in those records. An empty database has
-only the two missing-value choices after migration.
+It uses a fixed lookup in the migration code to recognize old spellings and
+assign stable IDs. It retains alternate spellings found in those records.
+An empty database has only the two missing-value choices after migration.
 
-The management command loads the 36 curated countries. Its first run for each
-country fills missing Getty and Wikidata IDs and adds catalogue aliases,
-preserving existing names, alias spellings, and authority values. It records
+The management command reads the 36 curated countries from
+[`countries.csv`](../django/cantusdb_project/countries.csv), alongside the
+Cantorales import file. Each row gives an explicit Cantus ID, a name,
+Getty TGN and Wikidata IDs, and aliases separated by `|`.
+The command's first run for each country fills missing Getty and Wikidata IDs
+and adds catalogue aliases, preserving existing names, alias spellings, and
+authority values. It records
 that the country has been loaded. Later runs preserve deletions as well as
 edits. Databases upgraded from earlier PR versions have no record of earlier
 loader runs. Their first run of the updated command can therefore restore a

@@ -4,7 +4,7 @@ from django.db import migrations, models
 from django.db.models.fields.json import KeyTextTransform
 from django.db.models.functions import JSONObject
 
-from main_app.data.countries_v1 import matching_ids
+from ._legacy_country_lookup import catalogue_ids
 from ._institution_country_versions import convert_versions
 
 
@@ -32,7 +32,9 @@ def assign_stable_ids(apps, schema_editor):
     occupied = set(countries.filter(pk__lt=0).values_list("pk", flat=True))
     for country in countries.filter(pk__gt=0):
         labels = [country.name, *country.aliases.splitlines()]
-        candidates = matching_ids(labels, country.authorities.get("getty_tgn"))
+        candidates = catalogue_ids(
+            labels, {"getty_tgn": country.authorities.get("getty_tgn")}
+        )
         if not candidates:
             continue  # Locally created countries keep their original IDs.
         if len(candidates) > 1 or candidates & occupied:

@@ -1,7 +1,6 @@
 from django.db import migrations, models
 
-from main_app.data.countries_v2 import NOT_RECORDED
-from ._positive_country_ids import use_positive_ids, restore_legacy_ids
+from ._positive_country_ids import NOT_RECORDED, use_positive_ids, restore_legacy_ids
 
 
 class Migration(migrations.Migration):

@@ -3,12 +3,12 @@ from collections import defaultdict
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from main_app.data.countries_v2 import COUNTRIES
+from main_app.country_catalogue import catalogue_countries
 from main_app.models import Country
 
 
 class Command(BaseCommand):
-    help = "Load the curated countries, aliases and authority IDs once per country."
+    help = "Import each country in countries.csv with its aliases and authority IDs."
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -24,7 +24,7 @@ class Command(BaseCommand):
                 owners[label].add(country.pk)
         added = []
         enriched = []
-        for pk, name, getty_id, wikidata_id, *aliases in COUNTRIES:
+        for pk, name, getty_id, wikidata_id, aliases in catalogue_countries():
             country = existing.get(pk)
             if country is None:
                 country = Country(pk=pk, name=name)

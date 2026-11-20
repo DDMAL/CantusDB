@@ -3,8 +3,7 @@ from django.db.models.fields.json import KeyTextTransform
 from django.db.models.functions import Lower
 
 from ._country_authority_urls import unique_authority_urls
-from main_app.data.countries_v2 import NOT_RECORDED
-from ._positive_country_ids import from_text_positive, to_text_positive
+from ._positive_country_ids import NOT_RECORDED, from_text_positive, to_text_positive
 
 
 class Migration(migrations.Migration):

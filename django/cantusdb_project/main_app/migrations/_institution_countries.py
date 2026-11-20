@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 
-from main_app.data.countries_v1 import COUNTRIES, IDS_BY_LABEL
+from ._legacy_country_lookup import IDS_BY_LABEL, NAMES
 from ._institution_country_versions import convert_versions
 
 NOT_RECORDED, UNKNOWN = -1, -2
@@ -12,7 +12,7 @@ def from_text(
     apps,
     schema_editor,
     *,
-    catalogue=COUNTRIES,
+    names=NAMES,
     by_label=IDS_BY_LABEL,
     not_recorded=NOT_RECORDED,
     unknown=UNKNOWN
@@ -28,7 +28,6 @@ def from_text(
         countries.create(pk=pk, name=name, aliases=alias)
         ids[name.casefold()] = ids[alias.casefold()] = pk
 
-    names = {pk: name for pk, name, *_ in catalogue}
     represented = {}
     spellings = defaultdict(list)
 

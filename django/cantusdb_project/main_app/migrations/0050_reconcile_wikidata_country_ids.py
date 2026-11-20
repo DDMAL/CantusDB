@@ -2,8 +2,7 @@
 
 from django.db import migrations
 
-from main_app.data.country_wikidata_v1 import COUNTRY_BY_WIKIDATA, catalogue_ids
-
+from ._legacy_country_lookup import COUNTRY_BY_WIKIDATA, catalogue_ids
 from ._institution_country_versions import convert_versions
 
 
