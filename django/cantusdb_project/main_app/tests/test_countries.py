@@ -1,3 +1,4 @@
+import json
 from contextlib import redirect_stdout
 from io import StringIO
 
@@ -96,6 +97,13 @@ class CountryTests(TestCase):
             '{"wikidata":"16"}',
             '{"getty_tgn":"Q16"}',
             '{"other":"16"}',
+            '{"Local":"mailto:records@example.org"}',
+            '{"Local":72}',
+            '{" ":"https://example.org/canada"}',
+            '{"A":"https://example.org/canada","B":"https://example.org/canada"}',
+            '{"Wikidata":"https://vocab.getty.edu/tgn/7005685"}',
+            '{"Another label":"https://www.wikidata.org/wiki/Q30"}',
+            '{"Wikidata":"Q16","wikidata":"Q16"}',
             '{"getty_tgn":"7012149"}',
             '{"wikidata":"Q30"}',
         ):
@@ -118,6 +126,62 @@ class CountryTests(TestCase):
                 Country.objects.filter(pk=self.vatican.pk).update(
                     authorities={key: value}
                 )
+
+    def test_custom_authority_can_be_added_displayed_and_searched(self):
+        self.client.force_login(make_fake_user(is_superuser=True))
+        record_url = "https://www.geonames.org/6251999/"
+        url = reverse("admin:main_app_country_change", args=[self.canada.pk])
+        response = self.client.post(
+            url,
+            {
+                "name": "Canada",
+                "aliases": "CA",
+                "authorities": json.dumps(
+                    {
+                        "GeoNames": record_url,
+                        "Wikidata": "https://www.wikidata.org/wiki/Q16",
+                    }
+                ),
+            },
+        )
+        self.assertRedirects(response, reverse("admin:main_app_country_changelist"))
+        self.canada.refresh_from_db()
+        self.assertEqual(
+            self.canada.authorities, {"GeoNames": record_url, "wikidata": "Q16"}
+        )
+        with self.assertNumQueries(0):
+            self.assertEqual(
+                self.canada.authority_links,
+                [
+                    ("Wikidata", "https://www.wikidata.org/wiki/Q16"),
+                    ("GeoNames", record_url),
+                ],
+            )
+        for term in ("GeoNames", "6251999"):
+            response = self.client.get(
+                reverse("admin:main_app_country_changelist"), {"q": term}
+            )
+            self.assertEqual(list(response.context["cl"].result_list), [self.canada])
+        make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
+        make_fake_segment(id=settings.BOWER_SEGMENT_ID)
+        institution = make_fake_institution(country=self.canada)
+        response = self.client.get(reverse("institution-detail", args=[institution.pk]))
+        self.assertContains(response, f'<a href="{record_url}">GeoNames</a>', html=True)
+        call_command("load_countries", stdout=StringIO())
+        self.canada.refresh_from_db()
+        self.assertEqual(self.canada.authorities["GeoNames"], record_url)
+
+    def test_custom_record_url_cannot_be_claimed_under_another_label(self):
+        record_url = "https://example.org/countries/123"
+        self.canada.authorities = {"Gazetteer": record_url}
+        self.canada.save()
+        self.usa.authorities = {"Another label": record_url}
+        with self.assertRaisesMessage(ValidationError, "already belongs to Canada"):
+            self.usa.full_clean()
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Country.objects.filter(pk=self.usa.pk).update(
+                authorities=self.usa.authorities
+            )
 
     def test_import_aliases_and_missing_values(self):
         for name in ("USA", "US", "United States of America", " united STATES "):

@@ -12,7 +12,7 @@ class CountryMigrationTests(TransactionTestCase):
         ("main_app", "0047_notation_clavis_sequentiarum_labels"),
         ("reversion", "0002_add_index_on_version_for_content_type_and_db"),
     ]
-    new = [("main_app", "0050_reconcile_wikidata_country_ids")]
+    new = [("main_app", "0051_country_authority_urls")]
 
     def migrate(self, target):
         executor = MigrationExecutor(connection)

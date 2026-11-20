@@ -1,6 +1,7 @@
 import re
 
 from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.db import models
 from django.db.models.fields.json import KeyTextTransform
 from django.db.models.functions import Lower
@@ -9,8 +10,8 @@ from main_app.data.countries_v1 import CANADA_ID
 from main_app.data.country_wikidata_v1 import catalogue_ids
 from main_app.identifiers import ExternalIdentifiers, TYPE_PREFIX
 
-# Only authority IDs are stored. Link destinations come from these trusted bases.
-AUTHORITIES = {
+# These two catalogues also accept the compact IDs used by the country loader.
+CATALOGUE_SHORTCUTS = {
     "getty_tgn": ("Getty TGN", r"[0-9]{1,32}", "https://vocab.getty.edu/tgn/"),
     "wikidata": (
         "Wikidata",
@@ -18,6 +19,32 @@ AUTHORITIES = {
         TYPE_PREFIX[ExternalIdentifiers.WIKIDATA][1],
     ),
 }
+validate_record_url = URLValidator(schemes=["https", "http"])
+
+
+def parse_authority(label, value):
+    if not isinstance(label, str) or not label.strip() or not isinstance(value, str):
+        raise ValidationError(
+            {"authorities": "Enter a database name and a record URL."}
+        )
+    label, value = label.strip(), value.strip()
+    for key, (title, pattern, prefix) in CATALOGUE_SHORTCUTS.items():
+        if label.casefold() in (key, title.casefold()):
+            identifier = value.removeprefix(prefix)
+            if not re.fullmatch(pattern, identifier):
+                raise ValidationError({"authorities": f"Invalid {title} ID."})
+            return key, identifier
+    try:
+        validate_record_url(value)
+    except ValidationError:
+        raise ValidationError(
+            {"authorities": f"Enter a full HTTP or HTTPS record URL for {label}."}
+        ) from None
+    # A different spelling of the label still identifies the same catalogue record.
+    for key, (_, pattern, prefix) in CATALOGUE_SHORTCUTS.items():
+        if value.startswith(prefix) and re.fullmatch(pattern, value[len(prefix) :]):
+            return key, value[len(prefix) :]
+    return label, value
 
 
 class Country(models.Model):
@@ -32,7 +59,8 @@ class Country(models.Model):
     authorities = models.JSONField(
         default=dict,
         blank=True,
-        help_text='Enter authority IDs, for example {"getty_tgn": "7005685", "wikidata": "Q16"}.',
+        help_text="Enter database names and full record URLs. Getty TGN and Wikidata also accept short IDs. "
+        'Example for Canada: {"GeoNames": "https://www.geonames.org/6251999/", "wikidata": "Q16"}.',
     )
 
     class Meta:
@@ -77,15 +105,26 @@ class Country(models.Model):
         if self.authorities is None:
             self.authorities = {}
         if not isinstance(self.authorities, dict):
-            raise ValidationError({"authorities": "Enter an object of authority IDs."})
-        for key, value in self.authorities.items():
-            if key not in AUTHORITIES:
+            raise ValidationError(
+                {"authorities": "Enter a JSON object of country authorities."}
+            )
+        normalized = {}
+        labels = set()
+        urls = set()
+        for label, raw_value in self.authorities.items():
+            key, value = parse_authority(label, raw_value)
+            if key.casefold() in labels:
+                raise ValidationError({"authorities": f"{label} is listed twice."})
+            if value in urls:
                 raise ValidationError(
-                    {"authorities": f"Unsupported country authority: {key}."}
+                    {"authorities": f"The record URL for {label} is listed twice."}
                 )
-            label, pattern, _ = AUTHORITIES[key]
-            if not isinstance(value, str) or not re.fullmatch(pattern, value):
-                raise ValidationError({"authorities": f"Invalid {label} ID."})
+            if key not in CATALOGUE_SHORTCUTS:
+                urls.add(value)
+            labels.add(key.casefold())
+            normalized[key] = value
+        self.authorities = normalized
+        return urls
 
     def clean(self):
         super().clean()
@@ -93,10 +132,14 @@ class Country(models.Model):
         self.aliases = "\n".join(
             line.strip() for line in self.aliases.splitlines() if line.strip()
         )
-        self.validate_authorities()
+        custom_urls = self.validate_authorities()
         existing_pks = set()
         labels = self.lookup_names()
         for other in Country.objects.exclude(pk=self.pk):
+            if custom_urls.intersection(other.authorities.values()):
+                raise ValidationError(
+                    {"authorities": f"A record URL already belongs to {other.name}."}
+                )
             overlap = labels & other.lookup_names()
             if overlap:
                 raise ValidationError(
@@ -125,8 +168,18 @@ class Country(models.Model):
 
     @property
     def authority_links(self):
-        return [
-            (label, base_url + self.authorities[key])
-            for key, (label, _, base_url) in AUTHORITIES.items()
-            if key in self.authorities
-        ]
+        links = []
+        for key, (label, pattern, prefix) in CATALOGUE_SHORTCUTS.items():
+            value = self.authorities.get(key)
+            if isinstance(value, str) and re.fullmatch(pattern, value):
+                links.append((label, prefix + value))
+        for label in sorted(
+            self.authorities.keys() - CATALOGUE_SHORTCUTS.keys(), key=str.casefold
+        ):
+            url = self.authorities[label]
+            try:
+                validate_record_url(url)
+            except ValidationError:
+                continue
+            links.append((label, url))
+        return links

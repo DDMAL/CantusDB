@@ -33,13 +33,20 @@ display names back to institutions and revisions.
 
 ## Authority identifiers
 
-In the Country admin, enter optional external identifiers as a JSON object,
-such as `{"getty_tgn": "7005685", "wikidata": "Q16"}` for Canada. Enter the IDs
-as strings. A Getty TGN ID contains digits and a Wikidata item ID starts with
-`Q`. Each identifier belongs to one country within its authority. Both links
-appear on the institution detail page when both IDs are recorded. A known
-Wikidata ID alone also identifies a curated country. For example, entering
-`Q16` with a local display name assigns Canada's stable ID.
+In the Country admin, enter a database name and the full HTTP or HTTPS URL
+of its record. For example, Canada's entry can include
+`{"GeoNames": "https://www.geonames.org/6251999/"}`. The institution page
+links the country name to its first authority and shows the other links by
+database name. You can add another database in the same field. Each record
+URL can belong to one country.
+
+Getty TGN and Wikidata also accept compact identifiers, such as
+`{"getty_tgn": "7005685", "wikidata": "Q16"}` for Canada. Those entries can
+be combined with full links to other databases. A known Wikidata ID alone
+also identifies a curated country. For example, entering `Q16` with a local
+display name assigns Canada's stable ID. Rolling back to `0050` leaves the
+links in the database. The older country editor accepts only Getty TGN and
+Wikidata on save.
 
 The 36 Wikidata matches were checked against the catalogue's Getty IDs using
 Wikidata's Getty Thesaurus of Geographic Names ID property. The match for

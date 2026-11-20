@@ -7,12 +7,7 @@ from main_app.models import Country
 @admin.register(Country)
 class CountryAdmin(admin.ModelAdmin):
     list_display = ("name", "authorities")
-    search_fields = (
-        "name",
-        "aliases",
-        "authorities__getty_tgn",
-        "authorities__wikidata",
-    )
+    search_fields = ("name", "aliases", "authorities")
 
     def has_change_permission(
         self, request: HttpRequest, obj: Country | None = None
