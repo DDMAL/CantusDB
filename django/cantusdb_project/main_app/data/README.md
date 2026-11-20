@@ -47,9 +47,10 @@ display names back to institutions and revisions.
 In the Country admin, enter a database name and the full HTTP or HTTPS URL
 of its record. For example, Canada's entry can include
 `{"GeoNames": "https://www.geonames.org/6251999/"}`. On an institution
-page, selecting the country name opens its Cantus country page. The external
-country links and Getty attribution appear there. Links identifying the
-institution itself appear on the institution page. Each external country
+page, selecting the country name opens its Cantus country page. This page
+lists the external records and links to the country data credits in its
+footer. Links identifying the institution itself appear on the institution
+page. Each external country
 record URL can belong to one country.
 
 Getty TGN and Wikidata also accept compact identifiers, such as

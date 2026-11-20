@@ -369,8 +369,13 @@ class CountryTests(TestCase):
         response = self.client.get(reverse("country-detail", args=[self.usa.pk]))
         self.assertContains(response, "https://vocab.getty.edu/tgn/7012149")
         self.assertContains(response, "https://www.wikidata.org/wiki/Q30")
-        self.assertContains(response, "ODC Attribution License")
+        self.assertNotContains(response, "ODC Attribution License")
         self.assertNotContains(response, "https://www.wikidata.org/wiki/Q62535993")
+        credits = reverse("country-data-credits")
+        self.assertContains(
+            response, f'<a href="{credits}">Country data credits</a>', html=True
+        )
+        self.assertContains(self.client.get(credits), "ODC Attribution License")
 
     def test_country_page_for_a_local_country_without_links(self):
         local = Country.objects.create(name="Local territory")

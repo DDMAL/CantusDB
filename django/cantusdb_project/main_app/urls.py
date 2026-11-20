@@ -1,4 +1,5 @@
 from django.urls import include, path, re_path
+from django.views.generic import TemplateView
 from django.conf import settings
 from django.contrib.auth.views import (
     LoginView,
@@ -275,6 +276,11 @@ urlpatterns = [
         name="indexer-list",
     ),
     # institution
+    path(
+        "about/country-data/",
+        TemplateView.as_view(template_name="country_data_credits.html"),
+        name="country-data-credits",
+    ),
     re_path(
         r"^country/(?P<pk>-?[0-9]{1,10})/$",
         CountryDetailView.as_view(),

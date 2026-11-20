@@ -14,11 +14,7 @@
             <p>No external records have been linked for this country.</p>
         {% endif %}
     {% endwith %}
-    {% if country.authorities.getty_tgn %}
-        <p class="small text-muted">
-            Data from the <a href="https://www.getty.edu/research/tools/vocabularies/tgn/">Getty Thesaurus of Geographic Names</a>,
-            J. Paul Getty Trust, Getty Research Institute.
-            <a href="https://opendatacommons.org/licenses/by/1-0/">ODC Attribution License</a>.
-        </p>
-    {% endif %}
+{% endblock %}
+{% block footer_license_extra %}
+    <a href="{% url 'country-data-credits' %}">Country data credits</a>
 {% endblock %}

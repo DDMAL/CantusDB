@@ -1,0 +1,16 @@
+{% extends "single_column_with_search_bar.html" %}
+{% block title %}<title>Country data credits | Cantus Database</title>{% endblock %}
+{% block heading %}<h3>Country data credits</h3>{% endblock %}
+{% block maincontent %}
+    <p>
+        The Cantus country catalogue uses names and identifiers from the
+        <a href="https://www.getty.edu/research/tools/vocabularies/tgn/">Getty Thesaurus of Geographic Names</a>,
+        published by the J. Paul Getty Trust, Getty Research Institute, under the
+        <a href="https://opendatacommons.org/licenses/by/1-0/">ODC Attribution License</a>.
+    </p>
+    <p>
+        Wikidata links in the catalogue were matched using
+        <a href="https://www.wikidata.org/wiki/Property:P1667">Wikidata’s Getty TGN identifier</a>.
+        Cataloguers can add links to other databases, including <a href="https://www.geonames.org/">GeoNames</a>.
+    </p>
+{% endblock %}
