@@ -7,23 +7,34 @@ references to it. The Canadian Chant Database uses Canada's fixed ID.
 
 ## Database setup
 
-Run `python manage.py migrate` on a new database or a restored backup. During
-an upgrade, the migration creates the country rows needed to convert existing
-institutions and their saved revisions. A database already on the previous PR
-version of `0048_getty_countries` can migrate directly to
-the latest migration. Existing Getty IDs and name edits carry over.
-`0050_reconcile_wikidata_country_ids` also moves previously entered
-Wikidata-only countries to their stable IDs. If the loader already created
-the same country, its display name is retained, the other name becomes an
-alias, and both institutions and saved revisions follow the stable ID.
-Conflicting authority IDs stop the migration and identify the rows to correct.
+Run `python manage.py migrate`, then `python manage.py load_countries`.
+Both commands work offline.
 
-To install the complete curated Cantus list, run
-`python manage.py load_countries` after migrating. This command uses a small
-local catalogue of countries from Cantus holdings and legacy imports. It adds
-missing records with their aliases and verified Getty and Wikidata IDs. Rerunning it keeps
-existing records, including edits to display names, aliases and authority IDs.
-The migration and loader work offline.
+On a fresh upgrade, Django applies one country migration,
+`0048_squashed_0052_institution_countries`. It creates the two missing-value
+choices and the countries needed by existing institutions and saved revisions.
+It uses the catalogue to recognize old spellings and assign stable IDs. It
+retains alternate spellings found in those records. An empty database has
+only the two missing-value choices after migration.
+
+The management command loads the 36 curated countries. Its first run for each
+country fills missing Getty and Wikidata IDs and adds catalogue aliases,
+preserving existing names, alias spellings, and authority values. It records
+that the country has been loaded. Later runs preserve deletions as well as
+edits. Databases upgraded from earlier PR versions have no record of earlier
+loader runs. Their first run of the updated command can therefore restore a
+previously removed catalogue alias or identifier.
+
+Databases partway through an earlier PR migration can also run the two
+commands above. Django finishes the original chain in place. This preserves
+local edits and moves institutions and saved revisions to the stable IDs when
+earlier versions created duplicate countries. Conflicting authority IDs stop
+the migration and identify the rows to correct.
+
+The original migration files remain available for these partial upgrades.
+`_institution_country_versions.py` is a helper used by migration code to
+translate the country field in saved institution revisions. Django skips
+files beginning with an underscore when discovering migration steps.
 
 Rolling back to `0048_getty_countries` restores the Getty ID column. Export
 any additional authority IDs you want to keep before rolling back, because
@@ -35,10 +46,11 @@ display names back to institutions and revisions.
 
 In the Country admin, enter a database name and the full HTTP or HTTPS URL
 of its record. For example, Canada's entry can include
-`{"GeoNames": "https://www.geonames.org/6251999/"}`. The institution page
-links the country name to its first authority and shows the other links by
-database name. You can add another database in the same field. Each record
-URL can belong to one country.
+`{"GeoNames": "https://www.geonames.org/6251999/"}`. On an institution
+page, selecting the country name opens its Cantus country page. The external
+country links and Getty attribution appear there. Links identifying the
+institution itself appear on the institution page. Each external country
+record URL can belong to one country.
 
 Getty TGN and Wikidata also accept compact identifiers, such as
 `{"getty_tgn": "7005685", "wikidata": "Q16"}` for Canada. Those entries can
@@ -56,7 +68,7 @@ Holy See in the Cantus catalogue. [Wikidata property P1667](https://www.wikidata
 The initial catalogue uses preferred names and numeric identifiers from the
 Getty Thesaurus of Geographic Names, checked on 2026-11-15. The J. Paul Getty
 Trust, Getty Research Institute makes this data available under the Open Data
-Commons Attribution License. [Getty TGN](https://www.getty.edu/research-conservation/tools-databases/vocabularies/tgn/) · [ODC Attribution License](https://opendatacommons.org/licenses/by/1-0/)
+Commons Attribution License. [Getty TGN](https://www.getty.edu/research/tools/vocabularies/tgn/) · [ODC Attribution License](https://opendatacommons.org/licenses/by/1-0/)
 
 Aliases include RISM country prefixes used in library sigla. For example,
 `ZA` identifies South Africa and `RC` identifies Taiwan.

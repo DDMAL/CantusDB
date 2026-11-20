@@ -7,19 +7,12 @@
     </h3>
     <h4>
         {% if institution.city %}{{ institution.city }},{% else %}[No City],{% endif %}
-        {% for label, url in institution.country.authority_links %}
-            {% if forloop.first %}
-                <a href="{{ url }}" title="{{ label }}">{{ institution.country }}</a>
-            {% else %}
-                (<a href="{{ url }}">{{ label }}</a>)
-            {% endif %}
-        {% empty %}
-            {{ institution.country }}
-        {% endfor %}
+        {% with url=institution.country.detail_url %}
+            {% if url %}<a href="{{ url }}">{{ institution.country }}</a>{% else %}{{ institution.country }}{% endif %}
+        {% endwith %}
     </h4>
 {% endblock %}
 {% block maincontent %}
-    {% if institution.country.authorities.getty_tgn %}<p class="small text-muted">Country authority: <a href="https://www.getty.edu/research-conservation/tools-databases/vocabularies/tgn/">Getty Thesaurus of Geographic Names</a>, J. Paul Getty Trust, Getty Research Institute, <a href="https://opendatacommons.org/licenses/by/1-0/">ODC Attribution License</a>.</p>{% endif %}
     {% if institution_authorities %}
         {% for authority in institution_authorities %}
             <div class="row mb-3">

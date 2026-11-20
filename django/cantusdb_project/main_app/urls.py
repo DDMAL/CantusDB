@@ -1,4 +1,4 @@
-from django.urls import include, path
+from django.urls import include, path, re_path
 from django.conf import settings
 from django.contrib.auth.views import (
     LoginView,
@@ -25,6 +25,7 @@ from main_app.views.api import (
     get_task_status,
 )
 from main_app.views.institution import InstitutionListView, InstitutionDetailView
+from main_app.views.country import CountryDetailView
 from main_app.views.redirect import (
     redirect_chants,
     redirect_genre,
@@ -274,6 +275,11 @@ urlpatterns = [
         name="indexer-list",
     ),
     # institution
+    re_path(
+        r"^country/(?P<pk>-?[0-9]{1,10})/$",
+        CountryDetailView.as_view(),
+        name="country-detail",
+    ),
     path(
         "institutions/",
         InstitutionListView.as_view(),

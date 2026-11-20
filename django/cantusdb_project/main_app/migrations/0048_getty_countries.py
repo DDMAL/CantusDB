@@ -5,67 +5,7 @@ from django.db import migrations, models
 from django.db.models.functions import Lower
 import django.db.models.deletion
 
-from main_app.data.countries_v1 import COUNTRIES
-from ._institution_country_versions import convert_versions
-
-NOT_RECORDED = -1
-UNKNOWN = -2
-
-
-def forwards(apps, schema_editor):
-    alias = schema_editor.connection.alias
-    countries = apps.get_model("main_app", "Country").objects.using(alias)
-    institutions = apps.get_model("main_app", "Institution").objects.using(alias)
-    countries.create(pk=NOT_RECORDED, name="Not recorded", aliases="[No Country]")
-    countries.create(pk=UNKNOWN, name="Unknown", aliases="[Unknown Country]")
-    ids = {
-        "": NOT_RECORDED,
-        "not recorded": NOT_RECORDED,
-        "[no country]": NOT_RECORDED,
-        "unknown": UNKNOWN,
-        "[unknown country]": UNKNOWN,
-    }
-    known = {
-        label.casefold(): (pk, name, getty_id, aliases)
-        for pk, name, getty_id, *aliases in COUNTRIES
-        for label in [name, *aliases]
-    }
-
-    def country_id(value, *, historical=False):
-        text = (value or "").strip()
-        key = text.casefold()
-        if key in ids:
-            return ids[key]
-        if historical and key not in known:
-            # Old, unmatched text in a revision is not a new selectable country.
-            return UNKNOWN
-        pk, name, getty_id, aliases = known.get(key, (None, text, None, []))
-        country = countries.create(
-            pk=pk, name=name, getty_id=getty_id, aliases="\n".join(aliases)
-        )
-        for label in [name, *aliases]:
-            ids[label.casefold()] = country.pk
-        return country.pk
-
-    values = (
-        institutions.order_by("country_text")
-        .values_list("country_text", flat=True)
-        .distinct()
-    )
-    for value in list(values):
-        institutions.filter(country_text=value).update(country_id=country_id(value))
-    convert_versions(apps, alias, lambda value: country_id(value, historical=True))
-
-
-def backwards(apps, schema_editor):
-    alias = schema_editor.connection.alias
-    countries = apps.get_model("main_app", "Country").objects.using(alias)
-    institutions = apps.get_model("main_app", "Institution").objects.using(alias)
-    names = dict(countries.values_list("pk", "name"))
-    names[NOT_RECORDED] = "[No Country]"
-    for pk, name in names.items():
-        institutions.filter(country_id=pk).update(country_text=name)
-    convert_versions(apps, alias, lambda value: names[int(value)])
+from ._institution_countries import NOT_RECORDED, from_text, to_text
 
 
 class Migration(migrations.Migration):
@@ -128,7 +68,7 @@ class Migration(migrations.Migration):
                 to="main_app.country",
             ),
         ),
-        migrations.RunPython(forwards, backwards),
+        migrations.RunPython(from_text, to_text),
         # This temporary column is only needed while mapping the old strings.
         # On reversal Django recreates it before backwards fills canonical names.
         migrations.RemoveField("institution", "country_text"),

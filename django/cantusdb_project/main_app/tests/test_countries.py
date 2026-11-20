@@ -36,7 +36,25 @@ class CountryTests(TestCase):
 
     def test_loader_is_repeatable_and_preserves_local_edits(self):
         self.assertEqual(self.canada.pk, Country.CANADA)
+        self.canada.authorities = {
+            "getty_tgn": "123456789",
+            "Local register": "https://example.org/canada",
+        }
+        self.canada.aliases = "CA\nLocal spelling"
+        self.canada.save()
         call_command("load_countries", stdout=StringIO())
+        self.canada.refresh_from_db()
+        self.assertEqual(
+            self.canada.authorities,
+            {
+                "getty_tgn": "123456789",
+                "Local register": "https://example.org/canada",
+                "wikidata": "Q16",
+            },
+        )
+        self.assertEqual(
+            self.canada.aliases.splitlines(), ["CA", "Local spelling", "CDN", "CAN"]
+        )
         japan = import_country("J")
         self.assertEqual(japan.authorities, {"getty_tgn": "1000120", "wikidata": "Q17"})
         original_count = Country.objects.count()
@@ -84,9 +102,24 @@ class CountryTests(TestCase):
         response = self.client.post(
             url, {"name": "Canada", "aliases": "", "authorities": ""}
         )
-        self.assertContains(response, "This catalogue country already exists")
+        self.assertContains(
+            response, "is already a name or alias for Dominion of Canada"
+        )
+        self.assertEqual(find_country("Canada"), canada)
         with self.assertRaises(ValidationError):
             Country(name="Japan", authorities={"wikidata": "Q16"}).save()
+
+    def test_country_edit_opened_before_load_cannot_reset_import_state(self):
+        stale = Country.objects.get(pk=self.canada.pk)
+        call_command("load_countries", stdout=StringIO())
+        stale.authorities = {}
+        stale.aliases = ""
+        stale.save()
+        call_command("load_countries", stdout=StringIO())
+        stale.refresh_from_db()
+        self.assertTrue(stale.catalogue_loaded)
+        self.assertEqual(stale.authorities, {})
+        self.assertEqual(stale.aliases, "")
 
     def test_admin_validates_and_saves_multiple_authorities(self):
         self.client.force_login(make_fake_user(is_superuser=True))
@@ -166,6 +199,10 @@ class CountryTests(TestCase):
         make_fake_segment(id=settings.BOWER_SEGMENT_ID)
         institution = make_fake_institution(country=self.canada)
         response = self.client.get(reverse("institution-detail", args=[institution.pk]))
+        country_url = reverse("country-detail", args=[self.canada.pk])
+        self.assertContains(response, f'<a href="{country_url}">Canada</a>', html=True)
+        self.assertNotContains(response, record_url)
+        response = self.client.get(country_url)
         self.assertContains(response, f'<a href="{record_url}">GeoNames</a>', html=True)
         call_command("load_countries", stdout=StringIO())
         self.canada.refresh_from_db()
@@ -312,14 +349,37 @@ class CountryTests(TestCase):
                 self.assertIn(included, response.context["sources"])
                 self.assertNotIn(excluded, response.context["sources"])
 
-    def test_institution_detail_links_to_each_authority(self):
+    def test_institution_and_country_links_identify_different_records(self):
+        from main_app.identifiers import ExternalIdentifiers
+        from main_app.models import InstitutionIdentifier
+
         make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         make_fake_segment(id=settings.BOWER_SEGMENT_ID)
         institution = make_fake_institution(country=self.usa)
+        InstitutionIdentifier.objects.create(
+            institution=institution,
+            identifier_type=ExternalIdentifiers.WIKIDATA,
+            identifier="Q62535993",
+        )
         response = self.client.get(reverse("institution-detail", args=[institution.pk]))
+        self.assertContains(response, "https://www.wikidata.org/wiki/Q62535993")
+        self.assertNotContains(response, "https://vocab.getty.edu/")
+        self.assertNotContains(response, "https://www.wikidata.org/wiki/Q30")
+        self.assertNotContains(response, "ODC Attribution License")
+        response = self.client.get(reverse("country-detail", args=[self.usa.pk]))
         self.assertContains(response, "https://vocab.getty.edu/tgn/7012149")
         self.assertContains(response, "https://www.wikidata.org/wiki/Q30")
-        self.assertContains(response, "United States")
+        self.assertContains(response, "ODC Attribution License")
+        self.assertNotContains(response, "https://www.wikidata.org/wiki/Q62535993")
+
+    def test_country_page_for_a_local_country_without_links(self):
+        local = Country.objects.create(name="Local territory")
+        self.assertContains(self.client.get(local.detail_url), "No external records")
+        for pk in (Country.NOT_RECORDED, Country.UNKNOWN):
+            self.assertEqual(
+                self.client.get(reverse("country-detail", args=[pk])).status_code, 404
+            )
+            self.assertIsNone(Country.objects.get(pk=pk).detail_url)
 
     def test_admin_can_add_and_correct_a_country_and_its_aliases(self):
         self.client.force_login(make_fake_user(is_superuser=True))

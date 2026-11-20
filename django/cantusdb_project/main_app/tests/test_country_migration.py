@@ -1,6 +1,8 @@
 import json
+from io import StringIO
 
 from django.core import serializers
+from django.core.management import call_command
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
@@ -12,16 +14,42 @@ class CountryMigrationTests(TransactionTestCase):
         ("main_app", "0047_notation_clavis_sequentiarum_labels"),
         ("reversion", "0002_add_index_on_version_for_content_type_and_db"),
     ]
-    new = [("main_app", "0051_country_authority_urls")]
+    new = [("main_app", "0048_squashed_0052_institution_countries")]
 
     def migrate(self, target):
         executor = MigrationExecutor(connection)
+        if target == self.new:
+            # Django selects the original chain when it is partially applied.
+            target = executor.loader.graph.leaf_nodes("main_app")
         executor.migrate(target)
         return executor.loader.project_state(target).apps
 
     def tearDown(self):
         self.migrate(self.new)
         super().tearDown()
+
+    def test_fresh_database_uses_one_country_migration_and_loads_catalogue_on_demand(
+        self,
+    ):
+        from main_app.models import Country
+
+        self.migrate(self.old)
+        plan = MigrationExecutor(connection).migration_plan(self.new)
+        self.assertEqual(
+            [(m.app_label, m.name) for m, _ in plan if m.app_label == "main_app"],
+            self.new,
+        )
+        self.migrate(self.new)
+        self.assertEqual(
+            set(Country.objects.values_list("pk", flat=True)),
+            {Country.NOT_RECORDED, Country.UNKNOWN},
+        )
+        call_command("load_countries", stdout=StringIO())
+        self.assertEqual(Country.objects.count(), 38)
+        self.assertEqual(
+            Country.objects.get(pk=Country.CANADA).authorities,
+            {"getty_tgn": "7005685", "wikidata": "Q16"},
+        )
 
     def test_wikidata_only_rows_keep_holdings_and_history_when_reconciled(self):
         from main_app.models import Country as LiveCountry
@@ -174,8 +202,9 @@ class CountryMigrationTests(TransactionTestCase):
             country,
         )
 
-    def test_represented_countries_get_their_authority_ids_and_rism_aliases(self):
+    def test_loader_supplies_authorities_and_catalogue_aliases_after_conversion(self):
         from main_app.countries import find_country
+        from main_app.models import Country
 
         apps = self.migrate(self.old)
         Institution = apps.get_model("main_app", "Institution")
@@ -192,11 +221,19 @@ class CountryMigrationTests(TransactionTestCase):
             )
 
         self.migrate(self.new)
+        for name, siglum, _ in represented:
+            country = Country.objects.get(name=name)
+            self.assertEqual(country.authorities, {})
+            self.assertEqual(country.aliases, "")
+            self.assertIsNone(find_country(siglum))
+
+        call_command("load_countries", stdout=StringIO())
         for name, siglum, getty_id in represented:
             with self.subTest(country=name):
                 country = find_country(siglum.lower())
                 self.assertEqual(country.name, name)
-                self.assertEqual(country.authorities, {"getty_tgn": getty_id})
+                self.assertEqual(country.authorities["getty_tgn"], getty_id)
+                self.assertIn("wikidata", country.authorities)
         self.assertIsNone(find_country("SA"))
         self.assertIsNone(find_country("T"))
 
@@ -255,7 +292,8 @@ class CountryMigrationTests(TransactionTestCase):
         Version = apps.get_model("reversion", "Version")
         institution = Institution.objects.get(pk=institution.pk)
         Country = apps.get_model("main_app", "Country")
-        self.assertEqual(institution.country.authorities, {"getty_tgn": "7012149"})
+        self.assertEqual(institution.country.authorities, {})
+        self.assertEqual(institution.country.aliases, "USA")
         self.assertEqual(
             Institution.objects.get(pk=duplicate.pk).country_id, institution.country_id
         )

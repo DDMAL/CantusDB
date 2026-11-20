@@ -1,0 +1,24 @@
+{% extends "single_column_with_search_bar.html" %}
+{% block title %}<title>{{ country.name }} | Cantus Database</title>{% endblock %}
+{% block heading %}<h3>{{ country.name }}</h3>{% endblock %}
+{% block maincontent %}
+    {% with links=country.authority_links %}
+        {% if links %}
+            <h4>External records</h4>
+            <ul>
+                {% for label, url in links %}
+                    <li><a href="{{ url }}">{{ label }}</a></li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No external records have been linked for this country.</p>
+        {% endif %}
+    {% endwith %}
+    {% if country.authorities.getty_tgn %}
+        <p class="small text-muted">
+            Data from the <a href="https://www.getty.edu/research/tools/vocabularies/tgn/">Getty Thesaurus of Geographic Names</a>,
+            J. Paul Getty Trust, Getty Research Institute.
+            <a href="https://opendatacommons.org/licenses/by/1-0/">ODC Attribution License</a>.
+        </p>
+    {% endif %}
+{% endblock %}

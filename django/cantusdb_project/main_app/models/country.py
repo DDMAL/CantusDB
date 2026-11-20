@@ -5,6 +5,7 @@ from django.core.validators import URLValidator
 from django.db import models
 from django.db.models.fields.json import KeyTextTransform
 from django.db.models.functions import Lower
+from django.urls import reverse
 
 from main_app.data.countries_v1 import CANADA_ID
 from main_app.data.country_wikidata_v1 import catalogue_ids
@@ -56,6 +57,7 @@ class Country(models.Model):
     aliases = models.TextField(
         blank=True, help_text="Enter one alternate name per line."
     )
+    catalogue_loaded = models.BooleanField(default=False, editable=False)
     authorities = models.JSONField(
         default=dict,
         blank=True,
@@ -80,6 +82,12 @@ class Country(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+    @property
+    def detail_url(self):
+        if self.pk not in (self.UNKNOWN, self.NOT_RECORDED):
+            return reverse("country-detail", args=[self.pk])
+        return None
 
     def lookup_names(self) -> set[str]:
         return {
@@ -152,7 +160,9 @@ class Country(models.Model):
                 "This catalogue country already exists. Edit its existing record."
             )
 
-    def save(self, *args, **kwargs):
+    def save(
+        self, force_insert=False, force_update=False, using=None, update_fields=None
+    ):
         self.validate_authorities()
         # Adding a recognised country in the admin before running the loader
         # must give it the same ID as importing it. Never overwrite a renamed row.
@@ -163,8 +173,24 @@ class Country(models.Model):
             if self.pk is not None and self.pk < 0:
                 # A failed insert leaves the assigned key on this instance.
                 # A retry must still insert, even if its fields have changed.
-                kwargs["force_insert"] = True
-        return super().save(*args, **kwargs)
+                force_insert = True
+        elif not force_insert and update_fields is None:
+            # Only the loader writes its receipt. An edit opened before it ran
+            # must not mark the country as eligible to load again.
+            deferred = self.get_deferred_fields()
+            update_fields = [
+                field.name
+                for field in self._meta.concrete_fields
+                if field.editable
+                and not field.primary_key
+                and field.attname not in deferred
+            ]
+        return super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
 
     @property
     def authority_links(self):

@@ -9,6 +9,9 @@ class CountryAdmin(admin.ModelAdmin):
     list_display = ("name", "authorities")
     search_fields = ("name", "aliases", "authorities")
 
+    def view_on_site(self, obj):
+        return obj.detail_url
+
     def has_change_permission(
         self, request: HttpRequest, obj: Country | None = None
     ) -> bool:
