@@ -20,9 +20,7 @@ full HTTP or HTTPS URL.
 To roll back, run `python manage.py migrate main_app 0047` with this version
 of the code. Institutions and revisions regain the current display names, and
 blank countries regain `[No Country]`. Export country metadata first if you
-need to retain it. For a local database that ran an earlier draft of this PR,
-use the matching old checkout to roll back to the migration before countries
-(0046 for the original 0047 draft, otherwise 0047) before upgrading.
+need to retain it.
 
 The catalogue uses Getty Thesaurus of Geographic Names data from the J. Paul
 Getty Trust, Getty Research Institute, under the Open Data Commons Attribution

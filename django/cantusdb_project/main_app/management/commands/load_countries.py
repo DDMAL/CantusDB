@@ -52,8 +52,10 @@ class Command(BaseCommand):
                     ("Getty TGN", row["getty_tgn"]),
                     ("Wikidata", row["wikidata"]),
                 ):
+                    url = (url or "").strip()
                     if (
-                        label.casefold() not in labels
+                        url
+                        and label.casefold() not in labels
                         and url not in authorities.values()
                     ):
                         authorities[label] = url

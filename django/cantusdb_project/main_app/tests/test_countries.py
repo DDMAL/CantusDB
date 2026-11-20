@@ -71,6 +71,23 @@ class CountryTests(TestCase):
         )
         self.assertEqual(Country.objects.count(), 37)
 
+    def test_loader_skips_blank_authority_urls(self):
+        with TemporaryDirectory() as directory, self.settings(BASE_DIR=directory):
+            (Path(directory) / "countries.csv").write_text(
+                "id,name,rism_code,aliases,getty_tgn,wikidata\n"
+                "6,Canada,CDN,, ,https://www.wikidata.org/wiki/Q16\n"
+                "20,Japan,J,,https://vocab.getty.edu/tgn/1000120,\n"
+            )
+            call_command("load_countries", stdout=StringIO())
+        self.canada.refresh_from_db()
+        self.assertEqual(
+            self.canada.authorities, {"Wikidata": "https://www.wikidata.org/wiki/Q16"}
+        )
+        self.assertEqual(
+            Country.objects.get(pk=20).authorities,
+            {"Getty TGN": "https://vocab.getty.edu/tgn/1000120"},
+        )
+
     def test_loader_rejects_ids_outside_the_catalogue(self):
         csv = (Path(settings.BASE_DIR) / "countries.csv").read_text()
         with TemporaryDirectory() as directory, self.settings(BASE_DIR=directory):
