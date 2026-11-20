@@ -12,7 +12,7 @@ class CountryMigrationTests(TransactionTestCase):
         ("main_app", "0047_notation_clavis_sequentiarum_labels"),
         ("reversion", "0002_add_index_on_version_for_content_type_and_db"),
     ]
-    new = [("main_app", "0048_getty_countries")]
+    new = [("main_app", "0049_country_authorities")]
 
     def migrate(self, target):
         executor = MigrationExecutor(connection)
@@ -22,6 +22,74 @@ class CountryMigrationTests(TransactionTestCase):
     def tearDown(self):
         self.migrate(self.new)
         super().tearDown()
+
+    def test_upgrade_from_previously_applied_0048_keeps_country_references(self):
+        from main_app.models import Country as LiveCountry
+
+        intermediate = [
+            ("main_app", "0048_getty_countries"),
+            ("admin", "0003_logentry_add_action_flag_choices"),
+        ]
+        apps = self.migrate(intermediate)
+        countries = apps.get_model("main_app", "Country").objects
+        canada = countries.create(
+            pk=301, name="Renamed country", getty_id="7005685", aliases="Custom name"
+        )
+        local = countries.create(pk=302, name="Local territory", getty_id="98765432")
+        institutions = apps.get_model("main_app", "Institution").objects
+        institution = institutions.create(
+            name="Library", siglum="CDN-Test", country=canada
+        )
+        content_types = apps.get_model("contenttypes", "ContentType").objects
+        content_type, _ = content_types.get_or_create(
+            app_label="main_app", model="institution"
+        )
+        revision = apps.get_model("reversion", "Revision").objects.create(
+            date_created=timezone.now()
+        )
+        version = apps.get_model("reversion", "Version").objects.create(
+            revision=revision,
+            object_id=str(institution.pk),
+            content_type=content_type,
+            db="default",
+            format="json",
+            serialized_data=serializers.serialize("json", [institution]),
+            object_repr=institution.name,
+        )
+
+        apps = self.migrate(self.new)
+        self.assertEqual(
+            apps.get_model("main_app", "Institution")
+            .objects.get(pk=institution.pk)
+            .country_id,
+            LiveCountry.CANADA,
+        )
+        updated = LiveCountry.objects.get(pk=LiveCountry.CANADA)
+        self.assertEqual(
+            (updated.name, updated.aliases, updated.authorities),
+            ("Renamed country", "Custom name", {"getty_tgn": "7005685"}),
+        )
+        self.assertEqual(
+            LiveCountry.objects.get(pk=local.pk).authorities, {"getty_tgn": "98765432"}
+        )
+        self.assertFalse(LiveCountry.objects.filter(pk=301).exists())
+        from reversion.models import Version
+
+        self.assertEqual(
+            Version.objects.get(pk=version.pk)._object_version.object.country, updated
+        )
+
+        apps = self.migrate(intermediate)
+        country = apps.get_model("main_app", "Country").objects.get(
+            pk=LiveCountry.CANADA
+        )
+        self.assertEqual(country.getty_id, "7005685")
+        self.assertEqual(
+            apps.get_model("main_app", "Institution")
+            .objects.get(pk=institution.pk)
+            .country,
+            country,
+        )
 
     def test_represented_countries_get_their_authority_ids_and_rism_aliases(self):
         from main_app.countries import find_country
@@ -45,7 +113,7 @@ class CountryMigrationTests(TransactionTestCase):
             with self.subTest(country=name):
                 country = find_country(siglum.lower())
                 self.assertEqual(country.name, name)
-                self.assertEqual(country.getty_id, getty_id)
+                self.assertEqual(country.authorities, {"getty_tgn": getty_id})
         self.assertIsNone(find_country("SA"))
         self.assertIsNone(find_country("T"))
 
@@ -104,14 +172,14 @@ class CountryMigrationTests(TransactionTestCase):
         Version = apps.get_model("reversion", "Version")
         institution = Institution.objects.get(pk=institution.pk)
         Country = apps.get_model("main_app", "Country")
-        self.assertEqual(institution.country.getty_id, "7012149")
+        self.assertEqual(institution.country.authorities, {"getty_tgn": "7012149"})
         self.assertEqual(
             Institution.objects.get(pk=duplicate.pk).country_id, institution.country_id
         )
         self.assertEqual(
             Institution.objects.get(pk=local.pk).country.name, "Local territory"
         )
-        self.assertIsNone(Institution.objects.get(pk=local.pk).country.getty_id)
+        self.assertEqual(Institution.objects.get(pk=local.pk).country.authorities, {})
         self.assertSetEqual(
             set(Country.objects.values_list("name", flat=True)),
             {"Unknown", "Not recorded", "United States", "Local territory", "Holy See"},

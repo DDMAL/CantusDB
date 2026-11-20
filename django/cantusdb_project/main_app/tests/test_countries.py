@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib import admin
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
+from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
@@ -26,11 +27,69 @@ class CountryTests(TestCase):
     def setUpTestData(cls):
         cls.usa = Country.objects.create(
             name="United States",
-            getty_id="7012149",
+            authorities={"getty_tgn": "7012149", "wikidata": "Q30"},
             aliases="US\nUSA\nUnited States of America",
         )
         cls.canada = Country.objects.create(name="Canada", aliases="CA")
         cls.vatican = Country.objects.create(name="Holy See", aliases="Vatican City")
+
+    def test_loader_is_repeatable_and_preserves_local_edits(self):
+        self.assertEqual(self.canada.pk, Country.CANADA)
+        call_command("load_countries", stdout=StringIO())
+        japan = import_country("J")
+        self.assertEqual(japan.authorities, {"getty_tgn": "1000120"})
+        original_count = Country.objects.count()
+        japan.name = "Nippon"
+        japan.aliases = ""
+        japan.authorities = {"wikidata": "Q17"}
+        japan.save()
+        call_command("load_countries", stdout=StringIO())
+        japan.refresh_from_db()
+        self.assertEqual(Country.objects.count(), original_count)
+        self.assertEqual(
+            (japan.name, japan.aliases, japan.authorities),
+            ("Nippon", "", {"wikidata": "Q17"}),
+        )
+        self.assertIsNone(find_country("J"))
+        duplicate = Country(name="Japan")
+        with self.assertRaises(ValidationError):
+            duplicate.full_clean()
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            duplicate.save()
+        japan.refresh_from_db()
+        self.assertEqual(japan.name, "Nippon")
+
+    def test_admin_validates_and_saves_multiple_authorities(self):
+        self.client.force_login(make_fake_user(is_superuser=True))
+        url = reverse("admin:main_app_country_change", args=[self.canada.pk])
+        data = {"name": "Canada", "aliases": "CA"}
+        for invalid in (
+            '["Q16"]',
+            '{"wikidata":"16"}',
+            '{"getty_tgn":"Q16"}',
+            '{"other":"16"}',
+            '{"getty_tgn":"7012149"}',
+            '{"wikidata":"Q30"}',
+        ):
+            with self.subTest(authorities=invalid):
+                response = self.client.post(url, {**data, "authorities": invalid})
+                self.assertEqual(response.status_code, 200)
+                self.assertTrue(response.context["adminform"].form.errors)
+        response = self.client.post(
+            url, {**data, "authorities": '{"getty_tgn":"7005685","wikidata":"Q16"}'}
+        )
+        self.assertEqual(response.status_code, 302)
+        self.canada.refresh_from_db()
+        self.assertEqual(
+            self.canada.authorities, {"getty_tgn": "7005685", "wikidata": "Q16"}
+        )
+        for key, value in self.canada.authorities.items():
+            with self.subTest(key=key), self.assertRaises(
+                IntegrityError
+            ), transaction.atomic():
+                Country.objects.filter(pk=self.vatican.pk).update(
+                    authorities={key: value}
+                )
 
     def test_import_aliases_and_missing_values(self):
         for name in ("USA", "US", "United States of America", " united STATES "):
@@ -161,26 +220,27 @@ class CountryTests(TestCase):
                 self.assertIn(included, response.context["sources"])
                 self.assertNotIn(excluded, response.context["sources"])
 
-    def test_institution_detail_links_to_getty(self):
+    def test_institution_detail_links_to_each_authority(self):
         make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         make_fake_segment(id=settings.BOWER_SEGMENT_ID)
         institution = make_fake_institution(country=self.usa)
         response = self.client.get(reverse("institution-detail", args=[institution.pk]))
         self.assertContains(response, "https://vocab.getty.edu/tgn/7012149")
+        self.assertContains(response, "https://www.wikidata.org/wiki/Q30")
         self.assertContains(response, "United States")
 
     def test_admin_can_add_and_correct_a_country_and_its_aliases(self):
         self.client.force_login(make_fake_user(is_superuser=True))
         response = self.client.post(
             reverse("admin:main_app_country_add"),
-            {"name": "Iceland", "aliases": "Islande", "getty_id": ""},
+            {"name": "Iceland", "aliases": "Islande", "authorities": ""},
         )
         self.assertEqual(response.status_code, 302)
         country = import_country("Islande")
         institution = make_fake_institution(country=country)
         response = self.client.post(
             reverse("admin:main_app_country_change", args=[country.pk]),
-            {"name": "Ísland", "aliases": "Iceland\r\n  Islande  ", "getty_id": ""},
+            {"name": "Ísland", "aliases": "Iceland\r\n  Islande  ", "authorities": ""},
         )
         self.assertEqual(response.status_code, 302)
         institution.refresh_from_db()
@@ -196,14 +256,14 @@ class CountryTests(TestCase):
 
         response = self.client.post(
             reverse("admin:main_app_country_change", args=[country.pk]),
-            {"name": "Ísland", "aliases": "UsA", "getty_id": ""},
+            {"name": "Ísland", "aliases": "UsA", "authorities": ""},
         )
         self.assertContains(response, "already a name or alias for United States")
         self.assertEqual(import_country("usa"), self.usa)
         self.assertEqual(import_country("Islande"), country)
         response = self.client.post(
             reverse("admin:main_app_country_change", args=[Country.NOT_RECORDED]),
-            {"name": "Missing", "aliases": "", "getty_id": ""},
+            {"name": "Missing", "aliases": "", "authorities": ""},
         )
         self.assertEqual(response.status_code, 403)
 

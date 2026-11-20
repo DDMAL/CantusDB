@@ -1,75 +1,15 @@
 """Migrate institution country text and revisions to locally maintained records."""
 
-import json
-
 from django.core.validators import RegexValidator
 from django.db import migrations, models
 from django.db.models.functions import Lower
 import django.db.models.deletion
 
+from main_app.data.countries_v1 import COUNTRIES
+from ._institution_country_versions import convert_versions
+
 NOT_RECORDED = -1
 UNKNOWN = -2
-
-# Getty IDs for names used by Cantus and its legacy imports. These rows are
-# reconciliation hints: a country is inserted only when an institution uses it.
-# Each row contains the preferred name, TGN ID, and alternate names / RISM sigla.
-LEGACY_COUNTRIES = (
-    ("Argentina", "7006477", "RA"),
-    ("Australia", "7000490", "AUS"),
-    ("Austria", "1000062", "A"),
-    ("Belgium", "1000063", "B"),
-    ("Brazil", "1000047", "BR"),
-    ("Canada", "7005685", "CDN", "CA", "CAN"),
-    ("China", "1000111", "CN", "CHN", "People's Republic of China"),
-    ("Croatia", "7006663", "HR"),
-    ("Czech Republic", "1001780", "CZ", "Czechia"),
-    ("Denmark", "1000066", "DK"),
-    ("Ecuador", "1000051", "EC"),
-    ("Finland", "1000069", "FIN"),
-    ("France", "1000070", "F"),
-    ("Germany", "7000084", "D"),
-    ("Greece", "1000074", "GR"),
-    ("Holy See", "7001168", "V", "Vatican City", "Vatican"),
-    ("Hungary", "7006278", "H"),
-    ("Ireland", "1000078", "IRL"),
-    ("Italy", "1000080", "I"),
-    ("Japan", "1000120", "J"),
-    ("Netherlands", "7016845", "NL", "The Netherlands"),
-    ("New Zealand", "1000226", "NZ"),
-    ("Norway", "1000088", "N"),
-    ("Poland", "7006366", "PL"),
-    ("Portugal", "1000090", "P"),
-    ("Romania", "1000091", "RO"),
-    ("Slovakia", "7011765", "SK"),
-    ("Slovenia", "7006670", "SI"),
-    ("South Africa", "1000193", "ZA"),
-    ("Spain", "1000095", "E"),
-    ("Sweden", "1000097", "S"),
-    ("Switzerland", "7011731", "CH"),
-    ("Taiwan", "1000141", "RC"),
-    ("Turkey", "1000144", "TR", "Türkiye"),
-    ("United Kingdom", "7008591", "GB", "UK", "U.K.", "GBR", "Great Britain"),
-    ("United States", "7012149", "US", "USA", "United States of America"),
-)
-
-
-def institution_versions(apps, alias):
-    return (
-        apps.get_model("reversion", "Version")
-        .objects.using(alias)
-        .filter(content_type__app_label="main_app", content_type__model="institution")
-    )
-
-
-def convert_versions(apps, alias, convert):
-    for version in institution_versions(apps, alias).iterator():
-        objects = json.loads(version.serialized_data)
-        for obj in objects:
-            fields = obj["fields"]
-            if obj["model"] == "main_app.institution" and "country" in fields:
-                fields["country"] = convert(fields["country"])
-        version.serialized_data = json.dumps(objects)
-        version.save(using=alias, update_fields=["serialized_data"])
 
 
 def forwards(apps, schema_editor):
@@ -86,8 +26,8 @@ def forwards(apps, schema_editor):
         "[unknown country]": UNKNOWN,
     }
     known = {
-        label.casefold(): (name, getty_id, aliases)
-        for name, getty_id, *aliases in LEGACY_COUNTRIES
+        label.casefold(): (pk, name, getty_id, aliases)
+        for pk, name, getty_id, *aliases in COUNTRIES
         for label in [name, *aliases]
     }
 
@@ -99,9 +39,9 @@ def forwards(apps, schema_editor):
         if historical and key not in known:
             # Old, unmatched text in a revision is not a new selectable country.
             return UNKNOWN
-        name, getty_id, aliases = known.get(key, (text, None, []))
+        pk, name, getty_id, aliases = known.get(key, (None, text, None, []))
         country = countries.create(
-            name=name, getty_id=getty_id, aliases="\n".join(aliases)
+            pk=pk, name=name, getty_id=getty_id, aliases="\n".join(aliases)
         )
         for label in [name, *aliases]:
             ids[label.casefold()] = country.pk
