@@ -44,6 +44,7 @@ class SourceFilterMixin:
 
     request: HttpRequest
 
+    # Cached: it queries the database and is used more than once per request.
     @cached_property
     def date_range_bounds(self) -> tuple[Optional[int], Optional[int]]:
         """
@@ -70,7 +71,7 @@ class SourceFilterMixin:
         )
         return date_range_min, date_range_max
 
-    @cached_property
+    @property
     def requested_date_range(self) -> tuple[Optional[int], Optional[int]]:
         """
         The dateStart/dateEnd query parameters parsed to ints. A missing or
@@ -83,7 +84,7 @@ class SourceFilterMixin:
             to_int(self.request.GET.get("dateEnd")),
         )
 
-    @cached_property
+    @property
     def date_range_active(self) -> bool:
         """
         True only when the requested range actually narrows the full range of
@@ -108,7 +109,7 @@ class SourceFilterMixin:
         )
         return narrows_start or narrows_end
 
-    @cached_property
+    @property
     def source_completeness_active(self) -> bool:
         """
         True when some physical status boxes are unticked. The form submits
@@ -118,7 +119,7 @@ class SourceFilterMixin:
         all_values = set(Source.SourceCompletenessChoices.values)
         return bool(selected) and selected != all_values
 
-    @cached_property
+    @property
     def selected_source_completeness(self) -> list[int]:
         """The ticked physical statuses, ignoring values that aren't one,
         e.g. from an edited URL (#1484)."""
@@ -127,7 +128,7 @@ class SourceFilterMixin:
             Source.SourceCompletenessChoices,
         )
 
-    @cached_property
+    @property
     def source_filters_active(self) -> bool:
         return (
             any(self.request.GET.get(field) for field in SOURCE_FILTER_FIELDS)
