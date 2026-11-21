@@ -764,6 +764,12 @@ def cid_concordances(request: HttpRequest) -> JsonResponse:
     if not cantus_id:
         return JsonResponse({"error": "No Cantus ID provided."}, status=400)
     concordances_dict = get_json_from_ci_api(f"/json-cid/{cantus_id}")
+    if concordances_dict is None:
+        # Cantus Index didn't answer (e.g. busy or rate-limiting); report it so
+        # the page can say so instead of showing no concordances (#2366).
+        return JsonResponse(
+            {"error": "Could not load concordances from Cantus Index."}, status=502
+        )
     # If no concordances are found, the API returns an empty list.
     if concordances_dict == []:
         concordances_dict = {"databases": {}, "chants": {}}
