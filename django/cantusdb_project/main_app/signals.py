@@ -128,9 +128,12 @@ def update_volpiano_fields(instance) -> None:
     Called in on_chant_save()
     """
 
+    # A partial save can exclude volpiano, leaving an assigned None unnormalized
+    # on the instance while the database still holds the previous melody.
     if instance.volpiano is None:
         return
 
+    # Empty strings must still clear the derived fields when a melody is removed.
     volpiano_notes = generate_volpiano_notes(instance.volpiano)
     volpiano_intervals = generate_volpiano_intervals(volpiano_notes)
 
