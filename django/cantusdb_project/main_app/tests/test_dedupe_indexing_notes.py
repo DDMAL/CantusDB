@@ -1,9 +1,6 @@
 """Tests for the dedupe_indexing_notes management command (issue #2234)."""
 
-import csv
 import io
-import os
-import tempfile
 
 from django.core.management import call_command
 from django.test import TestCase
@@ -101,21 +98,28 @@ class DedupeIndexingNotesCommandTest(TestCase):
             ["ams186 | ams186 | ams186", "ams186"],
         )
 
-    def test_csv_lists_each_change(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            path = os.path.join(directory, "notes.csv")
-            self._run("--dry-run", "--csv", path)
-            with open(path, newline="", encoding="utf-8") as file:
-                rows = list(csv.reader(file))
-        self.assertEqual(
-            rows,
-            [
-                ["chant_id", "source_id", "old_note", "new_note"],
-                [
-                    str(self.repeated.pk),
-                    str(self.source.pk),
-                    "ams186 | ams186 | ams186",
-                    "ams186",
-                ],
-            ],
+    def test_output_lists_each_change_and_counts_per_source(self) -> None:
+        output = self._run("--dry-run")
+        self.assertIn(
+            f'Chant {self.repeated.pk} (source {self.source.pk}): "ams186" x3', output
         )
+        self.assertNotIn(f"Chant {self.different.pk} ", output)
+        self.assertIn(f"source {self.source.pk}: 1", output)
+
+    def test_restoring_one_chant_leaves_the_others_alone(self) -> None:
+        other = make_fake_chant(source=self.source, indexing_notes="Fol. 3 | Fol. 3")
+        self._run()
+        Chant.objects.filter(pk=other.pk).update(indexing_notes="Edited later")
+
+        before = (
+            Version.objects.get_for_model(Chant)
+            .filter(object_id=str(self.repeated.pk))
+            .order_by("pk")
+            .first()
+        )
+        before.revision.revert()
+
+        self.repeated.refresh_from_db()
+        other.refresh_from_db()
+        self.assertEqual(self.repeated.indexing_notes, "ams186 | ams186 | ams186")
+        self.assertEqual(other.indexing_notes, "Edited later")
