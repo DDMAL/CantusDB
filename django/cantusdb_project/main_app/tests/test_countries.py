@@ -2,6 +2,7 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -27,37 +28,25 @@ from main_app.tests.make_fakes import (
 )
 
 
-class CountryTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.usa = Country.objects.create(
-            pk=36,
-            name="United States of America",
-            aliases="United States\nUSA",
-            rism_code="US",
-        )
-        cls.canada = Country.objects.create(
-            pk=Country.CANADA, name="Canada", rism_code="CDN"
-        )
-
+class CountryLoaderTests(TestCase):
     def test_loader_fills_only_missing_values(self):
-        self.canada.name = "Dominion of Canada"
-        self.canada.aliases = "Local spelling"
-        self.canada.authorities = {"Wikidata": "https://example.org/local-record"}
-        self.canada.save()
-        local = Country.objects.create(name="Local territory")
-        self.assertGreater(local.pk, 36)
+        canada = Country.objects.create(
+            pk=Country.CANADA,
+            name="Dominion of Canada",
+            aliases="Local spelling",
+            rism_code="CDN",
+            authorities={"Wikidata": "https://example.org/local-record"},
+        )
         with CaptureQueriesContext(connection) as queries:
             call_command("load_countries", stdout=StringIO())
-        self.assertEqual(sum(q["sql"].startswith("SELECT") for q in queries), 1)
-        self.canada.refresh_from_db()
-        self.assertEqual(self.canada.name, "Dominion of Canada")
+        self.assertEqual(sum(q["sql"].startswith("SELECT") for q in queries), 2)
+        canada.refresh_from_db()
+        self.assertEqual(canada.name, "Dominion of Canada")
         self.assertSetEqual(
-            set(self.canada.aliases.splitlines()),
-            {"Canada", "Local spelling", "CA", "CAN"},
+            set(canada.aliases.splitlines()), {"Canada", "Local spelling", "CA", "CAN"}
         )
         self.assertEqual(
-            self.canada.authorities,
+            canada.authorities,
             {
                 "Wikidata": "https://example.org/local-record",
                 "Getty TGN": "https://vocab.getty.edu/tgn/7005685",
@@ -69,7 +58,15 @@ class CountryTests(TestCase):
         self.assertFalse(
             any(q["sql"].startswith(("INSERT ", "UPDATE ")) for q in again)
         )
-        self.assertEqual(Country.objects.count(), 37)
+        highest = Country.objects.latest("pk").pk
+        local = Country.objects.create(name="Local territory")
+        self.assertGreater(local.pk, highest)
+        issued = local.pk
+        local.delete()
+        call_command("load_countries", stdout=StringIO())
+        self.assertGreater(
+            Country.objects.create(name="Next local territory").pk, issued
+        )
 
     def test_loader_skips_blank_authority_urls(self):
         with TemporaryDirectory() as directory, self.settings(BASE_DIR=directory):
@@ -79,35 +76,68 @@ class CountryTests(TestCase):
                 "20,Japan,J,,https://vocab.getty.edu/tgn/1000120,\n"
             )
             call_command("load_countries", stdout=StringIO())
-        self.canada.refresh_from_db()
+        canada = Country.objects.get(name="Canada")
         self.assertEqual(
-            self.canada.authorities, {"Wikidata": "https://www.wikidata.org/wiki/Q16"}
+            canada.authorities, {"Wikidata": "https://www.wikidata.org/wiki/Q16"}
         )
         self.assertEqual(
             Country.objects.get(pk=20).authorities,
             {"Getty TGN": "https://vocab.getty.edu/tgn/1000120"},
         )
 
-    def test_loader_rejects_ids_outside_the_catalogue(self):
-        csv = (Path(settings.BASE_DIR) / "countries.csv").read_text()
+    def test_catalogue_can_grow_and_cannot_overwrite_a_local_country(self):
         with TemporaryDirectory() as directory, self.settings(BASE_DIR=directory):
-            (Path(directory) / "countries.csv").write_text(
-                csv.replace("36,United", "37,United")
-            )
-            with self.assertRaisesMessage(CommandError, "between 1 and 36"):
+            path = Path(directory) / "countries.csv"
+            header = "id,name,rism_code,aliases,getty_tgn,wikidata\n"
+            path.write_text(header + "400,Iceland,IS,,,\n")
+            call_command("load_countries", stdout=StringIO())
+            local = Country.objects.create(name="Local territory")
+            self.assertGreater(local.pk, 400)
+            path.write_text(header + f"{local.pk},Estonia,EE,,,\n")
+            with self.assertRaisesMessage(
+                CommandError, "is occupied by Local territory"
+            ):
                 call_command("load_countries")
-        self.assertEqual(Country.objects.count(), 2)
+            local.refresh_from_db()
+            self.assertEqual(
+                (local.name, local.rism_code, local.aliases),
+                ("Local territory", None, ""),
+            )
+
+    def test_loader_rejects_duplicate_and_nonpositive_ids_atomically(self):
+        with TemporaryDirectory() as directory, self.settings(BASE_DIR=directory):
+            for invalid in (0, -1, 10):
+                with self.subTest(invalid=invalid):
+                    (Path(directory) / "countries.csv").write_text(
+                        "id,name,rism_code,aliases,getty_tgn,wikidata\n"
+                        f"10,Iceland,IS,,,\n{invalid},Estonia,EE,,,\n"
+                    )
+                    with self.assertRaisesMessage(CommandError, "positive and unique"):
+                        call_command("load_countries")
+                    self.assertFalse(Country.objects.exists())
 
     def test_loader_reports_existing_authority_claim_under_another_name(self):
         local = Country.objects.create(
+            pk=1000,
             name="Nippon",
             authorities={"Local label": "https://www.wikidata.org/wiki/Q17"},
         )
         with self.assertRaisesMessage(CommandError, "already belongs to Nippon"):
             call_command("load_countries")
         self.assertFalse(Country.objects.filter(name="Japan").exists())
-        self.assertEqual(Country.objects.count(), 3)
+        self.assertEqual(Country.objects.count(), 1)
         self.assertEqual(Country.objects.get(pk=local.pk).name, "Nippon")
+
+
+class CountryTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.usa = Country.objects.create(
+            name="United States of America",
+            aliases="United States\nUSA",
+            rism_code="US",
+        )
+        cls.canada = Country.objects.create(name="Canada", rism_code="CDN")
 
     def test_admin_validates_authority_urls_and_aliases(self):
         self.client.force_login(make_fake_user(is_superuser=True))
@@ -206,6 +236,30 @@ class CountryTests(TestCase):
             import_country("USA")
         self.assertEqual(import_country("United States"), self.usa)
 
+    def test_legacy_rebuilds_resolve_stored_codes_and_historical_prefixes(self):
+        country = Country.objects.create(name="Local country", rism_code="XY")
+        south_africa = Country.objects.create(name="South Africa", rism_code="ZA")
+        taiwan = Country.objects.create(name="Taiwan", rism_code="RC")
+        examples = [
+            ("XY-Lib", country),
+            ("XY", country),
+            ("SA-Lib", south_africa),
+            ("T-Lib", taiwan),
+        ]
+        sources = [
+            make_fake_source(title="City, Library, Ms. 1", siglum=f"{siglum} Ms. 1")
+            for siglum, _ in examples
+        ]
+        for command in ("migrate_records", "migrate_institution_source_records"):
+            with self.subTest(command=command), redirect_stdout(StringIO()), patch(
+                "main_app.management.commands.migrate_records.get_rism_id",
+                return_value=None,
+            ):
+                call_command(command, empty=True)
+                for source, (_, expected) in zip(sources, examples, strict=True):
+                    source.refresh_from_db()
+                    self.assertEqual(source.holding_institution.country, expected)
+
     def test_legacy_rebuild_rolls_back_when_a_country_is_missing(self):
         institution = make_fake_institution(country="canada")
         self.assertEqual(institution.country, self.canada)
@@ -217,7 +271,7 @@ class CountryTests(TestCase):
         for command in ("migrate_records", "migrate_institution_source_records"):
             with self.subTest(command=command), redirect_stdout(StringIO()):
                 with self.assertRaisesMessage(
-                    ValidationError, "Unrecognized country: 'Ecuador'"
+                    ValidationError, "Unrecognized RISM country code: 'EC'"
                 ):
                     call_command(command, empty=True)
                 source.refresh_from_db()

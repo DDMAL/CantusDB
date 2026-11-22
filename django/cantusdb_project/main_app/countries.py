@@ -55,6 +55,32 @@ def import_country(name: str | None) -> Country | None:
     )
 
 
+def legacy_rism_code(siglum: str, known_codes: set[str]) -> str:
+    prefix, separator, _ = siglum.partition("-")
+    if not prefix.isascii() or not prefix.isalpha() or not prefix.isupper():
+        return ""
+    # These two prefixes occur in the old source records.
+    code = {"SA": "ZA", "T": "RC"}.get(prefix, prefix)
+    if separator or code == "XX" or code in known_codes:
+        return code
+    return ""
+
+
+def stored_rism_codes() -> set[str]:
+    return {
+        code.upper()
+        for code in Country.objects.exclude(rism_code=None).values_list(
+            "rism_code", flat=True
+        )
+    }
+
+
+def import_legacy_rism_country(code: str) -> Country | None:
+    if code == "XX":
+        return import_country("Unknown")
+    return import_rism_country(code)
+
+
 def matching_countries(query: str, *, prefix: bool = False) -> QuerySet[Country]:
     query = query.strip()
     code = Q(rism_code__iexact=query)

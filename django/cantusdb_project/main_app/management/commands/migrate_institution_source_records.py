@@ -6,7 +6,11 @@ from django.core.exceptions import ValidationError
 from django.core.management import BaseCommand
 from django.db import transaction
 
-from main_app.countries import import_country
+from main_app.countries import (
+    import_legacy_rism_country,
+    legacy_rism_code,
+    stored_rism_codes,
+)
 from main_app.identifiers import ExternalIdentifiers
 from main_app.models import Source, Institution, InstitutionIdentifier
 
@@ -61,42 +65,6 @@ private_collections = {
     "BR-PApc",
 }
 
-siglum_to_country = {
-    "A": "Austria",
-    "AUS": "Australia",
-    "B": "Belgium",
-    "BR": "Brazil",
-    "CDN": "Canada",
-    "CH": "Switzerland",
-    "CZ": "Czechia",
-    "D": "Germany",
-    "DK": "Denmark",
-    "E": "Spain",
-    "EC": "Ecuador",
-    "F": "France",
-    "FIN": "Finland",
-    "GB": "United Kingdom",
-    "GR": "Greece",
-    "H": "Hungary",
-    "HR": "Croatia",
-    "I": "Italy",
-    "IRL": "Ireland",
-    "NL": "Netherlands",
-    "NZ": "New Zealand",
-    "P": "Portugal",
-    "PL": "Poland",
-    "RO": "Romania",
-    "SI": "Slovenia",
-    "SK": "Slovakia",
-    "SA": "South Africa",
-    "ZA": "South Africa",
-    "T": "Taiwan",
-    "TR": "Turkey",
-    "US": "United States",
-    "V": "Vatican City",
-    "XX": "Unknown",
-}
-
 prints = {
     "MA Impr. 1537",
     "N-N.miss.imp.1519",
@@ -117,7 +85,8 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
-        resolve_country = cache(import_country)
+        resolve_country = cache(import_legacy_rism_country)
+        known_codes = stored_rism_codes()
         if options["empty"]:
             print(self.style.WARNING("Deleting records..."))
             Source.objects.all().update(holding_institution=None)
@@ -200,7 +169,7 @@ class Command(BaseCommand):
                 print(sig, ",", names if len(names) > 0 else "No name")
 
         print("Here are the institutions that I will create:")
-        print("siglum,city,country,name,alt_names")
+        print("siglum,city,country code,name,alt_names")
 
         print_inst = Institution.objects.create(
             name="Print (Multiple Copies)", siglum="XX-NN", city=None
@@ -220,25 +189,21 @@ class Command(BaseCommand):
                 alt_names = "; ".join(list(names)[1:])
                 alt_names_fmt = f'"{alt_names}"' if alt_names else ""
 
-                try:
-                    inst_country = siglum_to_country[sig.split("-")[0]]
-                    inst_sig = sig
-                except KeyError:
+                code = legacy_rism_code(sig, known_codes)
+                inst_sig = sig
+                if not code:
                     print(self.style.WARNING(f"Unknown country for siglum {sig}."))
-                    inst_country = None
                     # Setting siglum to None will make it XX-NN
                     inst_sig = None
 
-                print(
-                    f"{inst_sig},{main_city},{inst_country},{main_name},{alt_names_fmt}"
-                )
+                print(f"{inst_sig},{main_city},{code},{main_name},{alt_names_fmt}")
 
                 if options["dry_run"]:
                     continue
 
                 iobj = {
                     "city": main_city if main_city != "[Unknown]" else None,
-                    "country": resolve_country(inst_country),
+                    "country": resolve_country(code),
                     "name": main_name,
                     "alternate_names": "\n".join(list(names)[1:]),
                 }

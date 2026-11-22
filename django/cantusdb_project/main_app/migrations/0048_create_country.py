@@ -54,20 +54,4 @@ class Migration(migrations.Migration):
                 ],
             },
         ),
-        # IDs 1–36 belong to the original catalogue, including countries loaded later.
-        migrations.RunSQL(
-            "ALTER SEQUENCE main_app_country_id_seq START WITH 37 RESTART WITH 37",
-            migrations.RunSQL.noop,
-        ),
-        migrations.RenameField("institution", "country", "country_text"),
-        migrations.AddField(
-            model_name="institution",
-            name="country",
-            field=models.ForeignKey(
-                blank=True, null=True, on_delete=models.PROTECT, to="main_app.country"
-            ),
-        ),
-        migrations.AlterModelOptions(
-            name="institution", options={"ordering": ["country__name", "city", "name"]}
-        ),
     ]

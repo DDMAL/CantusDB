@@ -5,7 +5,11 @@ import requests
 from django.core.management import BaseCommand
 from django.db import transaction
 
-from main_app.countries import import_country
+from main_app.countries import (
+    import_legacy_rism_country,
+    legacy_rism_code,
+    stored_rism_codes,
+)
 from main_app.identifiers import ExternalIdentifiers
 from main_app.models import Source, Institution, InstitutionIdentifier
 
@@ -54,44 +58,6 @@ private_collections = {
     "BR-PApc",
 }
 
-siglum_to_country = {
-    "A": "Austria",
-    "AUS": "Australia",
-    "B": "Belgium",
-    "BR": "Brazil",
-    "CDN": "Canada",
-    "CH": "Switzerland",
-    "CZ": "Czechia",
-    "D": "Germany",
-    "DK": "Denmark",
-    "E": "Spain",
-    "EC": "Ecuador",
-    "F": "France",
-    "FIN": "Finland",
-    "GB": "United Kingdom",
-    "GR": "Greece",
-    "H": "Hungary",
-    "HR": "Croatia",
-    "I": "Italy",
-    "IRL": "Ireland",
-    "N": "Norway",
-    "NL": "Netherlands",
-    "NZ": "New Zealand",
-    "P": "Portugal",
-    "PL": "Poland",
-    "RO": "Romania",
-    "SI": "Slovenia",
-    "SK": "Slovakia",
-    "SA": "South Africa",
-    "ZA": "South Africa",
-    "S": "Sweden",
-    "T": "Taiwan",
-    "TR": "Turkey",
-    "US": "United States",
-    "V": "Vatican City",
-    "XX": "Unknown",
-}
-
 prints = {
     "MA Impr. 1537",
     "N-N.miss.imp.1519",
@@ -107,7 +73,8 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
-        resolve_country = cache(import_country)
+        resolve_country = cache(import_legacy_rism_country)
+        known_codes = stored_rism_codes()
         if options["empty"]:
             print(self.style.WARNING("Deleting records..."))
             Source.objects.all().update(holding_institution=None)
@@ -151,15 +118,13 @@ class Command(BaseCommand):
                 siglum = "XX-NN"
                 bad_siglum.add(source.id)
 
-            try:
-                country = siglum_to_country[siglum.split("-")[0]]
-            except KeyError:
+            code = legacy_rism_code(siglum, known_codes)
+            if not code:
                 print(
                     self.style.WARNING(
                         f"{source.id:^11}| Could not extract country for {source_siglum}"
                     )
                 )
-                country = "[Unknown Country]"
                 bad_siglum.add(source.id)
 
             if source_siglum in prints:
@@ -196,7 +161,7 @@ class Command(BaseCommand):
 
                 iobj = {
                     "city": city.strip() if city else None,
-                    "country": resolve_country(country),
+                    "country": resolve_country(code),
                     "name": institution_name.strip(),
                 }
 
