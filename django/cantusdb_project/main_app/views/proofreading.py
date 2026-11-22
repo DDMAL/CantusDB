@@ -85,10 +85,16 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
                 cutoff_date = None
 
             if cutoff_date:
+                # Editing a chant doesn't change its source's own date_updated
+                # (issue #2304), so a source whose chants were edited since the
+                # cutoff is still active.
+                recent_chant_edit = Chant.objects.filter(
+                    source=OuterRef("pk"), date_updated__gte=cutoff_date
+                )
                 queryset = queryset.filter(
                     Q(date_created__lt=cutoff_date, last_updated_by__isnull=True)
                     | Q(last_updated_by__isnull=False, date_updated__lt=cutoff_date)
-                )
+                ).exclude(Exists(recent_chant_edit))
 
         # Annotate queryset with calculated statistics
         # Counts for items TO proofread (referencing fields on the related Chant model)
