@@ -949,6 +949,15 @@ class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_detail.html")
 
+    def test_summary_keeps_its_paragraphs(self) -> None:
+        # #2268: blank lines in the summary start new paragraphs.
+        source = make_fake_source(summary="First paragraph.\n\nSecond <b>one</b>.")
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertContains(response, "<p>First paragraph.</p>", html=True)
+        self.assertContains(
+            response, "<p>Second &lt;b&gt;one&lt;/b&gt;.</p>", html=True
+        )
+
     def test_contributor_is_shown_only_on_unpublished_sources(self) -> None:
         # #1687: useful to see who is working on a source until it's published
         creator = make_fake_user()
