@@ -1406,3 +1406,12 @@ class CIDConcordancesTest(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(len(response.json()["databases"]), 0)
             self.assertEqual(len(response.json()["chants"]), 0)
+
+    @patch("main_app.views.api.get_json_from_ci_api", MagicMock(return_value=None))
+    def test_cantus_index_not_answering_is_reported_as_an_error(self) -> None:
+        # e.g. Cantus Index is busy or rate-limiting (#2366)
+        response = self.client.get(
+            reverse("cid-concordances"), data={"cantus_id": "006928"}
+        )
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("error", response.json())
