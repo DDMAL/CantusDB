@@ -16,6 +16,11 @@ Results are printed in the terminal, grouped by result, site and source:
 - Blocked: the site refused the request (401, 403, 429).
 - Not checked: sites that can't be checked automatically (see
   SITES_WE_CANNOT_CHECK); spot-check those by hand.
+- Same page: links that work but don't lead to the chant's own page: for a
+  source whose chants are on more than one folio, the first and last chant
+  link on a site end up on the same page (e.g. both redirected to the book's
+  cover), or every chant has the same link. Some viewers only move to the right page in the browser, so check
+  these by hand.
 
 Each site gets one request at a time, with a pause between requests, so the
 libraries' servers aren't flooded. Broken and unreachable links are tried
@@ -32,7 +37,7 @@ import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from typing import Any, Iterable, Optional
+from typing import Any, Optional
 from urllib.parse import urlparse
 
 import requests
@@ -66,11 +71,13 @@ class Link:
     uses: set[tuple[int, str]] = field(default_factory=set)
     result: str = ""
     detail: str = ""
+    # where the link ended up after redirects
+    final_url: str = ""
 
 
 def site_of(url: str) -> str:
     try:
-        return urlparse(url).netloc.lower()
+        return (urlparse(url).hostname or "").lower()
     except ValueError:  # e.g. "https://[bad"
         return ""
 
@@ -92,29 +99,35 @@ def classify(status_code: int) -> str:
     return BROKEN
 
 
-def check_url(session: requests.Session, url: str, timeout: float) -> tuple[str, str]:
-    """Request `url` and return its result and a short detail for the report."""
+def check_url(
+    session: requests.Session, url: str, timeout: float
+) -> tuple[str, str, str]:
+    """
+    Request `url` and return its result, a short detail for the report, and
+    the address it ended up at after redirects ("" if it wasn't reached).
+    """
     if not site_of(url) or urlparse(url).scheme not in ("http", "https"):
-        return BROKEN, "not a web address"
+        return BROKEN, "not a web address", ""
     try:
         # GET rather than HEAD: many library viewers mishandle HEAD. The body
         # is streamed and never read.
         response = session.get(url, timeout=timeout, allow_redirects=True, stream=True)
         response.close()
     except requests.Timeout:
-        return UNREACHABLE, "timed out"
+        return UNREACHABLE, "timed out", ""
     except requests.exceptions.SSLError:
-        return UNREACHABLE, "certificate problem"
+        return UNREACHABLE, "certificate problem", ""
     except (requests.exceptions.InvalidURL, requests.exceptions.MissingSchema):
-        return BROKEN, "not a web address"
+        return BROKEN, "not a web address", ""
     except requests.ConnectionError as error:
         if "NameResolution" in str(error) or "Failed to resolve" in str(error):
-            # The domain no longer exists (checked twice before reporting).
-            return BROKEN, "domain not found"
-        return UNREACHABLE, "connection failed"
+            # Usually a domain that no longer exists, but a DNS hiccup looks
+            # the same, so it's reported as unreachable, not broken.
+            return UNREACHABLE, "domain not found", ""
+        return UNREACHABLE, "connection failed", ""
     except (requests.RequestException, ValueError) as error:
-        return UNREACHABLE, type(error).__name__
-    return classify(response.status_code), str(response.status_code)
+        return UNREACHABLE, type(error).__name__, ""
+    return classify(response.status_code), str(response.status_code), response.url
 
 
 class Command(BaseCommand):
@@ -181,14 +194,19 @@ class Command(BaseCommand):
         failed = [link for link in to_check if link.result in (BROKEN, UNREACHABLE)]
         if failed:
             self.stderr.write(f"Trying the {len(failed)} failed link(s) again...")
+            # Keep the pause between a site's last request and its retry.
+            time.sleep(options["delay"])
             self._check(failed, options["delay"], options["timeout"])
 
-        self._report(links.values())
+        self._report(links)
 
     def _collect(
         self, source_ids: Optional[list[int]], all_chant_links: bool
     ) -> dict[str, Link]:
         links: dict[str, Link] = {}
+        # For each source, site and kind of chant link: the first and last
+        # link, how many chants have a link there, and how many distinct links.
+        self.chant_samples: list[dict[str, Any]] = []
 
         def add(url: Optional[str], source_id: int, kind: str) -> None:
             url = (url or "").strip()
@@ -216,38 +234,59 @@ class Command(BaseCommand):
             if source_ids:
                 rows = rows.filter(source_id__in=source_ids)
             kind = f"{model._meta.verbose_name} link"
-            for source_id, url in self._chant_links(
-                rows.values_list("source_id", "image_link").iterator(),
-                all_chant_links,
-            ):
-                add(url, source_id, kind)
+            samples: dict[tuple[int, str], dict[str, Any]] = {}
+            for source_id, url, folio in rows.values_list(
+                "source_id", "image_link", "folio"
+            ).iterator():
+                url = url.strip()
+                if all_chant_links:
+                    add(url, source_id, kind)
+                key = (source_id, site_of(url))
+                if key not in samples:
+                    samples[key] = {
+                        "source_id": source_id,
+                        "site": key[1],
+                        "kind": kind,
+                        "first": url,
+                        "count": 0,
+                        "distinct": set(),
+                        "folios": set(),
+                    }
+                sample = samples[key]
+                sample["last"] = url
+                sample["count"] += 1
+                sample["distinct"].add(url)
+                sample["folios"].add(folio)
+            for sample in samples.values():
+                if not all_chant_links:
+                    add(sample["first"], sample["source_id"], kind)
+                    add(sample["last"], sample["source_id"], kind)
+                self.chant_samples.append(sample)
         return links
 
-    @staticmethod
-    def _chant_links(
-        rows: Iterable[tuple[int, str]], all_chant_links: bool
-    ) -> Iterable[tuple[int, str]]:
+    def _same_page(self, links: dict[str, Link]) -> list[tuple[dict[str, Any], str]]:
         """
-        Yield (source id, url) for the chant links to check: all of them, or
-        the first and last link on each site within each source.
+        Samples whose chant links work but don't lead to each chant's own
+        page, with a short explanation for the report.
         """
-        if all_chant_links:
-            seen = set()
-            for row in rows:
-                if row not in seen:
-                    seen.add(row)
-                    yield row
-            return
-        first_and_last: dict[tuple[int, str], list[str]] = {}
-        for source_id, url in rows:
-            key = (source_id, site_of(url.strip()))
-            if key not in first_and_last:
-                first_and_last[key] = [url, url]
-            else:
-                first_and_last[key][1] = url
-        for (source_id, _site), urls in first_and_last.items():
-            for url in dict.fromkeys(urls):
-                yield source_id, url
+        found = []
+        for sample in self.chant_samples:
+            first, last = links.get(sample["first"]), links.get(sample["last"])
+            if not first or not last or {first.result, last.result} != {WORKING}:
+                continue
+            # Chants on a single folio (e.g. a one-leaf fragment) rightly
+            # share a page.
+            if len(sample["folios"]) < 2:
+                continue
+            if len(sample["distinct"]) == 1 and sample["count"] > 1:
+                found.append(
+                    (sample, f"all {sample['count']} have the same link: {first.url}")
+                )
+            elif first.url != last.url and first.final_url == last.final_url:
+                found.append(
+                    (sample, f"first and last both end up at {first.final_url}")
+                )
+        return found
 
     def _check(self, links: list[Link], delay: float, timeout: float) -> None:
         by_site: dict[str, list[Link]] = defaultdict(list)
@@ -262,7 +301,9 @@ class Command(BaseCommand):
                 if index and delay:
                     time.sleep(delay)
                 try:
-                    link.result, link.detail = check_url(session, link.url, timeout)
+                    link.result, link.detail, link.final_url = check_url(
+                        session, link.url, timeout
+                    )
                 except Exception as error:  # one odd link mustn't stop the run
                     link.result, link.detail = UNREACHABLE, type(error).__name__
 
@@ -285,8 +326,9 @@ class Command(BaseCommand):
                     f"      {url} [{details[url]}] ({', '.join(sorted(kinds))})"
                 )
 
-    def _report(self, links: Iterable[Link]) -> None:
-        links = list(links)
+    def _report(self, links_by_url: dict[str, Link]) -> None:
+        links = list(links_by_url.values())
+        same_page = self._same_page(links_by_url)
         source_ids = {source_id for link in links for source_id, _ in link.uses}
         names = {
             source.pk: str(source)
@@ -323,6 +365,25 @@ class Command(BaseCommand):
                 self.stdout.write(summary)
                 if list_links:
                     self._list_links(site_links, names)
+
+        if same_page:
+            self.stdout.write(
+                "\nSAME PAGE: the links work but don't lead to each chant's own "
+                f"page; check by hand ({len(same_page)} source(s) and site(s))"
+            )
+            by_site: dict[str, list] = defaultdict(list)
+            for sample, explanation in same_page:
+                by_site[sample["site"]].append((sample, explanation))
+            for site, entries in sorted(by_site.items()):
+                self.stdout.write(f"  {site}: {len(entries)} source(s)")
+                for sample, explanation in sorted(
+                    entries, key=lambda entry: entry[0]["source_id"]
+                ):
+                    source_id = sample["source_id"]
+                    self.stdout.write(
+                        f"    source {source_id} ({names.get(source_id, '?')}), "
+                        f"{sample['kind']}s: {explanation}"
+                    )
 
         counts = {
             result: sum(1 for link in links if link.result == result)

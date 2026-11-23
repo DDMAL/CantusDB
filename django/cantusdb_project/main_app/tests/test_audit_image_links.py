@@ -15,6 +15,7 @@ from main_app.management.commands.audit_image_links import (
     cannot_check,
     check_url,
     classify,
+    site_of,
 )
 from main_app.models import SourceURL
 from main_app.tests.make_fakes import make_fake_chant, make_fake_source
@@ -24,8 +25,9 @@ CHECK_URL = "main_app.management.commands.audit_image_links.check_url"
 
 
 class FakeResponse:
-    def __init__(self, status_code: int) -> None:
+    def __init__(self, status_code: int, url: str) -> None:
         self.status_code = status_code
+        self.url = url
 
     def close(self) -> None:
         pass
@@ -38,7 +40,12 @@ class FakeSession:
     def get(self, url, **kwargs):
         if isinstance(self.outcome, Exception):
             raise self.outcome
-        return FakeResponse(self.outcome)
+        return FakeResponse(self.outcome, url)
+
+
+def check(session, url, timeout):
+    """check_url's result and detail, without the final address."""
+    return check_url(session, url, timeout)[:2]
 
 
 class CheckUrlTest(SimpleTestCase):
@@ -53,14 +60,14 @@ class CheckUrlTest(SimpleTestCase):
 
     def test_answers(self) -> None:
         url = "https://example.org/page"
-        self.assertEqual(check_url(FakeSession(200), url, 1), (WORKING, "200"))
-        self.assertEqual(check_url(FakeSession(404), url, 1), (BROKEN, "404"))
+        self.assertEqual(check(FakeSession(200), url, 1), (WORKING, "200"))
+        self.assertEqual(check(FakeSession(404), url, 1), (BROKEN, "404"))
         self.assertEqual(
-            check_url(FakeSession(requests.Timeout()), url, 1),
+            check(FakeSession(requests.Timeout()), url, 1),
             (UNREACHABLE, "timed out"),
         )
         self.assertEqual(
-            check_url(FakeSession(requests.ConnectionError()), url, 1),
+            check(FakeSession(requests.ConnectionError()), url, 1),
             (UNREACHABLE, "connection failed"),
         )
 
@@ -68,27 +75,35 @@ class CheckUrlTest(SimpleTestCase):
         url = "https://example.org/page"
         dns = requests.ConnectionError("NameResolutionError: Failed to resolve")
         self.assertEqual(
-            check_url(FakeSession(dns), url, 1), (BROKEN, "domain not found")
+            check(FakeSession(dns), url, 1), (UNREACHABLE, "domain not found")
         )
         self.assertEqual(
-            check_url(FakeSession(requests.exceptions.SSLError()), url, 1),
+            check(FakeSession(requests.exceptions.SSLError()), url, 1),
             (UNREACHABLE, "certificate problem"),
         )
         self.assertEqual(
-            check_url(FakeSession(requests.exceptions.InvalidURL()), url, 1),
+            check(FakeSession(requests.exceptions.InvalidURL()), url, 1),
             (BROKEN, "not a web address"),
         )
         for malformed in ("https://[bad", "http://", "www.example.org/page"):
             self.assertEqual(
-                check_url(FakeSession(200), malformed, 1),
+                check(FakeSession(200), malformed, 1),
                 (BROKEN, "not a web address"),
             )
 
     def test_not_a_web_address(self) -> None:
         self.assertEqual(
-            check_url(FakeSession(200), "ftp://example.org/x", 1),
+            check(FakeSession(200), "ftp://example.org/x", 1),
             (BROKEN, "not a web address"),
         )
+
+    def test_final_address_is_returned(self) -> None:
+        url = "https://example.org/page"
+        self.assertEqual(check_url(FakeSession(200), url, 1)[2], url)
+
+    def test_site_ignores_the_port(self) -> None:
+        self.assertEqual(site_of("https://Gallica.bnf.fr:443/x"), "gallica.bnf.fr")
+        self.assertIsNotNone(cannot_check(site_of("https://gallica.bnf.fr:443/x")))
 
     def test_sites_we_cannot_check(self) -> None:
         self.assertIsNotNone(cannot_check("gallica.bnf.fr"))
@@ -110,7 +125,9 @@ class AuditImageLinksCommandTest(TestCase):
     def fake_check_url(self, session, url, timeout):
         self.requested.append(url)
         answers = self.answers.get(url)
-        return answers.pop(0) if answers else (WORKING, "200")
+        answer = answers.pop(0) if answers else (WORKING, "200")
+        # the final address defaults to the link itself (no redirect)
+        return answer if len(answer) == 3 else (*answer, url)
 
     def run_command(self, *args: str) -> str:
         out = io.StringIO()
@@ -186,7 +203,7 @@ class AuditImageLinksCommandTest(TestCase):
         def fake(session, url, timeout):
             if url == "https://a.org/001r":
                 raise RuntimeError("something odd")
-            return WORKING, "200"
+            return WORKING, "200", url
 
         out = io.StringIO()
         with patch(CHECK_URL, side_effect=fake):
@@ -210,3 +227,32 @@ class AuditImageLinksCommandTest(TestCase):
         make_fake_source(image_link="https://c.org/other")
         self.run_command("--source", str(self.source.pk))
         self.assertNotIn("https://c.org/other", self.requested)
+
+    def test_links_that_end_up_on_the_same_page(self) -> None:
+        cover = "https://a.org/cover"
+        self.answers["https://a.org/001r"] = [(WORKING, "200", cover)]
+        self.answers["https://a.org/003r"] = [(WORKING, "200", cover)]
+        output = self.run_command("--source", str(self.source.pk))
+        self.assertIn("SAME PAGE", output)
+        self.assertIn(f"chant links: first and last both end up at {cover}", output)
+
+    def test_chants_that_all_share_one_link(self) -> None:
+        source = make_fake_source(image_link=None)
+        for folio in ("001r", "002r", "003r"):
+            make_fake_chant(source=source, folio=folio, image_link="https://d.org/same")
+        output = self.run_command("--source", str(source.pk))
+        self.assertIn("all 3 have the same link: https://d.org/same", output)
+
+    def test_links_to_their_own_pages_are_not_flagged(self) -> None:
+        output = self.run_command("--source", str(self.source.pk))
+        self.assertNotIn("SAME PAGE", output)
+
+    def test_chants_on_one_folio_may_share_a_link(self) -> None:
+        # e.g. a one-leaf fragment: every chant is on the same page
+        source = make_fake_source(image_link=None)
+        for _ in range(3):
+            make_fake_chant(
+                source=source, folio="001r", image_link="https://d.org/leaf"
+            )
+        output = self.run_command("--source", str(source.pk))
+        self.assertNotIn("SAME PAGE", output)
