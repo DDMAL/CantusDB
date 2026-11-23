@@ -44,7 +44,7 @@
         {% if source.summary %}
             <dt>Summary</dt>
             <dd>
-                {{ source.summary }}
+                {{ source.summary|linebreaks }}
             </dd>
         {% endif %}
         {% if source.liturgical_occasions %}
