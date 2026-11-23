@@ -497,6 +497,67 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
         chant.refresh_from_db()
         self.assertEqual(chant.manuscript_full_text_std_spelling, "test")
 
+    def _save(self, chant, **extra):
+        return self.client.post(
+            reverse("source-edit-chants", args=[chant.source.id]),
+            {
+                "manuscript_full_text_std_spelling": "test",
+                "pk": chant.pk,
+                "folio": chant.folio,
+                "c_sequence": chant.c_sequence,
+                **extra,
+            },
+        )
+
+    def test_save_and_next_opens_the_next_chant_on_the_folio(self):
+        # #103
+        source = make_fake_source()
+        first = make_fake_chant(source=source, folio="001r", c_sequence=1)
+        second = make_fake_chant(source=source, folio="001r", c_sequence=2)
+        response = self._save(first, save_and_next="1")
+        self.assertRedirects(
+            response,
+            reverse("source-edit-chants", args=[source.id])
+            + f"?pk={second.pk}&folio=001r",
+            fetch_redirect_response=False,
+        )
+        first.refresh_from_db()
+        self.assertEqual(first.manuscript_full_text_std_spelling, "test")
+
+    def test_save_and_next_moves_on_to_the_next_folio(self):
+        source = make_fake_source()
+        last_on_folio = make_fake_chant(source=source, folio="001v", c_sequence=5)
+        # folio names that the old "001v -> 002r" guess would miss
+        next_folio = make_fake_chant(source=source, folio="001w", c_sequence=1)
+        make_fake_chant(source=source, folio="002r", c_sequence=1)
+        response = self._save(last_on_folio, save_and_next="1")
+        self.assertRedirects(
+            response,
+            reverse("source-edit-chants", args=[source.id])
+            + f"?pk={next_folio.pk}&folio=001w",
+            fetch_redirect_response=False,
+        )
+
+    def test_save_and_next_on_the_last_chant_stays_put(self):
+        source = make_fake_source()
+        last = make_fake_chant(source=source, folio="001r", c_sequence=1)
+        response = self._save(last, save_and_next="1")
+        self.assertRedirects(
+            response,
+            reverse("source-edit-chants", args=[source.id]),
+            fetch_redirect_response=False,
+        )
+        messages = [str(m) for m in get_messages(response.wsgi_request)]
+        self.assertIn("This is the last chant in the source.", messages)
+
+    def test_edit_page_offers_save_and_next(self):
+        chant = make_fake_chant()
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(
+                reverse("source-edit-chants", args=[chant.source.id]), {"pk": chant.pk}
+            )
+        self.assertContains(response, 'name="save_and_next"')
+
     def test_edit_gabc_and_preserve_it_after_segment_removal(self) -> None:
         segment = make_fake_segment(id=settings.CHINESE_CATHOLIC_PLAINCHANT_SEGMENT_ID)
         source = make_fake_source(segment=[segment])
@@ -4989,6 +5050,39 @@ class ChantDeleteViewTest(ChantPermissionsTestCase):
             get_allowed_users=["editor", "superuser"],
             post_allowed_users=["editor", "superuser"],
             test_name="Chant in editor assigned source",
+        )
+
+    def test_returns_to_the_folio_after_deleting(self):
+        # #1974
+        source = make_fake_source()
+        chant = make_fake_chant(source=source, folio="003v")
+        make_fake_chant(source=source, folio="003v")
+        response = self.client.post(reverse("chant-delete", args=[chant.id]))
+        self.assertRedirects(
+            response,
+            reverse("browse-chants", args=[source.id]) + "?folio=003v",
+            fetch_redirect_response=False,
+        )
+
+    def test_goes_to_browse_chants_when_the_folio_is_now_empty(self):
+        source = make_fake_source()
+        chant = make_fake_chant(source=source, folio="003v")
+        make_fake_chant(source=source, folio="004r")
+        response = self.client.post(reverse("chant-delete", args=[chant.id]))
+        self.assertRedirects(
+            response,
+            reverse("browse-chants", args=[source.id]),
+            fetch_redirect_response=False,
+        )
+
+    def test_goes_to_the_source_after_deleting_its_last_chant(self):
+        source = make_fake_source()
+        chant = make_fake_chant(source=source)
+        response = self.client.post(reverse("chant-delete", args=[chant.id]))
+        self.assertRedirects(
+            response,
+            reverse("source-detail", args=[source.id]),
+            fetch_redirect_response=False,
         )
 
 

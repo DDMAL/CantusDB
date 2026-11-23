@@ -317,12 +317,16 @@
                 </div>
             </div>
             <div class="row mb-2">
-                <div class="col-lg-1">
+                <div class="col-12 d-flex flex-wrap align-items-center gap-2">
                     <button type="submit" class="btn btn-dark btn-sm" id="btn-submit">Save</button>
-                </div>
-                <div class="col-lg-2">
+                    {# Saves and opens the next chant in this list (#103) #}
+                    <button type="submit"
+                            name="save_and_next"
+                            value="1"
+                            class="btn btn-outline-dark btn-sm"
+                            id="btn-save-and-next">Save and next chant</button>
                     <a href="{% url "chant-delete" chant.id %}"
-                       class="btn btn-danger btn-sm"
+                       class="btn btn-danger btn-sm ms-3"
                        id="btn-delete">Delete</a>
                 </div>
             </div>

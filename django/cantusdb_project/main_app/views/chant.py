@@ -1323,6 +1323,34 @@ class ChantCreateView(CustomAccessMixin, CreateView):  # type: ignore[type-arg]
         return super().form_valid(form)
 
 
+def next_chant_in_source(chant: Chant) -> Optional[Chant]:
+    """
+    Return the chant after `chant` in the order the chant edit page lists
+    them: the next sequence on the same folio, otherwise the first chant on
+    the next folio (folios sorted as in the page's folio list). Returns None
+    for the last chant.
+
+    Unlike `Chant.get_next_chant`, this doesn't guess the next folio's name
+    ("001r" -> "001v"), so it can't skip folios with unusual names.
+    """
+    if not chant.folio:
+        return None
+    chants = Chant.objects.filter(source_id=chant.source_id)
+    if chant.c_sequence is not None:
+        next_on_folio = (
+            chants.filter(folio=chant.folio, c_sequence__gt=chant.c_sequence)
+            .order_by("c_sequence", "pk")
+            .first()
+        )
+        if next_on_folio is not None:
+            return next_on_folio
+    return (
+        chants.filter(folio__gt=chant.folio)
+        .order_by("folio", "c_sequence", "pk")
+        .first()
+    )
+
+
 class ChantDeleteView(CustomAccessMixin, DeleteView):  # type: ignore[type-arg]
     """
     The view for deleting a chant object
@@ -1342,7 +1370,22 @@ class ChantDeleteView(CustomAccessMixin, DeleteView):  # type: ignore[type-arg]
         return self.user_can_edit_chants(source)
 
     def get_success_url(self):
-        return reverse("source-edit-chants", args=[self.object.source.id])
+        """
+        Return to the folio the deleted chant was on (#1974), so a proofreader
+        doesn't have to find it again. Django asks for this URL before the
+        chant is deleted, so the chant itself is left out of the checks.
+        """
+        source = self.object.source
+        remaining = source.chant_set.exclude(pk=self.object.pk)
+        browse_url = reverse("browse-chants", args=[source.id])
+        if self.object.folio and remaining.filter(folio=self.object.folio).exists():
+            return (
+                f"{browse_url}?{urllib.parse.urlencode({'folio': self.object.folio})}"
+            )
+        if remaining.exists():
+            return browse_url
+        # Browse Chants is a 404 for a source without chants.
+        return reverse("source-detail", args=[source.id])
 
 
 class CISearchView(TemplateView):
@@ -1601,6 +1644,15 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
         return super().form_invalid(form)
 
     def get_success_url(self) -> str:
+        # "Save and next chant" opens the following chant in this list (#103).
+        if "save_and_next" in self.request.POST:
+            next_chant = next_chant_in_source(self.object)
+            if next_chant is not None:
+                query = urllib.parse.urlencode(
+                    {"pk": next_chant.pk, "folio": next_chant.folio}
+                )
+                return f"{reverse('source-edit-chants', args=[self.source.id])}?{query}"
+            messages.info(self.request, "This is the last chant in the source.")
         # Take user back to the referring page
         # `ref` url parameter is used to indicate referring page
         next_url = self.request.GET.get("ref")
