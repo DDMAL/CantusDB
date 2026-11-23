@@ -369,7 +369,27 @@ class FormsetOptimizedModelChoiceField(forms.ModelChoiceField):
         self.choices = choices
 
 
-class ChantCreateForm(ChantTextWarningsMixin, forms.ModelForm):
+class ChantEntryForm(ChantTextWarningsMixin, forms.ModelForm):
+    gabc = forms.CharField(
+        label="GABC melody",
+        widget=TextAreaWidget,
+        required=False,
+        strip=False,
+        empty_value=None,
+    )
+
+    def __init__(self, *args, source: Optional[Source] = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if (
+            source is None
+            or not source.segment_m2m.filter(
+                pk=settings.CHINESE_CATHOLIC_PLAINCHANT_SEGMENT_ID
+            ).exists()
+        ):
+            del self.fields["gabc"]
+
+
+class ChantCreateForm(ChantEntryForm):
     class Meta:
         model = Chant
         # specify either 'fields' or 'excludes' so that django knows which fields to use
@@ -391,6 +411,7 @@ class ChantCreateForm(ChantTextWarningsMixin, forms.ModelForm):
             "manuscript_full_text_std_spelling",
             "manuscript_full_text",
             "volpiano",
+            "gabc",
             "image_link",
             "melody_id",
             "content_structure",
@@ -599,13 +620,14 @@ class SourceCreateForm(forms.ModelForm):
         )
 
 
-class ChantEditForm(ChantTextWarningsMixin, forms.ModelForm):
+class ChantEditForm(ChantEntryForm):
     class Meta:
         model = Chant
         fields = [
             "manuscript_full_text_std_spelling",
             "manuscript_full_text",
             "volpiano",
+            "gabc",
             "marginalia",
             "folio",
             "c_sequence",

@@ -497,6 +497,42 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
         chant.refresh_from_db()
         self.assertEqual(chant.manuscript_full_text_std_spelling, "test")
 
+    def test_edit_gabc_and_preserve_it_after_segment_removal(self) -> None:
+        segment = make_fake_segment(id=settings.CHINESE_CATHOLIC_PLAINCHANT_SEGMENT_ID)
+        source = make_fake_source(segment=[segment])
+        chant = make_fake_chant(source=source, gabc="(c4) A(f)men(g) (::)")
+        url = reverse("source-edit-chants", args=[source.pk])
+        self.assertContains(self.client.get(url, {"pk": chant.pk}), chant.gabc)
+        data = {
+            "pk": chant.pk,
+            "folio": chant.folio,
+            "c_sequence": chant.c_sequence,
+            "manuscript_full_text_std_spelling": "Amen",
+            "gabc": "(c4) A(h)men(g) (::)",
+        }
+        self.assertEqual(self.client.post(url, data).status_code, 302)
+        chant.refresh_from_db()
+        self.assertEqual(chant.gabc, data["gabc"])
+        detail = self.client.get(reverse("chant-detail", args=[chant.pk]))
+        self.assertNotContains(detail, chant.gabc)
+
+        source.segment_m2m.remove(segment)
+        self.assertNotContains(self.client.get(url, {"pk": chant.pk}), 'name="gabc"')
+        self.assertEqual(self.client.post(url, {**data, "gabc": ""}).status_code, 302)
+        chant.refresh_from_db()
+        self.assertEqual(chant.gabc, data["gabc"])
+
+        source.segment_m2m.add(segment)
+        # An editor may still have the form from before the segment was re-added.
+        old_form = {key: value for key, value in data.items() if key != "gabc"}
+        self.assertEqual(self.client.post(url, old_form).status_code, 302)
+        chant.refresh_from_db()
+        self.assertEqual(chant.gabc, data["gabc"])
+
+        self.assertEqual(self.client.post(url, {**data, "gabc": ""}).status_code, 302)
+        chant.refresh_from_db()
+        self.assertIsNone(chant.gabc)
+
     def test_update_chant_returns_to_edited_chant_row(self):
         # When editing from the browse-chants list (ref=chant-list), the user is
         # returned to the edited chant's row via a URL fragment so they keep their
@@ -4203,6 +4239,26 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
         source = self.source
         response = self.client.get(f"/chant-create/{source.id}")
         self.assertEqual(response.status_code, 200)
+
+    def test_gabc_entry_follows_source_segment(self) -> None:
+        segment = make_fake_segment(id=settings.CHINESE_CATHOLIC_PLAINCHANT_SEGMENT_ID)
+        url = reverse("chant-create", args=[self.source.pk])
+        gabc = "name: 聖歌;\n%%\n(c4) Ky(f)ri(g)e(h) (::)\n"
+        data = {
+            "folio": "001r",
+            "c_sequence": "1",
+            "manuscript_full_text_std_spelling": "Kyrie",
+            "gabc": gabc,
+        }
+        self.assertNotContains(self.client.get(url), 'name="gabc"')
+        self.assertEqual(self.client.post(url, data).status_code, 302)
+        self.assertIsNone(self.source.chant_set.get().gabc)
+
+        self.source.segment_m2m.add(segment)
+        self.assertContains(self.client.get(url), 'name="gabc"')
+        data["c_sequence"] = "2"
+        self.assertEqual(self.client.post(url, data).status_code, 302)
+        self.assertEqual(self.source.chant_set.get(c_sequence=2).gabc, gabc)
 
     def test_context(self) -> None:
         """Test that correct source is in context"""

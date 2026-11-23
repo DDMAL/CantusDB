@@ -223,6 +223,14 @@
                 {{ form.volpiano }}
             </div>
         </div>
+        {% if form.gabc %}
+            <div class="row small">
+                <div class="col-lg">
+                    {{ form.gabc.label_tag }}
+                    {{ form.gabc }}
+                </div>
+            </div>
+        {% endif %}
         <div class="row small">
             <div class="col-lg-8">
                 {{ form.image_link.label_tag }}
