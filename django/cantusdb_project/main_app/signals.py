@@ -90,13 +90,20 @@ def update_source_chant_count(instance) -> None:
         # copy was loaded with, including a `source_status` another request has
         # changed since. That silently reverts a proofreading lock applied while
         # a chant edit was in flight (issue #1962), so write only the column
-        # recalculated here. `date_updated` is listed explicitly because Django
-        # only refreshes `auto_now` fields that appear in `update_fields`.
+        # recalculated here. `date_updated` is deliberately left out: Django
+        # only writes `auto_now` fields named in `update_fields`, and this
+        # recount is not an edit to the source. Bumping it on every chant save
+        # made the source look freshly edited by whoever last edited the
+        # source itself, in "My sources" and Content Overview (issue #2304).
         # The status is re-read too, because django-reversion snapshots the
         # whole in-memory copy, and restoring a snapshot carrying the stale
-        # status would undo the lock.
-        source.refresh_from_db(fields=["source_status"])
-        source.save(update_fields=["number_of_chants", "date_updated"])
+        # status would undo the lock. Submitting for proofreading also sets
+        # the last-modified date and person, so re-read those with it: the
+        # snapshot then records them as they are, not as the chant loaded them.
+        source.refresh_from_db(
+            fields=["source_status", "date_updated", "last_updated_by"]
+        )
+        source.save(update_fields=["number_of_chants"])
 
 
 def update_source_melody_count(instance) -> None:
@@ -116,10 +123,10 @@ def update_source_melody_count(instance) -> None:
             .exclude(volpiano__exact="")
             .count()
         )
-        # Narrowed for the same reason as in update_source_chant_count() above,
-        # which always runs first on the same cached `source` and has already
-        # re-read its status.
-        source.save(update_fields=["number_of_melodies", "date_updated"])
+        # Narrowed, and leaves `date_updated` alone, for the same reasons as in
+        # update_source_chant_count() above, which always runs first on the
+        # same cached `source` and has already re-read its status.
+        source.save(update_fields=["number_of_melodies"])
 
 
 def update_volpiano_fields(instance) -> None:

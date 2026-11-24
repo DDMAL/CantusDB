@@ -1,8 +1,10 @@
 import random
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.conf import settings
 from django.test import TestCase
+from django.utils import timezone
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from main_app.tests.make_fakes import (
@@ -11,7 +13,7 @@ from main_app.tests.make_fakes import (
     make_fake_segment,
     make_fake_institution,
 )
-from main_app.models import Source
+from main_app.models import Chant, Source
 from main_app.views.proofreading import ProofreadView
 from users.models import Group
 
@@ -197,6 +199,25 @@ class ProofreadingOverviewViewTest(TestCase):
         sources = list(response.context["sources"])
         self.assertNotIn(bower_source, sources)
         self.assertNotIn(empty_source, sources)
+
+    def test_inactive_filter_counts_recent_chant_edits_as_activity(self):
+        # Editing chants doesn't change the source's own date_updated (#2304),
+        # so the inactivity filter has to look at the chants too.
+        long_ago = timezone.now() - timedelta(days=120)
+        active = make_fake_source(segment=[self.cantus_segment])
+        active_chant = make_fake_chant(source=active)
+        inactive = make_fake_source(segment=[self.cantus_segment])
+        inactive_chant = make_fake_chant(source=inactive)
+        Source.objects.filter(pk__in=[active.pk, inactive.pk]).update(
+            date_updated=long_ago, last_updated_by=self.project_manager_user
+        )
+        Chant.objects.filter(pk=inactive_chant.pk).update(date_updated=long_ago)
+        Chant.objects.filter(pk=active_chant.pk).update(date_updated=timezone.now())
+
+        response = self.client.get(self.url, {"inactive": "3"})
+        sources = list(response.context["sources"])
+        self.assertIn(inactive, sources)
+        self.assertNotIn(active, sources)
 
     def test_sortable_headers(self):
         response = self.client.get(self.url, {"order": "country"})

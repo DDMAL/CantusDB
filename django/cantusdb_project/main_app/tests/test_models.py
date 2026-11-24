@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import reversion
 from reversion.models import Version
 
@@ -24,6 +26,7 @@ from .make_fakes import (
     make_fake_service,
     make_fake_sequence,
     make_fake_source,
+    make_fake_user,
 )
 
 # run with `python -Wa manage.py test main_app.tests.test_models`
@@ -524,6 +527,80 @@ class SourceModelTest(TestCase):
         make_fake_chant(source=source, volpiano="1-a-b-c")
         make_fake_chant(source=source, volpiano=None)
         self.assertEqual(source.number_of_melodies, 1)
+
+
+class SourceLastModifiedTest(TestCase):
+    """
+    Recounting a source's chants and melodies is not an edit to the source,
+    so it must not change when the source was last modified or by whom
+    (issue #2304).
+    """
+
+    def setUp(self):
+        self.editor = make_fake_user()
+        self.source = make_fake_source()
+        self.source.last_updated_by = self.editor
+        self.source.save()
+        self.date_updated = Source.objects.get(pk=self.source.pk).date_updated
+
+    def assert_source_not_modified(self) -> Source:
+        source = Source.objects.get(pk=self.source.pk)
+        self.assertEqual(source.date_updated, self.date_updated)
+        self.assertEqual(source.last_updated_by, self.editor)
+        return source
+
+    def test_saving_a_chant_updates_counts_only(self):
+        make_fake_chant(source=self.source, volpiano="1-a-b-c")
+        source = self.assert_source_not_modified()
+        self.assertEqual(source.number_of_chants, 1)
+        self.assertEqual(source.number_of_melodies, 1)
+
+    def test_editing_a_chant_updates_counts_only(self):
+        chant = make_fake_chant(source=self.source, volpiano="1-a-b-c")
+        self.date_updated = Source.objects.get(pk=self.source.pk).date_updated
+        chant.volpiano = ""
+        chant.save()
+        source = self.assert_source_not_modified()
+        self.assertEqual(source.number_of_melodies, 0)
+
+    def test_deleting_a_chant_updates_counts_only(self):
+        chant = make_fake_chant(source=self.source)
+        self.date_updated = Source.objects.get(pk=self.source.pk).date_updated
+        chant.delete()
+        source = self.assert_source_not_modified()
+        self.assertEqual(source.number_of_chants, 0)
+
+    def test_saving_a_sequence_updates_counts_only(self):
+        make_fake_sequence(source=self.source)
+        source = self.assert_source_not_modified()
+        self.assertEqual(source.number_of_chants, 1)
+
+    def test_recount_history_records_the_current_date_and_person(self):
+        chant = Chant.objects.get(pk=make_fake_chant(source=self.source).pk)
+        chant.source  # loaded with the chant, as in an edit request
+        # Another request (e.g. a submission for proofreading) updates the
+        # source after `chant.source` was loaded.
+        submitter = make_fake_user()
+        Source.objects.filter(pk=self.source.pk).update(
+            date_updated=self.date_updated + timedelta(days=1),
+            last_updated_by=submitter,
+        )
+        with reversion.create_revision():
+            chant.save()
+        version = Version.objects.get_for_object(self.source).first()
+        # Revisions store dates to the millisecond.
+        recorded = version.field_dict["date_updated"]
+        expected = self.date_updated + timedelta(days=1)
+        self.assertLess(abs(recorded - expected), timedelta(milliseconds=1))
+        self.assertEqual(version.field_dict["last_updated_by_id"], submitter.pk)
+
+    def test_editing_the_source_still_updates_its_date(self):
+        source = Source.objects.get(pk=self.source.pk)
+        source.shelfmark = "MS 1"
+        source.save()
+        self.assertGreater(
+            Source.objects.get(pk=self.source.pk).date_updated, self.date_updated
+        )
 
     def test_display_name(self):
         source = Source.objects.first()
