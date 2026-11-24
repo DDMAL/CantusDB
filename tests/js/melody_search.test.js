@@ -29,6 +29,8 @@ function harness() {
         if (!ids.has(id)) ids.set(id, element());
         return ids.get(id);
     };
+    // The page renders the validated source id as JSON (json_script).
+    byId("melody-search-source").textContent = "17";
     const rows = [];
     byId("resultsTable").getElementsByTagName = () => [{
         rows,
@@ -38,7 +40,7 @@ function harness() {
     const context = {
         window: {
             addEventListener(type, callback) { if (type === "load") callback(); },
-            location: { origin: "http://localhost", search: "?source=17" },
+            location: { origin: "http://localhost", search: "" },
         },
         document: { getElementById: byId, body: element(), createElement: element },
         URL, URLSearchParams,

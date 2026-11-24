@@ -7,6 +7,7 @@ from django.db.models.functions import Lower
 from django.views.generic import DetailView, ListView
 from extra_views import SearchableListMixin
 
+from main_app.params import int_param
 from main_app.models import Feast
 from main_app.permissions import CustomAccessMixin
 
@@ -165,7 +166,7 @@ class FeastListView(SearchableListMixin, ListView):  # type: ignore[type-arg]
     def get_queryset(self) -> QuerySet[Feast]:
         queryset = super().get_queryset()
         date = self.request.GET.get("date")
-        month = self.request.GET.get("month")
+        month = int_param(self.request.GET.get("month"))
         # temp vs sanc categorization is not finalized yet,
         # the feastcode needs to be updated by the cantus people
         if date == "temp":
@@ -173,8 +174,7 @@ class FeastListView(SearchableListMixin, ListView):  # type: ignore[type-arg]
         elif date == "sanc":
             queryset = queryset.filter(prefix__in=SANC_PREFIX)
 
-        if month and (int(month)) in range(1, 13):
-            month = int(month)
+        if month is not None and month in range(1, 13):
             queryset = queryset.filter(month=month)
 
         return queryset

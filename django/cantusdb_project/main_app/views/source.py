@@ -68,6 +68,7 @@ from main_app.models import (
 from main_app.models.source_url import SourceURL
 from main_app.permissions import CustomAccessMixin
 from main_app.segments import is_sequence_source
+from main_app.params import int_param
 from main_app.mixins import JSONResponseMixin
 from main_app.iiif_utils import (
     MAX_MANIFEST_UPLOAD_BYTES,
@@ -193,10 +194,11 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
             "feast", "service", "genre"
         )
         # filter the chants with optional search params
-        if feast_id:
-            chants = chants.filter(feast__id=feast_id)
-        if genre_id:
-            chants = chants.filter(genre__id=genre_id)
+        # Ignore ids that aren't numbers, e.g. from an edited URL (#1484).
+        if (feast_pk := int_param(feast_id)) is not None:
+            chants = chants.filter(feast__id=feast_pk)
+        if (genre_pk := int_param(genre_id)) is not None:
+            chants = chants.filter(genre__id=genre_pk)
         if folio:
             chants = chants.filter(folio=folio)
         if search_text:
@@ -581,10 +583,11 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 # Only end date: find centuries that have started
                 q_obj_filter &= Q(century__min_date__lte=date_end_int)
 
-        if provenance_id := self.request.GET.get("provenance"):
-            q_obj_filter &= Q(provenance__id=int(provenance_id))
-        if segment_id := self.request.GET.get("segment"):
-            q_obj_filter &= Q(segment_m2m__id=int(segment_id))
+        # Ignore ids that aren't numbers, e.g. from an edited URL (#1484).
+        if (provenance_id := int_param(self.request.GET.get("provenance"))) is not None:
+            q_obj_filter &= Q(provenance__id=provenance_id)
+        if (segment_id := int_param(self.request.GET.get("segment"))) is not None:
+            q_obj_filter &= Q(segment_m2m__id=segment_id)
         if source_completeness := self.request.GET.getlist("sourceCompleteness"):
             q_obj_filter &= Q(source_completeness__in=source_completeness)
         if production_method := self.request.GET.get("prodMethod"):

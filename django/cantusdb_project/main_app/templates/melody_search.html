@@ -137,6 +137,7 @@
         </div>
     </form>
     {% if source %}
+        {{ source.id|json_script:"melody-search-source" }}
         <b>Searching in source: <a href="{% url 'source-detail' source.id %}" target="_blank">{{ source.heading }}</a></b>
     {% endif %}
     <div id="resultsDiv"></div>
