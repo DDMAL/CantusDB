@@ -29,6 +29,7 @@ from .models import (
     Notation,
     Feast,
     Source,
+    SourceIdentifier,
     Segment,
     Project,
     Provenance,
@@ -1563,4 +1564,19 @@ BrowseChantsBulkEditFormset = forms.modelformset_factory(
     extra=0,
     can_delete=False,
     can_order=False,
+)
+
+
+SourceIdentifierFormset = forms.inlineformset_factory(
+    Source,
+    SourceIdentifier,
+    fields=("type", "identifier", "note"),
+    labels={"type": "Kind", "identifier": "Identifier", "note": "Note"},
+    widgets={
+        "type": SelectWidget(),
+        "identifier": TextInputWidget(),
+        "note": TextInputWidget(),
+    },
+    extra=1,
+    can_delete=True,
 )

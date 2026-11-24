@@ -1,0 +1,22 @@
+<tr{% if identifier_form.DELETE.value %} class="identifier-removed"{% endif %}>
+    <td>
+        {% for hidden in identifier_form.hidden_fields %}{{ hidden }}{% endfor %}
+        {{ identifier_form.type }}
+        {% for error in identifier_form.type.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+    </td>
+    <td>
+        {{ identifier_form.identifier }}
+        {% for error in identifier_form.identifier.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
+    </td>
+    <td>{{ identifier_form.note }}</td>
+    <td class="align-middle text-center">
+        <span class="d-none">{{ identifier_form.DELETE }}</span>
+        <button type="button"
+                class="btn btn-sm btn-link text-dark p-0 identifier-remove"
+                title="Remove this identifier"
+                aria-label="Remove this identifier"
+                aria-pressed="false">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </td>
+</tr>

@@ -1,0 +1,42 @@
+<style>
+    /* Line the table up with the fields and the button around it. */
+    #identifier-table th:first-child,
+    #identifier-table td:first-child {
+        padding-left: 0;
+    }
+    /* A row marked for removal: greyed out until saved, and can be brought back. */
+    #identifier-rows tr.identifier-removed td:not(:last-child) {
+        opacity: 0.4;
+    }
+    #identifier-rows tr.identifier-removed input {
+        text-decoration: line-through;
+    }
+</style>
+<div class="row mb-2 small">
+    <div class="{{ column_class|default:'col-lg-12' }}">
+        <div class="mb-2">Other identifiers:</div>
+        {{ formset.management_form }}
+        {% if formset.non_form_errors %}<div class="text-danger">{{ formset.non_form_errors }}</div>{% endif %}
+        <div class="border rounded px-2 pt-1 pb-2 {{ button_class }}">
+        <table class="table table-sm table-borderless mb-1" id="identifier-table">
+            <thead>
+                <tr>
+                    <th class="fw-normal text-muted" style="width: 30%">Kind</th>
+                    <th class="fw-normal text-muted" style="width: 25%">Identifier</th>
+                    <th class="fw-normal text-muted">Note</th>
+                    <th style="width: 2.5rem"><span class="visually-hidden">Remove</span></th>
+                </tr>
+            </thead>
+            <tbody id="identifier-rows">
+                {% for identifier_form in formset %}
+                    {% include "source_identifiers_form_row.html" with identifier_form=identifier_form %}
+                {% endfor %}
+            </tbody>
+        </table>
+        <template id="identifier-empty-row">
+            {% include "source_identifiers_form_row.html" with identifier_form=formset.empty_form %}
+        </template>
+        <button type="button" class="btn btn-outline-dark btn-sm" id="add-identifier">Add another identifier</button>
+        </div>
+    </div>
+</div>
