@@ -6,6 +6,7 @@ from django.db.models.query import QuerySet
 from django.core.management.base import BaseCommand
 from django.urls import reverse
 from main_app.models import Chant, Source
+from main_app.proofread_visibility import PROOFREAD_FLAGS, hide_unproofread_values
 
 # Usage: `python manage.py update_cached_concordances`
 # or `python manage.py update_cached_concordances -d "/path/to/directory/in/which/to/save/concordances"`
@@ -84,9 +85,14 @@ def get_concordances() -> list[dict]:
         "mode",
         "manuscript_full_text_std_spelling",
         "volpiano",
+        *PROOFREAD_FLAGS,
     )
 
-    concordances: list[dict] = [make_chant_dict(chant) for chant in values]
+    concordances: list[dict] = []
+    for chant in values:
+        # The cache is public, so it leaves out anything not yet proofread.
+        hide_unproofread_values(chant)
+        concordances.append(make_chant_dict(chant))
     return concordances
 
 

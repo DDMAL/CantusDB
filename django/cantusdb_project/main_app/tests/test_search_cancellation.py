@@ -290,7 +290,9 @@ class SearchCancellationTests(TransactionTestCase):
     @override_settings(ROOT_URLCONF="cantusdb.urls")
     def test_real_melody_search_preserves_results_and_source_access(self) -> None:
         public = make_fake_chant(
-            source=make_fake_source(published=True), volpiano="1---a-b-c---4"
+            source=make_fake_source(published=True),
+            volpiano="1---a-b-c---4",
+            volpiano_proofread=True,  # unproofread melodies are hidden (#2289)
         )
         assigned = make_fake_chant(
             source=make_fake_source(published=False), volpiano="1---a-b-c---4"
