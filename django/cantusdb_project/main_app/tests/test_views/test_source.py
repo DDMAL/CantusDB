@@ -949,6 +949,24 @@ class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_detail.html")
 
+    def test_identifiers_are_shown(self) -> None:
+        # #2015: former shelfmarks were only visible in the admin
+        source = make_fake_source(published=True)
+        SourceIdentifier.objects.create(
+            source=source,
+            type=SourceIdentifier.OLIM,
+            identifier="Fulda A.C.3",
+            note="See https://example.org/catalogue",
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertContains(response, "<dt>olim (Former shelfmark)</dt>", html=True)
+        self.assertContains(response, "Fulda A.C.3")
+        self.assertContains(
+            response,
+            '<a href="https://example.org/catalogue" rel="nofollow">https://example.org/catalogue</a>',
+            html=True,
+        )
+
     def test_contributor_is_shown_only_on_unpublished_sources(self) -> None:
         # #1687: useful to see who is working on a source until it's published
         creator = make_fake_user()
