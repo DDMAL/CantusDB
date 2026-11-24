@@ -1572,10 +1572,23 @@ SourceIdentifierFormset = forms.inlineformset_factory(
     SourceIdentifier,
     fields=("type", "identifier", "note"),
     labels={"type": "Kind", "identifier": "Identifier", "note": "Note"},
+    # The table headings aren't labels, so each control names itself.
     widgets={
-        "type": SelectWidget(),
-        "identifier": TextInputWidget(),
-        "note": TextInputWidget(),
+        "type": forms.Select(
+            attrs={"class": "form-select form-select-sm", "aria-label": "Kind"}
+        ),
+        "identifier": forms.TextInput(
+            attrs={"class": "form-control form-control-sm", "aria-label": "Identifier"}
+        ),
+        # A text area, not a text input: browsers drop the line breaks from a
+        # text input's value, so saving the page would join a multi-line note.
+        "note": forms.Textarea(
+            attrs={
+                "class": "form-control form-control-sm",
+                "rows": 1,
+                "aria-label": "Note",
+            }
+        ),
     },
     extra=1,
     can_delete=True,

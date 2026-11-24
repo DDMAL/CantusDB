@@ -387,6 +387,58 @@ class SourceEditViewTest(CsvExportLinkTestMixin, CustomAccessTestMixin, TestCase
             ],
         )
 
+    def test_identifier_fields_have_accessible_names(self) -> None:
+        # the table headings aren't labels, so each control carries its own name
+        source = self.sources["editor_assigned_source"]
+        SourceIdentifier.objects.create(
+            source=source, type=SourceIdentifier.OLIM, identifier="Old 1"
+        )
+        html = self.client.get(
+            reverse("source-edit", args=[source.id])
+        ).content.decode()
+        for index in ("0", "1", "__prefix__"):  # saved, blank and template rows
+            for field, name in (
+                ("type", "Kind"),
+                ("identifier", "Identifier"),
+                ("note", "Note"),
+            ):
+                with self.subTest(row=index, field=field):
+                    self.assertRegex(
+                        html,
+                        rf'<(select|input|textarea)[^>]*name="identifiers-{index}-{field}"'
+                        rf'[^>]*aria-label="{name}"'
+                        rf'|<(select|input|textarea)[^>]*aria-label="{name}"'
+                        rf'[^>]*name="identifiers-{index}-{field}"',
+                    )
+
+    def test_multiline_note_survives_a_save(self) -> None:
+        # a text input would lose the line break and join the two lines
+        source = self.sources["editor_assigned_source"]
+        identifier = SourceIdentifier.objects.create(
+            source=source,
+            type=SourceIdentifier.OLIM,
+            identifier="Old 1",
+            note="Reference A\nReference B",
+        )
+        response = self.client.get(reverse("source-edit", args=[source.id]))
+        self.assertContains(response, "Reference A\nReference B</textarea>")
+
+        # the browser sends the note back as shown, with the line break
+        rows = [
+            {
+                "id": str(identifier.pk),
+                "type": str(SourceIdentifier.OLIM),
+                "identifier": "Old 1",
+                "note": "Reference A\r\nReference B",
+            }
+        ]
+        self.client.post(
+            reverse("source-edit", args=[source.id]),
+            REQUIRED_SOURCE_FIELDS | identifier_formset_data(rows, initial=1),
+        )
+        identifier.refresh_from_db()
+        self.assertEqual(identifier.note.splitlines(), ["Reference A", "Reference B"])
+
     def test_removed_new_row_is_not_checked(self) -> None:
         # a half-filled new row marked with the × is dropped, not refused
         source = self.sources["editor_assigned_source"]
