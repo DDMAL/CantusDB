@@ -31,6 +31,18 @@
                 <a href="{% url "institution-detail" source.holding_institution_id %}">{{ source.holding_institution }}</a>
             </dd>
         {% endif %}
+        {% regroup source.identifiers.all by get_type_display as identifier_groups %}
+        {% for group in identifier_groups %}
+            <dt>{{ group.grouper }}</dt>
+            <dd>
+                {% for identifier in group.list %}
+                    <div>
+                        {{ identifier.identifier }}
+                        {% if identifier.note %}<div class="text-muted small">{{ identifier.note|urlize }}</div>{% endif %}
+                    </div>
+                {% endfor %}
+            </dd>
+        {% endfor %}
         {% if source.production_method %}
             <dt>Manuscript/Print</dt>
             <dd>

@@ -49,6 +49,7 @@ from django.views.generic.detail import SingleObjectMixin
 from main_app.forms import (
     SourceCreateForm,
     SourceEditForm,
+    SourceIdentifierFormset,
     SourceBrowseChantsProofreadForm,
     ImageLinkForm,
     MAX_IMAGE_LINK_ROWS,
@@ -836,7 +837,46 @@ class CcdbBrowseView(SourceListView):
         return ["source_lists/ccdb_browse.html"]
 
 
-class SourceCreateView(UserPassesTestMixin, CreateView):  # type: ignore[type-arg]
+class SourceIdentifiersMixin:
+    """
+    Edits a source's other identifiers (former shelfmarks, alternative
+    names, other catalogues) on the source create and edit pages, below the
+    shelfmark (issue #2015).
+
+    The identifiers are only touched when the page posts them, so other
+    requests to these views leave them as they are.
+    """
+
+    identifier_formset_prefix = "identifiers"
+    request: HttpRequest
+    object: Optional[Source]
+
+    def get_identifier_formset(self) -> SourceIdentifierFormset:
+        if not hasattr(self, "_identifier_formset"):
+            prefix = self.identifier_formset_prefix
+            posted = (
+                self.request.method == "POST"
+                and f"{prefix}-TOTAL_FORMS" in self.request.POST
+            )
+            self._identifier_formset = SourceIdentifierFormset(
+                self.request.POST if posted else None,
+                instance=self.object or Source(),
+                prefix=prefix,
+            )
+        return self._identifier_formset
+
+    def identifiers_are_invalid(self) -> bool:
+        formset = self.get_identifier_formset()
+        return formset.is_bound and not formset.is_valid()
+
+    def save_identifiers(self, source: Source) -> None:
+        formset = self.get_identifier_formset()
+        if formset.is_bound:
+            formset.instance = source
+            formset.save()
+
+
+class SourceCreateView(SourceIdentifiersMixin, UserPassesTestMixin, CreateView):  # type: ignore[type-arg]
     model = Source
     template_name = "source_create.html"
     form_class = SourceCreateForm
@@ -848,10 +888,19 @@ class SourceCreateView(UserPassesTestMixin, CreateView):  # type: ignore[type-ar
     def get_success_url(self):
         return reverse("source-detail", args=[self.object.id])
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["identifier_formset"] = self.get_identifier_formset()
+        return context
+
     def form_valid(self, form):
+        if self.identifiers_are_invalid():
+            return self.form_invalid(form)
         form.instance.created_by = self.request.user
         form.instance.last_updated_by = self.request.user
-        self.object = form.save()
+        with transaction.atomic():
+            self.object = form.save()
+            self.save_identifiers(self.object)
 
         # assign this source to the "current_editors"
         current_editors = self.object.current_editors.all()
@@ -890,7 +939,7 @@ PROOFREADING_SUBMITTED_MESSAGE = (
 )
 
 
-class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
+class SourceEditView(SourceIdentifiersMixin, CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
     template_name = "source_edit.html"
     model = Source
     form_class = SourceEditForm
@@ -905,6 +954,7 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
         context["user_can_submit_for_proofreading"] = (
             self.user_can_submit_source_for_proofreading(source)
         )
+        context["identifier_formset"] = self.get_identifier_formset()
 
         if is_sequence_source(source):
             # if this is a sequence source
@@ -968,6 +1018,8 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
         # - the save is narrowed to the form's own columns, so `source_status`
         #   is never in the UPDATE at all and a submission that commits just
         #   after the re-read still stands.
+        if self.identifiers_are_invalid():
+            return self.form_invalid(form)
         submitting = "submit_for_proofreading" in self.request.POST
         with transaction.atomic():
             fresh = (
@@ -990,6 +1042,7 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
                 form.instance
             )
             self.save_form_fields_only(form)
+            self.save_identifiers(form.instance)
             if submitting:
                 # The button lives inside this form, so save the indexer's
                 # pending corrections before locking the source (issue #1962).

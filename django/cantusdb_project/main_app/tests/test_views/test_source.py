@@ -141,6 +141,29 @@ class SourcePermissionsTestCase(CustomAccessTestMixin, TestCase):
         )
 
 
+def identifier_formset_data(
+    rows: list[dict[str, str]], initial: int = 0
+) -> dict[str, str]:
+    """POST data for the identifiers formset on source create and edit."""
+    data = {
+        "identifiers-TOTAL_FORMS": str(len(rows)),
+        "identifiers-INITIAL_FORMS": str(initial),
+        "identifiers-MIN_NUM_FORMS": "0",
+        "identifiers-MAX_NUM_FORMS": "1000",
+    }
+    for index, row in enumerate(rows):
+        for field, value in row.items():
+            data[f"identifiers-{index}-{field}"] = value
+    return data
+
+
+REQUIRED_SOURCE_FIELDS = {
+    "shelfmark": "test-shelfmark",
+    "source_completeness": "1",
+    "production_method": "1",
+}
+
+
 class SourceCreateViewTest(TestCase):
     user: UserAnnotation
 
@@ -192,6 +215,22 @@ class SourceCreateViewTest(TestCase):
 
         source = Source.objects.first()
         self.assertEqual(source.shelfmark, "test-shelfmark")
+
+    def test_create_source_with_identifiers(self) -> None:
+        # #2015: former shelfmarks can be added on the create page
+        data = REQUIRED_SOURCE_FIELDS | identifier_formset_data(
+            [
+                {"type": str(SourceIdentifier.OLIM), "identifier": "Fulda A.C.3"},
+                {"type": "", "identifier": "", "note": ""},  # blank row
+            ]
+        )
+        response = self.client.post(reverse("source-create"), data)
+        self.assertEqual(response.status_code, 302)
+        source = Source.objects.get(shelfmark="test-shelfmark")
+        self.assertEqual(
+            list(source.identifiers.values_list("type", "identifier")),
+            [(SourceIdentifier.OLIM, "Fulda A.C.3")],
+        )
 
     def test_segment_m2m_excludes_benedicamus_domino(self) -> None:
         # "Benedicamus Domino" is a chant-level project designation, not a
@@ -306,6 +345,148 @@ class SourceEditViewTest(CsvExportLinkTestMixin, CustomAccessTestMixin, TestCase
         self.assertRedirects(response, reverse("source-detail", args=[source.id]))
         source.refresh_from_db()
         self.assertEqual(source.shelfmark, "test-shelfmark")
+
+    def test_edit_identifiers(self) -> None:
+        # #2015: identifiers can be added, changed and removed on the edit page
+        source = self.sources["editor_assigned_source"]
+        olim = SourceIdentifier.objects.create(
+            source=source, type=SourceIdentifier.OLIM, identifier="Old 1"
+        )
+        other = SourceIdentifier.objects.create(
+            source=source, type=SourceIdentifier.OTHER, identifier="Cat 7"
+        )
+        rows = [
+            {
+                "id": str(olim.pk),
+                "type": str(SourceIdentifier.OLIM),
+                "identifier": "Old 2",
+                "note": "corrected",
+            },
+            {
+                "id": str(other.pk),
+                "type": str(SourceIdentifier.OTHER),
+                "identifier": "Cat 7",
+                "DELETE": "on",
+            },
+            {"type": str(SourceIdentifier.ALTN), "identifier": "The Big Book"},
+        ]
+        response = self.client.post(
+            reverse("source-edit", args=[source.id]),
+            REQUIRED_SOURCE_FIELDS | identifier_formset_data(rows, initial=2),
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            list(
+                source.identifiers.order_by("type").values_list(
+                    "type", "identifier", "note"
+                )
+            ),
+            [
+                (SourceIdentifier.OLIM, "Old 2", "corrected"),
+                (SourceIdentifier.ALTN, "The Big Book", ""),
+            ],
+        )
+
+    def test_identifier_fields_have_accessible_names(self) -> None:
+        # the table headings aren't labels, so each control carries its own name
+        source = self.sources["editor_assigned_source"]
+        SourceIdentifier.objects.create(
+            source=source, type=SourceIdentifier.OLIM, identifier="Old 1"
+        )
+        html = self.client.get(
+            reverse("source-edit", args=[source.id])
+        ).content.decode()
+        for index in ("0", "1", "__prefix__"):  # saved, blank and template rows
+            for field, name in (
+                ("type", "Kind"),
+                ("identifier", "Identifier"),
+                ("note", "Note"),
+            ):
+                with self.subTest(row=index, field=field):
+                    self.assertRegex(
+                        html,
+                        rf'<(select|input|textarea)[^>]*name="identifiers-{index}-{field}"'
+                        rf'[^>]*aria-label="{name}"'
+                        rf'|<(select|input|textarea)[^>]*aria-label="{name}"'
+                        rf'[^>]*name="identifiers-{index}-{field}"',
+                    )
+
+    def test_multiline_note_survives_a_save(self) -> None:
+        # a text input would lose the line break and join the two lines
+        source = self.sources["editor_assigned_source"]
+        identifier = SourceIdentifier.objects.create(
+            source=source,
+            type=SourceIdentifier.OLIM,
+            identifier="Old 1",
+            note="Reference A\nReference B",
+        )
+        response = self.client.get(reverse("source-edit", args=[source.id]))
+        self.assertContains(response, "Reference A\nReference B</textarea>")
+
+        # the browser sends the note back as shown, with the line break
+        rows = [
+            {
+                "id": str(identifier.pk),
+                "type": str(SourceIdentifier.OLIM),
+                "identifier": "Old 1",
+                "note": "Reference A\r\nReference B",
+            }
+        ]
+        self.client.post(
+            reverse("source-edit", args=[source.id]),
+            REQUIRED_SOURCE_FIELDS | identifier_formset_data(rows, initial=1),
+        )
+        identifier.refresh_from_db()
+        self.assertEqual(identifier.note.splitlines(), ["Reference A", "Reference B"])
+
+    def test_removed_new_row_is_not_checked(self) -> None:
+        # a half-filled new row marked with the × is dropped, not refused
+        source = self.sources["editor_assigned_source"]
+        response = self.client.post(
+            reverse("source-edit", args=[source.id]),
+            REQUIRED_SOURCE_FIELDS
+            | identifier_formset_data(
+                [{"type": str(SourceIdentifier.OLIM), "identifier": "", "DELETE": "on"}]
+            ),
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(source.identifiers.count(), 0)
+
+    def test_identifiers_are_left_alone_when_not_posted(self) -> None:
+        source = self.sources["editor_assigned_source"]
+        SourceIdentifier.objects.create(
+            source=source, type=SourceIdentifier.OLIM, identifier="Old 1"
+        )
+        response = self.client.post(
+            reverse("source-edit", args=[source.id]), REQUIRED_SOURCE_FIELDS
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(source.identifiers.count(), 1)
+
+    def test_identifier_without_text_is_refused(self) -> None:
+        source = self.sources["editor_assigned_source"]
+        old_shelfmark = source.shelfmark
+        response = self.client.post(
+            reverse("source-edit", args=[source.id]),
+            REQUIRED_SOURCE_FIELDS
+            | identifier_formset_data(
+                [{"type": str(SourceIdentifier.OLIM), "identifier": ""}]
+            ),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "This field is required.")
+        source.refresh_from_db()
+        self.assertEqual(source.shelfmark, old_shelfmark)
+        self.assertEqual(source.identifiers.count(), 0)
+
+    def test_edit_page_shows_existing_identifiers(self) -> None:
+        source = self.sources["editor_assigned_source"]
+        SourceIdentifier.objects.create(
+            source=source, type=SourceIdentifier.OLIM, identifier="Old 1"
+        )
+        response = self.client.get(reverse("source-edit", args=[source.id]))
+        self.assertContains(response, 'value="Old 1"')
+        self.assertContains(response, "Add another identifier")
 
     def test_segment_m2m_excludes_benedicamus_domino(self) -> None:
         # "Benedicamus Domino" is a chant-level project designation, not a
@@ -948,6 +1129,24 @@ class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_detail.html")
+
+    def test_identifiers_are_shown(self) -> None:
+        # #2015: former shelfmarks were only visible in the admin
+        source = make_fake_source(published=True)
+        SourceIdentifier.objects.create(
+            source=source,
+            type=SourceIdentifier.OLIM,
+            identifier="Fulda A.C.3",
+            note="See https://example.org/catalogue",
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertContains(response, "<dt>olim (Former shelfmark)</dt>", html=True)
+        self.assertContains(response, "Fulda A.C.3")
+        self.assertContains(
+            response,
+            '<a href="https://example.org/catalogue" rel="nofollow">https://example.org/catalogue</a>',
+            html=True,
+        )
 
     def test_contributor_is_shown_only_on_unpublished_sources(self) -> None:
         # #1687: useful to see who is working on a source until it's published

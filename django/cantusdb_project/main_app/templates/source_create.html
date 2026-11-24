@@ -5,6 +5,7 @@
     <script type="text/javascript"
             src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
     {{ form.media }}
+    <script src="{% static 'js/source_identifiers.js' %}"></script>
 {% endblock %}
 {% block content %}
     <div class="container">
@@ -61,6 +62,7 @@
                             {{ form.segment_m2m }}
                         </div>
                     </div>
+                    {% include "source_identifiers_form.html" with formset=identifier_formset column_class="col-lg-9" %}
                     <div class="row mb-2 small">
                         <div class="col-lg-3">
                             <label for="{{ form.provenance.id_for_label }}">Provenance (origin / history):</label>
