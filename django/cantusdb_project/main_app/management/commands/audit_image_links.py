@@ -90,12 +90,14 @@ def cannot_check(site: str) -> Optional[str]:
 
 
 def classify(status_code: int) -> str:
-    if status_code < 400:
+    if 200 <= status_code < 300:
         return WORKING
     if status_code in (401, 403, 429):
         return BLOCKED
     if status_code >= 500:
         return UNREACHABLE
+    # 4xx, or a 3xx left over after following redirects (e.g. a redirect
+    # with no destination): the link doesn't lead to a page.
     return BROKEN
 
 

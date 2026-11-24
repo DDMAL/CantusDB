@@ -51,6 +51,10 @@ def check(session, url, timeout):
 class CheckUrlTest(SimpleTestCase):
     def test_status_codes(self) -> None:
         self.assertEqual(classify(200), WORKING)
+        self.assertEqual(classify(204), WORKING)
+        # Redirects are followed, so a 3xx at the end is a broken redirect.
+        for code in (301, 302, 304):
+            self.assertEqual(classify(code), BROKEN)
         for code in (404, 410, 400):
             self.assertEqual(classify(code), BROKEN)
         for code in (401, 403, 429):
