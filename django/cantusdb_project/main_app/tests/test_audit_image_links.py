@@ -247,6 +247,17 @@ class AuditImageLinksCommandTest(TestCase):
         output = self.run_command("--source", str(source.pk))
         self.assertIn("all 3 have the same link: https://d.org/same", output)
 
+    def test_first_and_last_with_the_same_link_on_different_folios(self) -> None:
+        source = make_fake_source(image_link=None)
+        for folio, link in (
+            ("001r", "d.org/a"),
+            ("002r", "d.org/b"),
+            ("003r", "d.org/a"),
+        ):
+            make_fake_chant(source=source, folio=folio, image_link=f"https://{link}")
+        output = self.run_command("--source", str(source.pk))
+        self.assertIn("first and last both end up at https://d.org/a", output)
+
     def test_links_to_their_own_pages_are_not_flagged(self) -> None:
         output = self.run_command("--source", str(self.source.pk))
         self.assertNotIn("SAME PAGE", output)

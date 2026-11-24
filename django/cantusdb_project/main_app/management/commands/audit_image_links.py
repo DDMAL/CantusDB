@@ -284,7 +284,7 @@ class Command(BaseCommand):
                 found.append(
                     (sample, f"all {sample['count']} have the same link: {first.url}")
                 )
-            elif first.url != last.url and first.final_url == last.final_url:
+            elif first.final_url == last.final_url:
                 found.append(
                     (sample, f"first and last both end up at {first.final_url}")
                 )
