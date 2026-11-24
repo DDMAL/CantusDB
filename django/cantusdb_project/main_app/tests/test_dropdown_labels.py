@@ -36,7 +36,9 @@ class DropdownLabelsTest(TestCase):
         Genre.objects.filter(pk=cls.empty.pk).update(description="")
         cls.escaped = Genre.objects.create(name="<&>", description='A < B & "C"')
         cls.segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
-        cls.source = make_fake_source(published=True, segment=[cls.segment])
+        # also in the Canadian Chant Database, which its chant search covers
+        ccdb = make_fake_segment(id=settings.CCDB_SEGMENT_ID)
+        cls.source = make_fake_source(published=True, segment=[cls.segment, ccdb])
         cls.chant = Chant.objects.create(
             source=cls.source,
             genre=cls.genre,
@@ -96,7 +98,6 @@ class DropdownLabelsTest(TestCase):
                     {
                         "genre": self.genre.pk,
                         "service": self.service.pk,
-                        "db": self.segment.pk,
                     },
                 )
                 self.assertEqual(response.status_code, 200)
