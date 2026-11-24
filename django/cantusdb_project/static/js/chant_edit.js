@@ -26,7 +26,52 @@ window.addEventListener("load", function () {
 
     function copyText() {
         const standardText = document.getElementById('id_manuscript_full_text_std_spelling').value;
-        document.getElementById('id_manuscript_full_text').value = standardText;
+        const fullTextField = document.getElementById('id_manuscript_full_text');
+        if (!fullTextField.disabled) { // locked once proofread
+            fullTextField.value = standardText;
+        }
+    }
+
+    // A ticked proofread box locks the fields it covers. The server enforces
+    // the lock; this mirrors it as a proofreader ticks and unticks the boxes.
+    const proofreadLocksData = document.getElementById("proofread-locks");
+    const proofreadLocks = proofreadLocksData ? JSON.parse(proofreadLocksData.textContent) : {};
+    for (const [checkboxId, fieldIds] of Object.entries(proofreadLocks || {})) {
+        const checkbox = document.getElementById(checkboxId);
+        if (!checkbox || checkbox.disabled) {
+            continue; // not a proofreader: the locks can't change
+        }
+        const fields = fieldIds
+            .map((fieldId) => document.getElementById(fieldId))
+            .filter(Boolean);
+        const submittedCopies = new Map();
+        function unlock(field) {
+            submittedCopies.get(field)?.remove();
+            submittedCopies.delete(field);
+            field.disabled = false;
+        }
+        // Lock a field the proofreader is approving, so nothing more can be
+        // typed into it. The browser doesn't submit a disabled input, so its
+        // value is submitted from a hidden copy: the server saves the value the
+        // proofreader approved, not whatever is stored by then (#170).
+        function lockApproved(field) {
+            unlock(field);
+            field.disabled = true;
+            const copy = document.createElement("input");
+            copy.type = "hidden";
+            copy.name = field.name;
+            copy.value = field.value;
+            field.after(copy);
+            submittedCopies.set(field, copy);
+        }
+        if (checkbox.checked) {
+            // A page shown again after a failed save leaves the fields the
+            // proofreader submitted unlocked, even under a ticked box.
+            fields.filter((field) => !field.disabled).forEach(lockApproved);
+        }
+        checkbox.addEventListener("change", function () {
+            fields.forEach(checkbox.checked ? lockApproved : unlock);
+        });
     }
 
     // if the feast on the right is reset, reset every selector but keep the source unchanged
