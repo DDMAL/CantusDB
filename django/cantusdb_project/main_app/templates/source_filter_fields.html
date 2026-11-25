@@ -4,10 +4,15 @@
     runs in static/js/source_filters.js, styled by static/css/source_filters.css;
     include both with this template.
 
-    Options: hide_country leaves Country out (the Canadian Chant Database's
-    sources are all in Canada); input_class is added to the select fields.
+    Used by Browse Sources, the Canadian Chant Database and Cantorales source
+    lists, and both chant searches (#2379). Options:
+    - hide_country leaves Country out (the Canadian Chant Database's sources
+      are all in Canada);
+    - input_class is added to the select fields;
+    - show_heading adds the "Source-level filters" heading (chant searches);
+    - show_indexing_status adds Indexing Status (Browse Sources).
 {% endcomment %}
-<h6 class="small fw-bold mt-4 mb-0">Source-level filters</h6>
+{% if show_heading %}<h6 class="small fw-bold mt-4 mb-0">Source-level filters</h6>{% endif %}
 <div class="row align-items-start">
     <div class="col-lg-6">
         <div class="row gy-2">
@@ -34,17 +39,6 @@
                     <option value="">- Any -</option>
                     {% for provenance in provenances %}
                         <option value="{{ provenance.id }}">{{ provenance.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-lg-6">
-                <label for="prodMethodFilter" class="small form-label">Manuscript/Print</label>
-                <select id="prodMethodFilter"
-                        name="prodMethod"
-                        class="form-control form-select form-select-sm {{ input_class }}">
-                    <option value="">- Any -</option>
-                    {% for prod_method_value, prod_method_label in production_method_choices %}
-                        <option value="{{ prod_method_value }}">{{ prod_method_label }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -89,6 +83,17 @@
                 </div>
                 {% endif %}
             </div>
+            <div class="col-lg-6">
+                <label for="prodMethodFilter" class="small form-label">Manuscript/Print</label>
+                <select id="prodMethodFilter"
+                        name="prodMethod"
+                        class="form-control form-select form-select-sm {{ input_class }}">
+                    <option value="">- Any -</option>
+                    {% for prod_method_value, prod_method_label in production_method_choices %}
+                        <option value="{{ prod_method_value }}">{{ prod_method_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
     </div>
     {# With Country hidden on the left, give Physical Status their width so its options fit on two lines. #}
@@ -114,5 +119,38 @@
                 {% if forloop.counter == 2 %}<div class="w-100"></div>{% endif %}
             {% endfor %}
         </div>
+        {% if show_indexing_status %}
+        <fieldset class="mt-1">
+            <legend class="small form-label mb-0">Indexing Status</legend>
+            <div class="d-flex flex-wrap">
+                <label for="inventoried-all" class="small me-1 form-check-label">
+                    All
+                </label>
+                <input type="radio"
+                       id="inventoried-all"
+                       name="inventoried"
+                       value="all"
+                       {% if request.GET.inventoried != "inventoried" and request.GET.inventoried != "nonInventoried" %}checked{% endif %} />
+                <label for="inventoried-inventoried"
+                       class="small ms-3 me-1 form-check-label">
+                    Inventoried
+                </label>
+                <input type="radio"
+                       id="inventoried-inventoried"
+                       name="inventoried"
+                       value="inventoried"
+                       {% if request.GET.inventoried == "inventoried" %}checked{% endif %} />
+                <label for="inventoried-nonInventoried"
+                       class="small ms-3 me-1 form-check-label">
+                    Non-inventoried
+                </label>
+                <input type="radio"
+                       id="inventoried-nonInventoried"
+                       name="inventoried"
+                       value="nonInventoried"
+                       {% if request.GET.inventoried == "nonInventoried" %}checked{% endif %} />
+            </div>
+        </fieldset>
+        {% endif %}
     </div>
 </div>
