@@ -74,7 +74,7 @@
                             <td class="text-wrap">{{ sequence.s_sequence|default:"" }}</td>
                             <td class="text-wrap"><b>{{ sequence.folio|default:"" }}</b></td>
                             <td class="text-wrap">
-                                <a href="{% url 'sequence-detail' sequence.id %}">{{ sequence.incipit_std_spelling|default:sequence.incipit|default:"" }}</a>
+                                <a href="{% url 'sequence-detail' sequence.id %}">{{ sequence.incipit|default:"" }}</a>
                             </td>
                             <td class="text-wrap">{{ sequence.rubrics|default:"" }}</td>
                             <td class="text-wrap">{{ sequence.analecta_hymnica|default:"" }}</td>
