@@ -618,7 +618,7 @@
                                 {% endfor %}
                             </ul>
                         {% endif %}
-                        {{ source.indexing_notes|default_if_none:""|safe }}
+                        {{ source.indexing_notes|default_if_none:"" }}
                         <br />
                         {% with creator=source.created_by %}
                             {% if creator %}

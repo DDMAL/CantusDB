@@ -68,7 +68,7 @@
         {% if source.indexing_notes %}
             <dt>Notes on the Inventory</dt>
             <dd>
-                {{ source.indexing_notes|safe }}
+                {{ source.indexing_notes }}
             </dd>
         {% endif %}
         {% if source.complete_inventory is not None %}
@@ -370,7 +370,7 @@
                 {% endfor %}
             </ul>
         {% endif %}
-        {{ source.indexing_notes|default_if_none:""|safe }}
+        {{ source.indexing_notes|default_if_none:"" }}
         <br />
         {% with creator=source.created_by %}
             {% if creator %}
