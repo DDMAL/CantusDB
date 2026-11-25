@@ -91,3 +91,18 @@ test("the year slider keeps the inputs, fill and reset in step", () => {
     assert.equal(elements.dateStartFilter.value, 800);
     assert.equal(elements.dateEndFilter.value, 1900);
 });
+
+test("the bar is redrawn when Back restores the slider", () => {
+    // #2370: on Back, filter_form_autosubmit.js sets the values without
+    // firing input events, then announces "filters-restored" on the form.
+    const elements = slider();
+    const form = element();
+    elements.dateStartFilter.form = form;
+    run("", elements);
+    elements.dateStartFilter.value = "1300";
+    elements.dateStartFilter.fire("input");
+    elements.dateStartFilter.value = "800";
+    form.fire("filters-restored");
+    assert.equal(elements.rangeSliderFill.style.left, "0%");
+    assert.equal(elements.rangeSliderFill.style.width, "100%");
+});

@@ -88,5 +88,13 @@ window.addEventListener("load", function () {
         }
 
         updateFill(parseInt(dateStart.value), parseInt(dateEnd.value));
+
+        // On Back, filter_form_autosubmit.js puts the slider back to the
+        // values the page loaded with, without firing input events (#2370).
+        if (dateStart.form) {
+            dateStart.form.addEventListener("filters-restored", function () {
+                updateFill(parseInt(dateStart.value), parseInt(dateEnd.value));
+            });
+        }
     }
 });

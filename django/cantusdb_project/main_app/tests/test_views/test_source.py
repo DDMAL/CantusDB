@@ -2007,6 +2007,37 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(response.context["date_range_min"], 900)
         self.assertEqual(response.context["date_range_max"], 1500)
 
+    def test_year_range_is_not_refilled_by_the_browser(self) -> None:
+        # #2370: when Chrome reloads a page on Back it refills form controls,
+        # leaving the slider on the dragged year while the URL says another.
+        # The segment pages draw the slider from their own sources' dates.
+        tenth_century = make_fake_century(name="10th century")
+        make_fake_century(name="15th century")
+        for segment_id in [settings.CCDB_SEGMENT_ID, settings.CANTORALES_SEGMENT_ID]:
+            source = make_fake_source(
+                segment=[make_fake_segment(id=segment_id)], published=True
+            )
+            source.century.set([tenth_century])
+        pages = {
+            "Browse Sources": reverse("source-list"),
+            "chant search": reverse("chant-search"),
+            "CCDB": reverse("canadian-chant-db-source-list"),
+            "CCDB browse": reverse("ccdb-browse"),
+            "Cantorales": reverse("cantorales-source-list"),
+        }
+        for page, url in pages.items():
+            with self.subTest(page=page):
+                html = self.client.get(url).content.decode()
+                for control in [
+                    "dateStartFilter",
+                    "dateEndFilter",
+                    "rangeStartInput",
+                    "rangeEndInput",
+                ]:
+                    tag = re.search(rf'<input[^>]*id="{control}"[^>]*>', html)
+                    self.assertIsNotNone(tag, control)
+                    self.assertIn('autocomplete="off"', tag.group(0), control)
+
     def test_permissions(self) -> None:
         published_source = make_fake_source(published=True)
         editor_assigned_source = make_fake_source(

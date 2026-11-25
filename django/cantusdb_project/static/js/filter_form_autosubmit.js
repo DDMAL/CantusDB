@@ -205,7 +205,9 @@
         // without re-running "load". It keeps the choice that navigated away,
         // which no longer matches the restored URL and results, so choosing
         // that option again would fire no change event. Restore the values
-        // the page loaded with, and clear the submission guard.
+        // the page loaded with, and clear the submission guard. Setting them
+        // fires no events, so the form then announces "filters-restored" for
+        // scripts that draw something from the values (the year range bar).
         window.addEventListener("pageshow", function (event) {
             if (!event.persisted) {
                 return;
@@ -232,6 +234,7 @@
             } finally {
                 restoring = false;
             }
+            form.dispatchEvent(new Event("filters-restored"));
         });
     }
 
