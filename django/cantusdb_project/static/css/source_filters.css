@@ -74,3 +74,19 @@ form.ccdb-filter-form input.range-slider-input {
     background: transparent;
     border: none;
 }
+
+/* The typed years: no up/down arrows, which sat on top of the end year (#2181).
+   Typing and the arrow keys still change them. */
+#rangeStartInput,
+#rangeEndInput {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+#rangeStartInput::-webkit-inner-spin-button,
+#rangeStartInput::-webkit-outer-spin-button,
+#rangeEndInput::-webkit-inner-spin-button,
+#rangeEndInput::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}

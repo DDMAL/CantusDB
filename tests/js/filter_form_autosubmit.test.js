@@ -62,6 +62,7 @@ function harness({ companionValue = "x" } = {}) {
     const label = { tagName: "LABEL", closest: () => null };
 
     form.elements = [...radios, country, operator, keyword];
+    form.dispatchEvent = event => form.dispatch(event.type, event);
     form.querySelector = selector => (selector === "#keyword" ? keyword : null);
     form.requestSubmit = () => submissions.push({
         inventoried: radios.find(radio => radio.checked).value,
@@ -69,6 +70,7 @@ function harness({ companionValue = "x" } = {}) {
     });
 
     const context = {
+        Event: class { constructor(type) { this.type = type; } },
         window,
         document: Object.assign(document, {
             querySelectorAll: () => [form],
@@ -265,6 +267,15 @@ test("Back restores the loaded values and allows filtering again", () => {
     assert.equal(h.submissions.length, 1, "restoring must not submit");
     h.click(h.country, h.country, () => { h.country.value = "Canada"; });
     assert.equal(h.submissions.length, 2);
+});
+
+test("Back announces the restored values after setting them", () => {
+    const h = harness();
+    h.click(h.country, h.country, () => { h.country.value = "Canada"; });
+    const seen = [];
+    h.form.addEventListener("filters-restored", () => seen.push(h.country.value));
+    h.window.dispatch("pageshow", { persisted: true });
+    assert.deepEqual(seen, [""], "announced once, after the values were restored");
 });
 
 test("an ordinary page show leaves the form alone", () => {

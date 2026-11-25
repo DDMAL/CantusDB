@@ -144,7 +144,7 @@
                                        value="{{ request.GET.general }}"
                                        id="generalSearch" />
                             </div>
-                            <div class="col-lg-1">
+                            <div class="col-lg-auto d-flex flex-column">
                                 <button type="submit" class="btn btn-dark btn-sm m-1" id="btn-submit">Apply</button>
                                 <a href="/Cantorales/#search-container"
                                    class="btn btn-dark btn-sm m-1"
@@ -206,6 +206,7 @@
                                                 <div class="range-slider-fill" id="rangeSliderFill"></div>
                                                 <input type="range"
                                                        id="dateStartFilter"
+                                                       autocomplete="off"
                                                        aria-label="Start year"
                                                        class="range-slider-input"
                                                        min="{{ date_range_min }}"
@@ -214,6 +215,7 @@
                                                        value="{{ request.GET.dateStart|default:date_range_min }}" />
                                                 <input type="range"
                                                        id="dateEndFilter"
+                                                       autocomplete="off"
                                                        aria-label="End year"
                                                        class="range-slider-input"
                                                        min="{{ date_range_min }}"
@@ -223,8 +225,8 @@
                                             </div>
                                             <div class="d-flex justify-content-between small mt-1">
                                                 <span>{{ date_range_min }}</span>
-                                                <span class="text-primary">
-                                                    <input type="number" id="rangeStartInput" aria-label="Start year" name="dateStart" min="{{ date_range_min }}" max="{{ date_range_max }}" value="{{ request.GET.dateStart|default:date_range_min }}" style="width:3.5rem;border:none;background:transparent;color:inherit;text-align:right;" />–&nbsp;&nbsp;&nbsp;<input type="number" id="rangeEndInput" aria-label="End year" name="dateEnd" min="{{ date_range_min }}" max="{{ date_range_max }}" value="{{ request.GET.dateEnd|default:date_range_max }}" style="width:3.5rem;border:none;background:transparent;color:inherit;text-align:left;" />
+                                                <span class="text-primary text-nowrap">
+                                                    <input type="number" id="rangeStartInput" autocomplete="off" aria-label="Start year" name="dateStart" min="{{ date_range_min }}" max="{{ date_range_max }}" value="{{ request.GET.dateStart|default:date_range_min }}" style="width:3.5rem;border:none;background:transparent;color:inherit;text-align:right;" />&nbsp;–&nbsp;<input type="number" id="rangeEndInput" autocomplete="off" aria-label="End year" name="dateEnd" min="{{ date_range_min }}" max="{{ date_range_max }}" value="{{ request.GET.dateEnd|default:date_range_max }}" style="width:3.5rem;border:none;background:transparent;color:inherit;text-align:left;" />
                                                 </span>
                                                 <span>{{ date_range_max }}</span>
                                             </div>
