@@ -78,6 +78,15 @@ class FeastListViewTest(TestCase):
         feasts = response.context["feasts"]
         self.assertEqual(feasts.query.order_by[0], Lower("name"))
 
+    def test_julian_date_column(self):
+        make_fake_feast(name="Dated", month=5, day=17)
+        make_fake_feast(name="Movable", month=None, day=None)
+        response = self.client.get(reverse("feast-list"))
+        self.assertContains(
+            response, '<th scope="col" class="text-wrap">Julian Date</th>', html=True
+        )
+        self.assertContains(response, "XVI. Kal. Iun.", count=1)
+
     def test_search_name(self):
         """Feast can be searched by any part of its name, description, or feast_code"""
         feast = make_fake_feast()
@@ -278,6 +287,16 @@ class FeastDetailViewTest(CustomAccessTestMixin, TestCase):
                 observed = [s for s in context["sources"] if s.shelfmark == description]
                 self.assertEqual(len(observed), 1)
                 self.assertEqual(observed[0].siglum, "Cantus")
+
+    def test_julian_date(self) -> None:
+        dated = make_fake_feast(month=5, day=17)
+        response = self.client.get(reverse("feast-detail", args=[dated.id]))
+        self.assertContains(response, "<dt>Julian Date</dt>")
+        self.assertContains(response, "XVI. Kal. Iun.")
+
+        movable = make_fake_feast(month=None, day=None)
+        response = self.client.get(reverse("feast-detail", args=[movable.id]))
+        self.assertNotContains(response, "Julian Date")
 
     def test_permissions(self) -> None:
         make_fake_chant(

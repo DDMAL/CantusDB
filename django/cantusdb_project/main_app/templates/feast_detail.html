@@ -23,6 +23,16 @@
                     {{ feast.month|month_to_string|default:"" }}.{{ feast.day|default:"" }}
                 </dd>
             </div>
+            {% with julian=feast|julian_date %}
+                {% if julian %}
+                    <div class="col-6 col-md-3">
+                        <dt>Julian Date</dt>
+                        <dd>
+                            {{ julian }}
+                        </dd>
+                    </div>
+                {% endif %}
+            {% endwith %}
             <div class="col-6 col-md-3">
                 <dt>Day</dt>
                 <dd>

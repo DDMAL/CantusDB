@@ -17,6 +17,7 @@ from main_app.permissions import (
     annotate_proofreading_lock,
     user_is_editor as user_has_editor_privileges,
 )
+from main_app.julian_dates import julian_date as compute_julian_date
 from main_app.markdown import render_markdown
 from users.models import User
 
@@ -95,6 +96,12 @@ def month_to_string(value: Optional[Union[str, int]]) -> Optional[Union[str, int
     if isinstance(value, int) and value in range(1, 13):
         return calendar.month_abbr[value]
     return value
+
+
+@register.filter
+def julian_date(feast: Any) -> str:
+    """A feast's Roman date, e.g. "XVI. Kal. Iun.", or "" if it has no date (#2376)."""
+    return compute_julian_date(feast.month, feast.day) or ""
 
 
 @register.simple_tag(takes_context=True)
