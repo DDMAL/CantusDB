@@ -4,13 +4,14 @@ Tests for views in views/sequence.py
 
 from typing import Any, Dict
 
+from django.conf import settings
 from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from faker import Faker
 
-from main_app.models import Institution, Sequence
+from main_app.models import Institution, Segment, Sequence
 from main_app.tests.make_fakes import (
     make_cantus_fallback_institutions,
     make_fake_sequence,
@@ -162,14 +163,33 @@ class SequenceListViewTest(SequencePermissionsTestCase):
         # the sequence should be present in the results
         self.assertIn(sequence, response.context["sequences"])
 
-    def test_list_prefers_standardized_incipit(self):
-        sequence = make_fake_sequence(source=make_fake_source(published=True))
+    def test_sequence_tables_show_the_original_incipit(self):
+        # #2326: tables of sequences keep Bower's incipit even when a
+        # standardized spelling is filled in; only chant search shows that.
+        bower, _ = Segment.objects.get_or_create(
+            pk=settings.BOWER_SEGMENT_ID, defaults={"name": "Sequence Database"}
+        )
+        source = make_fake_source(published=True)
+        source.segment_m2m.set([bower])
+        sequence = make_fake_sequence(source=source)
         Sequence.objects.filter(id=sequence.id).update(
             incipit="Letabundus exultet", incipit_std_spelling="Laetabundus exsultet"
         )
-        response = self.client.get(reverse("sequence-list"))
-        self.assertContains(response, ">Laetabundus exsultet</a>")
-        self.assertNotContains(response, ">Letabundus exultet</a>")
+        concordance = make_fake_sequence(
+            source=make_fake_source(published=True), cantus_id=sequence.cantus_id
+        )
+        pages = {
+            "sequence list": reverse("sequence-list"),
+            "concordances": reverse("sequence-detail", args=[concordance.id]),
+            "source page": reverse("source-detail", args=[sequence.source.id]),
+            "source inventory": reverse("source-inventory", args=[sequence.source.id]),
+            "by Cantus ID": reverse("chant-by-cantus-id", args=[sequence.cantus_id]),
+        }
+        for page, url in pages.items():
+            with self.subTest(page=page):
+                response = self.client.get(url)
+                self.assertContains(response, ">Letabundus exultet</a>")
+                self.assertNotContains(response, "Laetabundus exsultet")
 
     def test_search_matches_standardized_incipit(self):
         sequence = make_fake_sequence(source=make_fake_source(published=True))

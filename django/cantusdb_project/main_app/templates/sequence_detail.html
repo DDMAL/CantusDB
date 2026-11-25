@@ -167,7 +167,7 @@
                             <td class="text-wrap text-center">{{ sequence.s_sequence|default:"" }}</td>
                             <td class="text-wrap text-center"><b>{{ sequence.folio|default:"" }}</b></td>
                             <td class="text-wrap text-center">
-                                <a href="{% url 'sequence-detail' sequence.id %}">{{ sequence.incipit_std_spelling|default:sequence.incipit|default:"" }}</a>
+                                <a href="{% url 'sequence-detail' sequence.id %}">{{ sequence.incipit|default:"" }}</a>
                             </td>
                             <td class="text-wrap text-center">{{ sequence.rubrics|default:"" }}</td>
                             <td class="text-wrap text-center">{{ sequence.analecta_hymnica|default:"" }}</td>
