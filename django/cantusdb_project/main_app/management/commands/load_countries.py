@@ -40,10 +40,9 @@ def read_catalogue() -> Iterator[Country]:
 
 
 def fill_missing(country: Country, entry: Country) -> None:
-    known = country.normalized_names()
+    known = country.all_names()
     if not (
-        known & entry.normalized_names()
-        or country.authority_ids() & entry.authority_ids()
+        known & entry.all_names() or country.authority_ids() & entry.authority_ids()
     ):
         raise CommandError(
             f"Catalogue ID {entry.pk} ({entry.name}) is occupied by {country.name}. "

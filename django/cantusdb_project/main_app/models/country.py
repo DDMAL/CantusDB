@@ -53,7 +53,7 @@ class CountryQuerySet(models.QuerySet):
         matches = [
             country
             for country in self.only("name", "aliases", "rism_code")
-            if label in country.normalized_names()
+            if label in country.all_names()
         ]
         if len(matches) == 1:
             return matches[0]
@@ -105,7 +105,8 @@ class Country(models.Model):
     def __str__(self) -> str:
         return self.name
 
-    def normalized_names(self) -> set[str]:
+    def all_names(self) -> set[str]:
+        """Return the case-folded name, aliases, and RISM code for matching."""
         return {
             value.casefold()
             for value in (self.name, *self.aliases.splitlines(), self.rism_code or "")
@@ -144,7 +145,7 @@ class Country(models.Model):
 
     def validate_country(self, other_countries: Iterable[Country]) -> None:
         self.normalize_fields()
-        names = self.normalized_names()
+        names = self.all_names()
         if names.intersection(("[no country]", "not recorded")):
             raise ValidationError(
                 "For an unrecorded country, leave the institution’s country blank."
@@ -153,7 +154,7 @@ class Country(models.Model):
         for other in other_countries:
             if other.pk == self.pk:
                 continue
-            if overlap := names & other.normalized_names():
+            if overlap := names & other.all_names():
                 raise ValidationError(
                     f"{min(overlap)!r} is already a name, alias, or RISM code for {other.name}."
                 )
