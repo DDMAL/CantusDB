@@ -78,6 +78,49 @@ class ReplaceMergedCantusIdsTest(TestCase):
         self.assertEqual([r["id"] for r in result["needs_decision"]], [chant.id])
         self.assertEqual(result["replaced"], [])
 
+    def test_old_two_way_merges_are_reported_for_review(self):
+        # both merges are older than the start date, but a person still has
+        # to choose, so the record is listed every week until it's fixed
+        events = MERGES + [
+            {"old": "002000", "new": "002100", "date": "2024-01-01"},
+            {"old": "002000", "new": "002200", "date": "2024-02-01"},
+        ]
+        chant = make_fake_chant(cantus_id="002000")
+        result = self.run_replace(events)
+        chant.refresh_from_db()
+        self.assertEqual(chant.cantus_id, "002000")
+        self.assertEqual([r["id"] for r in result["needs_decision"]], [chant.id])
+        self.assertIn("002100, 002200", result["needs_decision"][0]["note"])
+
+    def test_a_recent_merge_of_a_two_way_id_is_not_applied(self):
+        # merged into one ID before the start date and another one since:
+        # it isn't replaced with the recent one, it's listed
+        events = MERGES + [
+            {"old": "003000", "new": "003100", "date": "2024-01-01"},
+            {"old": "003000", "new": "003200", "date": "2026-12-01"},
+        ]
+        chant = make_fake_chant(cantus_id="003000")
+        result = self.run_replace(events)
+        chant.refresh_from_db()
+        self.assertEqual(chant.cantus_id, "003000")
+        self.assertEqual([r["id"] for r in result["needs_decision"]], [chant.id])
+        self.assertEqual(result["replaced"], [])
+
+    def test_a_merge_into_a_two_way_id_is_listed_not_applied(self):
+        # 004000 → g01114 (recent), and g01114 was merged two ways
+        events = MERGES + [
+            {"old": "004000", "new": "g01114", "date": "2026-12-04"},
+        ]
+        chant = make_fake_chant(cantus_id="004000")
+        result = self.run_replace(events)
+        chant.refresh_from_db()
+        self.assertEqual(chant.cantus_id, "004000")
+        listed = {r["id"]: r for r in result["needs_decision"]}
+        self.assertIn(chant.id, listed)
+        self.assertIn(
+            "g01114 was merged into more than one ID", listed[chant.id]["note"]
+        )
+
     def test_sequences_are_left_out_unless_turned_on(self):
         sequence = make_fake_sequence(cantus_id="000300")
         self.run_replace()

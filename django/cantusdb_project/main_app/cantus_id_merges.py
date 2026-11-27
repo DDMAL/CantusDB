@@ -9,7 +9,9 @@ A few old IDs were merged into more than one ID; those need a person.
 Used by the audit_merged_cantus_ids command (a report of every record that
 still uses a merged ID) and by the data checks, which replace the IDs of
 merges made since settings.CANTUS_ID_MERGES_SINCE. Earlier merges are left
-for the editors: some old IDs were reused on purpose.
+for the editors: some old IDs were reused on purpose. Records whose ID was
+merged into more than one ID, at any date, are never changed; the data checks
+list them every week for the editors to review.
 """
 
 from dataclasses import dataclass, field
@@ -146,10 +148,37 @@ def replace_merged_cantus_ids() -> dict[str, Any]:
             "needs_decision": [],
             "error": "Couldn't get the list of merged Cantus IDs from Cantus Index.",
         }
-    merges = read_merges(events, since=settings.CANTUS_ID_MERGES_SINCE)
-    rows = records_using(merges, settings.CANTUS_ID_MERGES_INCLUDE_SEQUENCES)
-    replaced = [row for row in rows if row["new_cantus_id"]]
-    needs_decision = [row for row in rows if not row["new_cantus_id"]]
+    include_sequences = settings.CANTUS_ID_MERGES_INCLUDE_SEQUENCES
+
+    # An ID Cantus Index has merged into more than one ID, at any date, is
+    # never replaced automatically: every record using one is listed for the
+    # editors to review, each week until it's fixed.
+    all_merges = read_merges(events)
+    ambiguous = {old: merge for old, merge in all_merges.items() if merge.ambiguous}
+    needs_decision = records_using(ambiguous, include_sequences)
+
+    recent = {
+        old: merge
+        for old, merge in read_merges(
+            events, since=settings.CANTUS_ID_MERGES_SINCE
+        ).items()
+        if old not in ambiguous
+    }
+    replaced = []
+    for row in records_using(recent, include_sequences):
+        if not row["new_cantus_id"]:
+            continue
+        if row["new_cantus_id"] in ambiguous:
+            # the merge leads to an ID that was itself merged two ways
+            target = ambiguous[row["new_cantus_id"]]
+            options = ", ".join(sorted(target.new))
+            row["note"] = (
+                f"{row['new_cantus_id']} was merged into more than one ID ({options})"
+            )
+            row["new_cantus_id"] = ""
+            needs_decision.append(row)
+        else:
+            replaced.append(row)
 
     with transaction.atomic():
         for model, kind in ((Chant, "chant"), (Sequence, "sequence")):
@@ -164,7 +193,7 @@ def replace_merged_cantus_ids() -> dict[str, Any]:
             records = list(
                 model.objects.select_for_update().filter(
                     id__in=new_ids,
-                    cantus_id__in=list(merges),
+                    cantus_id__in=list(recent),
                 )
             )
             for record in records:
