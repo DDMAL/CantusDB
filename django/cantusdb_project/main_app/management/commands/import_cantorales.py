@@ -15,6 +15,7 @@ and no contributor User.
 import csv
 import os
 import re
+from functools import cache
 from typing import Any, Optional
 
 from django.conf import settings
@@ -22,6 +23,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 import reversion  # type: ignore[import-untyped]
 
+from main_app.management.country_import import import_rism_country
 from main_app.models import (
     Century,
     Institution,
@@ -208,6 +210,8 @@ class Command(BaseCommand):
             )
             return
 
+        resolve_country = cache(import_rism_country)
+
         # Pre-fetch century lookup
         century_by_name = {c.name: c for c in Century.objects.all()}
 
@@ -353,15 +357,12 @@ class Command(BaseCommand):
                         city = row[COL_CITY].strip()
                         archive_name = row[COL_ARCHIVE].strip() or "[No Name]"
                         # Derive country from RISM prefix (US-xxx → US)
-                        country_code = rism.split("-")[0] if "-" in rism else ""
-                        country = {
-                            "US": "United States",
-                        }.get(country_code, country_code)
+                        rism_country_code = rism.split("-")[0] if "-" in rism else ""
                         institution = Institution.objects.create(
                             siglum=rism,
                             name=archive_name,
                             city=city or None,
-                            country=country or "[No Country]",
+                            country=resolve_country(rism_country_code),
                         )
                         institution_created_count += 1
                         self.stdout.write(

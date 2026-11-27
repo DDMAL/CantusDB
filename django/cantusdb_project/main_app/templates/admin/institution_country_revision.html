@@ -1,0 +1,5 @@
+{% extends revision_parent %}
+{% block form_top %}
+    {{ block.super }}
+    <p>Country recorded in this revision: <strong>{{ recorded_country|default:"(blank)" }}</strong></p>
+{% endblock %}

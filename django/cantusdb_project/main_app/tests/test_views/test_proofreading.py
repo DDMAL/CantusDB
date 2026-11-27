@@ -247,16 +247,17 @@ class ProofreadingOverviewViewTest(TestCase):
 
         with self.subTest("Order by country"):
             response = self.client.get(self.url, {"order": "country"})
-            expected = sorted(
-                sources,
-                key=lambda s: (
-                    s.holding_institution.country,
-                    s.holding_institution.siglum is None,
-                    s.holding_institution.siglum or "",
-                    s.shelfmark,
-                    s.id,  # mirror the view's final `id` tiebreaker
-                ),
-            )
+            with self.assertNumQueries(0):
+                expected = sorted(
+                    sources,
+                    key=lambda s: (
+                        s.holding_institution.country.name,
+                        s.holding_institution.siglum is None,
+                        s.holding_institution.siglum or "",
+                        s.shelfmark,
+                        s.id,  # mirror the view's final `id` tiebreaker
+                    ),
+                )
             self.assertEqual(expected, list(response.context["sources"]))
 
             response_desc = self.client.get(

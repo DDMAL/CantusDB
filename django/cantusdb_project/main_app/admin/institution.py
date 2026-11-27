@@ -1,4 +1,7 @@
+import json
+
 from django.contrib import admin
+from django.template.loader import select_template
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from main_app.admin.base_admin import BaseModelAdmin
@@ -33,6 +36,7 @@ class InstitutionAdmin(BaseModelAdmin):
         "is_private_collector",
         "is_private_collection",
     )
+    list_select_related = ("country",)
     search_fields = (
         "name",
         "siglum",
@@ -74,6 +78,32 @@ class InstitutionAdmin(BaseModelAdmin):
         ("Private Collector", {"fields": ["is_private_collector"]}),
         ("Holding Institution", {"fields": ["siglum"]}),
     ]
+
+    def _reversion_revisionform_view(
+        self, request, version, template_name, extra_context=None
+    ):
+        # Reversion uses this view for both history previews and deleted records.
+        if (
+            version.format == "json"
+            and version.content_type.model_class() is Institution
+        ):
+            try:
+                label = json.loads(version.serialized_data)[0]["fields"].get("country")
+            except (ValueError, TypeError, IndexError, KeyError, AttributeError):
+                label = None  # Let reversion report an unreadable snapshot.
+            if isinstance(label, str):
+                parents = (
+                    [template_name] if isinstance(template_name, str) else template_name
+                )
+                extra_context = {
+                    **(extra_context or {}),
+                    "recorded_country": label,
+                    "revision_parent": select_template(parents).template,
+                }
+                template_name = "admin/institution_country_revision.html"
+        return super()._reversion_revisionform_view(
+            request, version, template_name, extra_context
+        )
 
     def get_city_region(self, obj) -> str:
         city: str = obj.city if obj.city else "[No city]"
