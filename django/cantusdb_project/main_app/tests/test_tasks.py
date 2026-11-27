@@ -742,11 +742,17 @@ class RunDataChecksTest(TempMediaRootMixin, TestCase):
             check_blank_cantus_id=DEFAULT,
             check_blank_mode=DEFAULT,
             check_blank_invitatory_differentia=DEFAULT,
+            replace_merged_cantus_ids=DEFAULT,
         )
         mocks = patcher.start()
         self.addCleanup(patcher.stop)
         for mock in mocks.values():
             mock.return_value = empty_result
+        mocks["replace_merged_cantus_ids"].return_value = {
+            "replaced": [],
+            "needs_decision": [],
+            "error": None,
+        }
         return mocks
 
     def test_skips_everything_when_no_recipients(self) -> None:
@@ -802,7 +808,9 @@ class RunDataChecksTest(TempMediaRootMixin, TestCase):
         self.assertEqual(mimetype, "application/zip")
         with zipfile.ZipFile(io.BytesIO(content)) as zip_file:
             self.assertEqual(
-                set(zip_file.namelist()), {f"{key}.csv" for key in CHECK_LABELS}
+                set(zip_file.namelist()),
+                {f"{key}.csv" for key in CHECK_LABELS}
+                | {"merged_cantus_ids_replaced.csv"},
             )
         config.refresh_from_db()
         self.assertIsNotNone(config.last_run)
@@ -811,6 +819,64 @@ class RunDataChecksTest(TempMediaRootMixin, TestCase):
         report = DataCheckReport.objects.first()
         self.assertTrue(report.file.name)
         self.assertFalse(report.completed)
+
+    def test_report_lists_replaced_merged_cantus_ids(self) -> None:
+        config = DataCheckConfig.objects.create(
+            frequency=DataCheckConfig.Frequency.DAILY
+        )
+        config.recipients.add(make_fake_user(is_superuser=True))
+        mocks = self._patch_checks()
+        row = {
+            "kind": "chant",
+            "id": 123,
+            "source": "A-Wn 1799",
+            "published": True,
+            "folio": "012r",
+            "incipit": "Ave",
+            "cantus_id": "003465",
+            "new_cantus_id": "003466",
+            "chain": "003465 → 003466",
+            "merged": "2026-12-01",
+            "note": "",
+        }
+        decision = {**row, "id": 124, "new_cantus_id": "", "note": "two IDs"}
+        mocks["replace_merged_cantus_ids"].return_value = {
+            "replaced": [row],
+            "needs_decision": [decision],
+            "error": None,
+        }
+
+        run_data_checks.apply().get()
+
+        sent = mail.outbox[0]
+        self.assertIn("Merged Cantus IDs: replaced in 1 record(s)", sent.body)
+        self.assertIn("1 record(s) use an ID merged into more than one ID", sent.body)
+        with zipfile.ZipFile(io.BytesIO(sent.attachments[0][1])) as zip_file:
+            replaced = list(
+                csv.DictReader(
+                    io.StringIO(
+                        zip_file.read("merged_cantus_ids_replaced.csv").decode()
+                    )
+                )
+            )
+            self.assertIn("merged_cantus_ids_need_a_decision.csv", zip_file.namelist())
+        self.assertEqual(replaced[0]["cantus_id"], "003465")
+        self.assertEqual(replaced[0]["new_cantus_id"], "003466")
+        self.assertTrue(replaced[0]["link"].endswith("/chant/123"))
+
+    def test_report_says_when_cantus_index_could_not_be_reached(self) -> None:
+        config = DataCheckConfig.objects.create(
+            frequency=DataCheckConfig.Frequency.DAILY
+        )
+        config.recipients.add(make_fake_user(is_superuser=True))
+        mocks = self._patch_checks()
+        mocks["replace_merged_cantus_ids"].return_value = {
+            "replaced": [],
+            "needs_decision": [],
+            "error": "Couldn't get the list of merged Cantus IDs from Cantus Index.",
+        }
+        run_data_checks.apply().get()
+        self.assertIn("None were replaced.", mail.outbox[0].body)
 
 
 class DataCheckReportAdminTest(TempMediaRootMixin, TestCase):

@@ -122,7 +122,9 @@ def get_suggested_fulltext(cantus_id: str) -> Optional[str]:
     return info.get("field_full_text")
 
 
-def get_merged_cantus_ids() -> Optional[list[Optional[dict]]]:
+def get_merged_cantus_ids(
+    timeout: float = DEFAULT_TIMEOUT,
+) -> Optional[list[Optional[dict]]]:
     """Retrieve merged Cantus IDs from the Cantus Index API (/json-merged-chants)
 
     This function sends a request to the Cantus Index API endpoint for merged chants
@@ -134,6 +136,8 @@ def get_merged_cantus_ids() -> Optional[list[Optional[dict]]]:
         Optional[list]: A list of dictionaries representing merged chant information,
     or None if there was an error retrieving the data or the response format is invalid.
 
+    The list is about 2,600 entries (170 KB), so callers that fetch it outside a
+    page request can pass a longer `timeout`.
     """
     endpoint_path: str = "/json-merged-chants"
 
@@ -142,8 +146,8 @@ def get_merged_cantus_ids() -> Optional[list[Optional[dict]]]:
     # json: Union[dict, list, None] = get_json_from_ci_api(endpoint_path)
     uri: str = f"{OLD_CANTUS_INDEX_DOMAIN}{endpoint_path}"
     try:
-        response: requests.Response = requests.get(uri, timeout=DEFAULT_TIMEOUT)
-    except (SSLError, Timeout, HTTPError):
+        response: requests.Response = requests.get(uri, timeout=timeout)
+    except requests.exceptions.RequestException:
         return None
     if not response.status_code == 200:
         return None
@@ -152,7 +156,10 @@ def get_merged_cantus_ids() -> Optional[list[Optional[dict]]]:
     text_without_bom: str = raw_text.encode().decode("utf-8-sig")
     if not text_without_bom:
         return None
-    merge_events: list = json.loads(text_without_bom)
+    try:
+        merge_events: list = json.loads(text_without_bom)
+    except ValueError:
+        return None
 
     if not isinstance(merge_events, list):
         return None

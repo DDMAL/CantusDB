@@ -24,6 +24,7 @@ from django.db.models import Count, Q
 from django.utils import timezone
 
 from cantusindex import get_json_from_ci_api
+from main_app.cantus_id_merges import replace_merged_cantus_ids
 from main_app.models import Chant, Sequence, Source
 from main_app.models.data_check_config import DataCheckConfig
 from main_app.models.data_check_report import DataCheckReport
@@ -359,6 +360,38 @@ CHECK_LABELS = {
 }
 
 
+MERGED_ID_COLUMNS = [
+    "kind",
+    "id",
+    "link",
+    "source",
+    "published",
+    "folio",
+    "incipit",
+    "cantus_id",
+    "new_cantus_id",
+    "chain",
+    "merged",
+    "note",
+]
+
+
+def _format_merged_ids_csv(rows: list[dict[str, Any]]) -> str:
+    """One row per chant (or sequence) whose merged Cantus ID was replaced,
+    or that needs a person because its ID was merged into more than one."""
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(MERGED_ID_COLUMNS)
+    base = _site_base_url()
+    for row in rows:
+        path = "chant" if row["kind"] == "chant" else "sequence"
+        values = {**row, "link": f"{base}/{path}/{row['id']}"}
+        writer.writerow(
+            [_csv_safe(values.get(column, "")) for column in MERGED_ID_COLUMNS]
+        )
+    return output.getvalue()
+
+
 _FORMULA_TRIGGER_CHARS = ("=", "+", "-", "@", "\t", "\r")
 
 
@@ -518,6 +551,10 @@ def run_data_checks() -> None:
         logger.warning("Data check skipped: no recipients configured.")
         return
 
+    # Replace Cantus IDs that Cantus Index has merged since the agreed date
+    # first, so the checks below see the new IDs (#2197).
+    merges = replace_merged_cantus_ids()
+
     # Run all checks
     results = {
         "cantus_ids_not_in_ci": check_cantus_ids_not_in_ci(chant_ids),
@@ -541,9 +578,27 @@ def run_data_checks() -> None:
         else "Scope: all records"
     )
 
+    if merges["error"]:
+        merge_note = f"Merged Cantus IDs: {merges['error']} None were replaced."
+    else:
+        merge_note = (
+            f"Merged Cantus IDs: replaced in {len(merges['replaced'])} record(s) "
+            f"(merges since {settings.CANTUS_ID_MERGES_SINCE:%Y-%m-%d}); "
+            "see merged_cantus_ids_replaced.csv."
+        )
+        if merges["needs_decision"]:
+            merge_note += (
+                f" {len(merges['needs_decision'])} record(s) use an ID merged "
+                "into more than one ID and need a decision; see "
+                "merged_cantus_ids_need_a_decision.csv."
+            )
+
     email = EmailMessage(
         subject=f"CantusDB Data Check Report — {date_str}",
-        body=f"CantusDB Data Check Report — {date_str}\n{scope_note}\n\nSee attached files for full results.",
+        body=(
+            f"CantusDB Data Check Report — {date_str}\n{scope_note}\n\n"
+            f"{merge_note}\n\nSee attached files for full results."
+        ),
         to=recipients,
     )
 
@@ -552,6 +607,15 @@ def run_data_checks() -> None:
         for key in CHECK_LABELS:
             zip_file.writestr(
                 f"{key}.csv", _format_check_csv(results[key], check_key=key)
+            )
+        zip_file.writestr(
+            "merged_cantus_ids_replaced.csv",
+            _format_merged_ids_csv(merges["replaced"]),
+        )
+        if merges["needs_decision"]:
+            zip_file.writestr(
+                "merged_cantus_ids_need_a_decision.csv",
+                _format_merged_ids_csv(merges["needs_decision"]),
             )
     zip_filename = f"data_check_report_{date_str}.zip"
     email.attach(zip_filename, zip_buffer.getvalue(), "application/zip")
