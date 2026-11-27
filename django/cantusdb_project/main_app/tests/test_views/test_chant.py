@@ -84,6 +84,14 @@ class ChantPermissionsTestCase(CustomAccessTestMixin, TestCase):
 
 class ChantDetailViewTest(ChantPermissionsTestCase):
 
+    def test_cantus_id_is_escaped_in_the_concordance_and_melody_buttons(self):
+        # the Cantus ID goes into a JavaScript string in onclick (#2384)
+        chant = make_fake_chant(cantus_id="0012'34")
+        response = self.client.get(reverse("chant-detail", args=[chant.id]))
+        self.assertContains(response, "getConcordances('0012\\u002734')")
+        self.assertContains(response, "loadMelodies('0012\\u002734')")
+        self.assertNotContains(response, "getConcordances('0012'34')")
+
     def test_url_and_templates(self) -> None:
         chant = make_fake_chant()
         response = self.client.get(reverse("chant-detail", args=[chant.id]))

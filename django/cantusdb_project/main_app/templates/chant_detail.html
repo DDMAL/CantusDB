@@ -303,7 +303,7 @@
         <a id="concordanceButton"
            href="#"
            class="guillemet"
-           onclick="getConcordances('{{ chant.cantus_id }}'); return false;">Display the concordances connected with this chant</a>
+           onclick="getConcordances('{{ chant.cantus_id|escapejs }}'); return false;">Display the concordances connected with this chant</a>
         <div id="concordancesDiv" class="mb-3">
             <div class="row">
                 <div class="col-8" id="concordancesSummaryDiv"></div>
@@ -317,7 +317,7 @@
         <a id="melodyButton"
            href="#"
            class="guillemet"
-           onclick="loadMelodies('{{ chant.cantus_id }}'); return false;">Display the melodies connected with this chant</a>
+           onclick="loadMelodies('{{ chant.cantus_id|escapejs }}'); return false;">Display the melodies connected with this chant</a>
         <div id="melodyDiv"></div>
     {% endif %}
     {% if attribution_created_by or attribution_last_updated_by %}
