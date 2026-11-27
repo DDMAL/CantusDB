@@ -13,7 +13,7 @@ from django.utils.html import format_html_join
 
 from articles.models import Article
 from main_app.models import Chant, Source, BaseModel
-from main_app.markdown import render_markdown
+from main_app.markdown import render_markdown, sanitize_html
 from users.models import User
 
 register = template.Library()
@@ -364,6 +364,7 @@ def join_absolute_url_links(
 
 
 register.filter("render_markdown", render_markdown)
+register.filter("sanitize_html", sanitize_html)
 
 
 # Used by the audit and conversion commands to distinguish HTML from Markdown

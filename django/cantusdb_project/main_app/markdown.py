@@ -119,6 +119,15 @@ class _LegacyLineBreaks(HTMLParser):
         self.parts.append(f"<!--{data}-->")
 
 
+def sanitize_html(value: str) -> SafeString:
+    """Clean HTML without rendering Markdown, for fields that may hold a little
+    HTML, such as links in indexing notes (#1486). Safe tags and links are kept;
+    scripts, event handlers and unsafe URL schemes are removed (#2383)."""
+    if not value:
+        return mark_safe("")
+    return mark_safe(_cleaner.clean(str(value)))
+
+
 def render_markdown(value: str) -> SafeString:
     """Render Markdown and legacy HTML, then sanitize before marking it safe."""
     html = github_flavored_markdown_to_html(
