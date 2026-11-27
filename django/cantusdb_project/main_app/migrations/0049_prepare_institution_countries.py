@@ -3,7 +3,7 @@ from django.db.models.functions import Lower
 
 
 class Migration(migrations.Migration):
-    dependencies = [("main_app", "0047_notation_clavis_sequentiarum_labels")]
+    dependencies = [("main_app", "0048_gabc_melody")]
 
     operations = [
         migrations.CreateModel(
@@ -53,5 +53,16 @@ class Migration(migrations.Migration):
                     )
                 ],
             },
+        ),
+        migrations.RenameField("institution", "country", "country_text"),
+        migrations.AddField(
+            model_name="institution",
+            name="country",
+            field=models.ForeignKey(
+                blank=True, null=True, on_delete=models.PROTECT, to="main_app.country"
+            ),
+        ),
+        migrations.AlterModelOptions(
+            name="institution", options={"ordering": ["country__name", "city", "name"]}
         ),
     ]

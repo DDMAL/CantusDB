@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 import re
+from collections.abc import Iterable
 
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models.functions import Lower
+from django.db.models import Q, TextField, Value
+from django.db.models.functions import Concat, Lower
 
 from main_app.identifiers import COUNTRY_AUTHORITIES
 
 
-def clean_authorities(records, *, legacy_urls=False) -> dict[str, str]:
+def clean_authorities(records: object) -> dict[str, str]:
     if records is None:
         return {}
     if not isinstance(records, dict):
@@ -27,17 +31,9 @@ def clean_authorities(records, *, legacy_urls=False) -> dict[str, str]:
         if isinstance(value, bool) or not isinstance(value, (str, int)):
             raise ValidationError(f"Enter a record ID for {label}.")
         code = str(value).strip()
-        pattern, template = COUNTRY_AUTHORITIES.get(
+        pattern, _ = COUNTRY_AUTHORITIES.get(
             label, (r"[A-Za-z0-9][A-Za-z0-9._:-]*", None)
         )
-        if legacy_urls and template and code.startswith(("http://", "https://")):
-            url = "https://" + code.partition("://")[2].removesuffix("/")
-            candidate = url.rsplit("/", 1)[-1]
-            if url == template.format(candidate).rstrip("/") or (
-                label == "Wikidata"
-                and url == f"https://www.wikidata.org/entity/{candidate}"
-            ):
-                code = candidate
         if not re.fullmatch(pattern, code):
             raise ValidationError(
                 f"Invalid {label} record ID {value!r}. Enter the identifier only."
@@ -46,8 +42,45 @@ def clean_authorities(records, *, legacy_urls=False) -> dict[str, str]:
     return authorities
 
 
+class CountryQuerySet(models.QuerySet):
+    def find_by_name(
+        self, name: str, *, reject_ambiguous: bool = False
+    ) -> Country | None:
+        # The list has a few dozen entries. Use the same Unicode folding as admin validation.
+        label = name.strip().casefold()
+        if not label:
+            return None
+        matches = [
+            country
+            for country in self.only("name", "aliases", "rism_code")
+            if label in country.normalized_names()
+        ]
+        if len(matches) == 1:
+            return matches[0]
+        if matches and reject_ambiguous:
+            raise ValidationError(
+                f"Ambiguous country: {name!r}. Correct the conflicting entries in the admin."
+            )
+        return None
+
+    def matching(self, query: str, *, prefix: bool = False) -> CountryQuerySet:
+        query = query.strip()
+        code = Q(rism_code__iexact=query)
+        if prefix:
+            return self.alias(
+                alias_lines=Concat(Value("\n"), "aliases", output_field=TextField())
+            ).filter(
+                Q(name__istartswith=query)
+                | Q(alias_lines__icontains=f"\n{query}")
+                | code
+            )
+        return self.filter(
+            Q(name__icontains=query) | Q(aliases__icontains=query) | code
+        )
+
+
 class Country(models.Model):
-    CANADA = 6
+    objects = CountryQuerySet.as_manager()
 
     name = models.CharField(max_length=64)
     aliases = models.TextField(
@@ -69,7 +102,7 @@ class Country(models.Model):
             models.UniqueConstraint(Lower("name"), name="unique_country_name_ci")
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
     def normalized_names(self) -> set[str]:
@@ -79,11 +112,11 @@ class Country(models.Model):
             if value
         }
 
-    def clean(self):
+    def clean(self) -> None:
         super().clean()
         self.validate_country(Country.objects.exclude(pk=self.pk))
 
-    def normalize_fields(self, *, legacy_urls=False):
+    def normalize_fields(self) -> None:
         self.name = (self.name or "").strip()
         if not self.name:
             raise ValidationError({"name": "Enter a country name."})
@@ -98,20 +131,18 @@ class Country(models.Model):
                 seen.add(key)
         self.aliases = "\n".join(aliases)
         try:
-            self.authorities = clean_authorities(
-                self.authorities, legacy_urls=legacy_urls
-            )
+            self.authorities = clean_authorities(self.authorities)
         except ValidationError as exc:
             raise ValidationError({"authorities": exc.messages}) from exc
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
         self.normalize_fields()
         super().save(*args, **kwargs)
 
     def authority_ids(self) -> set[tuple[str, str]]:
         return {(label.casefold(), code) for label, code in self.authorities.items()}
 
-    def validate_country(self, other_countries):
+    def validate_country(self, other_countries: Iterable[Country]) -> None:
         self.normalize_fields()
         names = self.normalized_names()
         if names.intersection(("[no country]", "not recorded")):

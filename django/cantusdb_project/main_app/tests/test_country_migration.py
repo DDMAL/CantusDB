@@ -21,9 +21,9 @@ from main_app.tests.make_fakes import make_fake_user
 
 
 class CountryMigrationTests(TransactionTestCase):
-    old = ("main_app", "0047_notation_clavis_sequentiarum_labels")
-    schema = ("main_app", "0048_create_country")
-    new = ("main_app", "0049_link_institution_countries")
+    old = ("main_app", "0048_gabc_melody")
+    schema = ("main_app", "0049_prepare_institution_countries")
+    new = ("main_app", "0051_remove_institution_country_text")
     reversion = ("reversion", "0002_add_index_on_version_for_content_type_and_db")
 
     def migrate(self, target):
@@ -39,6 +39,22 @@ class CountryMigrationTests(TransactionTestCase):
             content_type__app_label="main_app", content_type__model="institution"
         ).delete()
         self.migrate(self.new)
+
+    def test_explicit_unknown_uses_the_catalogue_id(self):
+        apps = self.migrate(self.old)
+        self.addCleanup(self.restore_schema)
+        Institution = apps.get_model("main_app", "Institution")
+        ids = [
+            Institution.objects.create(
+                name="Library", siglum="XX-Lib", country=label
+            ).pk
+            for label in ("Unknown", "[Unknown Country]")
+        ]
+        self.migrate(self.schema)
+        call_command("load_countries", stdout=StringIO())
+        apps = self.migrate(self.new)
+        records = apps.get_model("main_app", "Institution").objects.filter(pk__in=ids)
+        self.assertEqual(list(records.values_list("country_id", flat=True)), [37, 37])
 
     def test_upgrade_and_rollback_of_institutions_and_saved_revisions(self):
         apps = self.migrate(self.old)
@@ -60,7 +76,7 @@ class CountryMigrationTests(TransactionTestCase):
                 ("[No Country]", "[No Country]"),
                 ("Local territory", "Local territory"),
                 ("Canada", "Canada"),
-                ("Unknown", "[Unknown Country]"),
+                ("Canada", "[Unknown Country]"),
             )
         ):
             institution = Institution.objects.create(
@@ -83,18 +99,21 @@ class CountryMigrationTests(TransactionTestCase):
 
         apps = self.migrate(self.schema)
         Country = apps.get_model("main_app", "Country")
+        prepared = apps.get_model("main_app", "Institution").objects
+        self.assertFalse(Country.objects.exists())
         with self.assertRaisesMessage(ValueError, "load_countries"):
             self.migrate(self.new)
         call_command("load_countries", stdout=StringIO())
         with self.assertRaisesMessage(ValueError, "Local territory"):
             self.migrate(self.new)
-        self.assertEqual(Institution.objects.get(pk=institutions[0]).country, "USA")
+        self.assertEqual(prepared.get(pk=institutions[0]).country_text, "USA")
+        self.assertFalse(prepared.filter(country__isnull=False).exists())
         local_country = Country.objects.create(name="Local territory")
         usa = Country.objects.get(rism_code="US")
         holy_see = Country.objects.get(rism_code="V")
         apps = self.migrate(self.new)
         Institution = apps.get_model("main_app", "Institution")
-        us, duplicate, blank, local, canada, unknown = (
+        us, duplicate, blank, local, canada, former_unknown = (
             Institution.objects.get(pk=pk) for pk in institutions
         )
         self.assertEqual(us.country_id, usa.pk)
@@ -102,7 +121,8 @@ class CountryMigrationTests(TransactionTestCase):
         self.assertIsNone(blank.country_id)
         self.assertEqual(canada.country_id, Country.objects.get(rism_code="CDN").pk)
         self.assertEqual(local.country_id, local_country.pk)
-        self.assertEqual(unknown.country.name, "Unknown")
+        self.assertEqual(former_unknown.country_id, canada.country_id)
+        self.assertFalse(Institution.objects.filter(country__name="Unknown").exists())
         self.assertEqual(us.country.name, "United States of America")
         # This spelling exists only in history. It cannot block the upgrade.
         with self.assertRaisesMessage(RevertError, "Land O' Tests"):
@@ -117,7 +137,7 @@ class CountryMigrationTests(TransactionTestCase):
                 None,
                 local_country.pk,
                 canada.country_id,
-                unknown.country_id,
+                37,
             ],
             strict=True,
         ):

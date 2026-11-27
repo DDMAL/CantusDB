@@ -13,12 +13,7 @@ from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from main_app.countries import (
-    find_country,
-    import_country,
-    matching_countries,
-)
-from main_app.management.country_import import import_rism_country
+from main_app.management.country_import import import_country, import_rism_country
 from main_app.models import Country, Institution, Source
 from main_app.tests.make_fakes import (
     make_fake_institution,
@@ -31,7 +26,7 @@ from main_app.tests.make_fakes import (
 class CountryLoaderTests(TestCase):
     def test_loader_fills_only_missing_values(self):
         canada = Country.objects.create(
-            pk=Country.CANADA,
+            pk=settings.CANADA_COUNTRY_ID,
             name="Dominion of Canada",
             aliases="Local spelling",
             rism_code="CDN",
@@ -58,6 +53,8 @@ class CountryLoaderTests(TestCase):
         self.assertFalse(
             any(q["sql"].startswith(("INSERT ", "UPDATE ")) for q in again)
         )
+        self.assertEqual(import_country("[Unknown Country]").pk, 37)
+        self.assertEqual(import_country("Unknown").pk, 37)
         highest = Country.objects.latest("pk").pk
         local = Country.objects.create(name="Local territory")
         self.assertGreater(local.pk, highest)
@@ -82,37 +79,6 @@ class CountryLoaderTests(TestCase):
             Country.objects.get(pk=20).authorities,
             {"Getty TGN": "1000120"},
         )
-
-    def test_loader_converts_known_draft_urls_and_preserves_unrecognized_ones_on_error(
-        self,
-    ):
-        canada = Country.objects.create(pk=6, name="Canada")
-        local = Country.objects.create(pk=1000, name="Local territory")
-        Country.objects.filter(pk=canada.pk).update(
-            authorities={"Wikidata": "http://www.wikidata.org/entity/Q16"},
-            aliases="Dominion\n dominion ",
-        )
-        wrong_url = "https://example.org/wiki/Q100"
-        Country.objects.filter(pk=local.pk).update(authorities={"Wikidata": wrong_url})
-        with self.assertRaisesMessage(CommandError, wrong_url):
-            call_command("load_countries")
-        canada.refresh_from_db()
-        self.assertEqual(
-            canada.authorities["Wikidata"], "http://www.wikidata.org/entity/Q16"
-        )
-        self.assertEqual(Country.objects.count(), 2)
-        Country.objects.filter(pk=local.pk).update(
-            authorities={"GeoNames": "https://www.geonames.org/7005685/"}
-        )
-        call_command("load_countries", stdout=StringIO())
-        canada.refresh_from_db()
-        local.refresh_from_db()
-        self.assertEqual(
-            canada.authorities, {"Wikidata": "Q16", "Getty TGN": "7005685"}
-        )
-        self.assertEqual(local.authorities, {"GeoNames": "7005685"})
-        self.assertEqual(canada.aliases.splitlines().count("Dominion"), 1)
-        self.assertNotIn("dominion", canada.aliases.splitlines())
 
     def test_loader_rejects_id_match_from_a_different_authority(self):
         Country.objects.create(
@@ -245,9 +211,9 @@ class CountryTests(TestCase):
         )
         self.assertEqual(import_country("Bundesrepublik Deutschland"), country)
         self.assertEqual(import_rism_country("d"), country)
-        self.assertNotIn(self.canada, matching_countries("dn"))
-        self.assertIn(self.canada, matching_countries("cdn"))
-        self.assertIn(self.canada, matching_countries("can", prefix=True))
+        self.assertNotIn(self.canada, Country.objects.matching("dn"))
+        self.assertIn(self.canada, Country.objects.matching("cdn"))
+        self.assertIn(self.canada, Country.objects.matching("can", prefix=True))
         with self.assertRaisesMessage(
             ValidationError, "Unrecognized RISM country code"
         ):
@@ -260,7 +226,9 @@ class CountryTests(TestCase):
         self.assertIsNone(institution.country)
         for empty in (None, "", "[No Country]"):
             self.assertIsNone(import_country(empty))
-        self.assertEqual(import_country("[Unknown Country]").name, "Unknown")
+        with self.assertRaisesMessage(ValidationError, "Unrecognized country"):
+            import_country("[Unknown Country]")
+        self.assertFalse(Country.objects.filter(name="Unknown").exists())
         make_fake_source(holding_institution=institution, published=True)
         make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         make_fake_segment(id=settings.BOWER_SEGMENT_ID)
@@ -305,7 +273,7 @@ class CountryTests(TestCase):
 
     def test_ambiguous_alias_cannot_select_the_wrong_country(self):
         Country.objects.filter(pk=self.canada.pk).update(aliases="USA")
-        self.assertIsNone(find_country("USA"))
+        self.assertIsNone(Country.objects.find_by_name("USA"))
         with self.assertRaisesMessage(ValidationError, "Ambiguous country"):
             import_country("USA")
         self.assertEqual(import_country("United States"), self.usa)
@@ -334,18 +302,45 @@ class CountryTests(TestCase):
                     source.refresh_from_db()
                     self.assertEqual(source.holding_institution.country, expected)
 
-    def test_legacy_rebuild_rolls_back_when_a_country_is_missing(self):
+    def test_legacy_rebuilds_continue_past_an_unrecognized_prefix(self):
+        unrecognized = make_fake_source(
+            holding_institution=None,
+            title="Town, Library, Ms. 1",
+            siglum="QQ-Lib Ms. 1",
+        )
+        recognized = make_fake_source(
+            holding_institution=None,
+            title="Town, Archive, Ms. 2",
+            siglum="US-Lib Ms. 2",
+        )
+        for command in ("migrate_records", "migrate_institution_source_records"):
+            with self.subTest(command=command), redirect_stdout(StringIO()), patch(
+                "main_app.management.commands.migrate_records.get_rism_id",
+                return_value=None,
+            ):
+                call_command(command, empty=True)
+                unrecognized.refresh_from_db()
+                recognized.refresh_from_db()
+                self.assertEqual(unrecognized.shelfmark, "Ms. 1")
+                self.assertEqual(recognized.holding_institution.country, self.usa)
+                if command == "migrate_records":
+                    self.assertIsNone(unrecognized.holding_institution_id)
+                else:
+                    self.assertEqual(unrecognized.holding_institution.siglum, "XX-NN")
+                    self.assertIsNone(unrecognized.holding_institution.country_id)
+
+    def test_legacy_rebuild_rolls_back_when_explicit_unknown_is_missing(self):
         institution = make_fake_institution(country="canada")
         self.assertEqual(institution.country, self.canada)
         source = make_fake_source(
             holding_institution=institution,
             title="Quito, Library, Ms. 1",
-            siglum="EC-Test Ms. 1",
+            siglum="XX-Test Ms. 1",
         )
         for command in ("migrate_records", "migrate_institution_source_records"):
             with self.subTest(command=command), redirect_stdout(StringIO()):
                 with self.assertRaisesMessage(
-                    ValidationError, "Unrecognized RISM country code: 'EC'"
+                    ValidationError, "Unrecognized country: 'Unknown'"
                 ):
                     call_command(command, empty=True)
                 source.refresh_from_db()

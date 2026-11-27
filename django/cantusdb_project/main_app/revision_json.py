@@ -5,7 +5,7 @@ from django.core.serializers.json import Deserializer as JSONDeserializer
 from django.core.serializers.json import Serializer as Serializer
 from reversion.errors import RevertError
 
-from main_app.countries import import_country
+from main_app.management.country_import import import_country
 
 
 class Deserializer(JSONDeserializer):
@@ -23,7 +23,7 @@ class Deserializer(JSONDeserializer):
                 fields["country"] = fields.pop("country_id")
             elif isinstance(label := fields.get("country"), str):
                 try:
-                    country = import_country(label, create_unknown=False)
+                    country = import_country(label)
                 except ValidationError as exc:
                     raise RevertError(" ".join(exc.messages)) from exc
                 fields["country"] = country.pk if country else None

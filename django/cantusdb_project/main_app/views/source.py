@@ -46,7 +46,6 @@ from django.views.generic import (
 )
 from django.views.generic.detail import SingleObjectMixin
 
-from main_app.countries import find_country, matching_countries
 from main_app.forms import (
     SourceCreateForm,
     SourceEditForm,
@@ -56,6 +55,7 @@ from main_app.forms import (
     BrowseChantsBulkEditFormset,
 )
 from main_app.models import (
+    Country,
     Century,
     Chant,
     Feast,
@@ -542,7 +542,9 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         # Canonicalize old links so the country dropdown also retains its value.
         country = request.GET.get("country", "")
-        self.selected_country = find_country(country) if country else None
+        self.selected_country = (
+            Country.objects.find_by_name(country) if country else None
+        )
         if self.selected_country and country != self.selected_country.name:
             params = request.GET.copy()
             params["country"] = self.selected_country.name
@@ -577,7 +579,9 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 q_obj_filter &= Q(holding_institution__country=self.selected_country)
             else:
                 q_obj_filter &= Q(
-                    holding_institution__country__in=matching_countries(country_name)
+                    holding_institution__country__in=Country.objects.matching(
+                        country_name
+                    )
                 )
 
         # Handle direct date range filtering (e.g., 1400-1500) by keeping only

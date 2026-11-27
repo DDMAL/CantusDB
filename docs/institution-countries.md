@@ -1,28 +1,37 @@
 # Institution countries
 
-For the first upgrade of a database with institution records,
-pause writes and background jobs. Run these commands in order with the new code:
+## Manual upgrade
+
+For the first upgrade of a populated database, including a restored backup,
+pause application writes and background jobs. Run these three commands yourself
+with the new checkout, before restarting services or resuming the usual deployment:
 
 ```bash
-python manage.py migrate main_app 0048_create_country
+python manage.py migrate main_app 0049_prepare_institution_countries
 python manage.py load_countries
 python manage.py migrate
 ```
 
-The first migration creates the country table. The command loads the catalogue
-from [countries.csv](../django/cantusdb_project/countries.csv). The second
-migration uses the stored names, aliases and RISM codes to link live institutions
-to countries, then removes the old text field. These steps
-work offline. Use this sequence for a restored database that predates the
-country table too. On an empty database, you can run `migrate` followed by
-`load_countries`. On an already upgraded database, use the normal `migrate`
-command and rerun the loader when the catalogue changes.
+1. Migration 0049 follows `0048_gabc_melody`. It creates the country table and
+   a nullable link on each institution, keeping the original country in `country_text`.
+2. The management command reads the bundled catalogue and loads its permanent IDs,
+   names, aliases, RISM codes and authority IDs. [Country catalogue](../django/cantusdb_project/countries.csv)
+3. Migration 0050 matches live country text against the loaded names, aliases and
+   RISM codes. It reports all unmatched spellings before writing any links. If it
+   stops, use the Django shell to add the missing spelling to the correct country's
+   aliases, or create a country for a genuine local entry. Rerun `python manage.py migrate`.
+   Migration 0051 removes the old text column once the conversion succeeds.
 
-If a name in a live institution cannot be matched, the conversion
-reports it and rolls back. Add the spelling as an alias on the appropriate
-country, or create a country for a genuine local entry, then rerun `migrate`.
-Blank values and `[No Country]` become blank. An explicit `Unknown` or
-`[Unknown Country]` retains the separate “Unknown” entry.
+Blank values, `[No Country]` and `Not recorded` become empty links. The catalogue
+reserves ID 37 for both `Unknown` and `[Unknown Country]`, including when those
+spellings occur only in revision history.
+
+On an empty database, run `python manage.py migrate` and then
+`python manage.py load_countries`. On subsequent upgrades, run the loader manually
+when the catalogue changes. The legacy institution rebuild commands are separate
+from this upgrade.
+
+## Revisions and catalogue edits
 
 The migration leaves saved revisions intact. When you open a legacy revision in
 the admin, the form shows the country text as originally entered and selects
@@ -42,20 +51,21 @@ links for Getty TGN, Wikidata and GeoNames. Other authorities can store a
 local identifier. Repeated aliases keep their first spelling, ignoring case
 and surrounding whitespace.
 
-If a database used full authority URLs from an earlier draft, rerun
-`load_countries` with the new code. It converts recognized record URLs on
-catalogue and local countries. If a URL cannot be matched to its authority,
-the command reports the country and value and rolls back. Correct the ID in
-the country admin and rerun the command.
+## Rollback
 
-To roll back, run `python manage.py migrate main_app 0047` with this version
-of the code. Live institutions regain the current display names, and
-blank countries regain `[No Country]`. New revisions record the country ID
-and the spelling at the time of the edit so that either schema can restore
-them. Export country metadata first if you need to retain it.
+Export country metadata you need to keep. With this version of the code, run
+`python manage.py migrate main_app 0048_gabc_melody` before switching back
+to the previous release. Live institutions regain the current country names,
+and empty links become `[No Country]`. New institution revisions retain both the
+country ID and the spelling at the time of the edit so either release can restore
+them.
 
-If a local database applied the earlier draft that rewrote revision data,
-use a backup from before that migration to recover the original spellings.
+For a local database running an unpublished draft, use its matching checkout to
+reverse its country migrations before switching to this version. The original
+`0047_getty_countries` draft rolls back to 0046. Drafts that started with
+`0048_create_country` roll back to `0047_notation_clavis_sequentiarum_labels`.
+If a draft rewrote saved revisions, a backup from before that migration preserves
+their original spelling.
 
 The catalogue uses Getty Thesaurus of Geographic Names data from the J. Paul
 Getty Trust, Getty Research Institute, under the Open Data Commons Attribution

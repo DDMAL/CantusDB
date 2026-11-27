@@ -1,4 +1,5 @@
 import csv
+from collections.abc import Iterator
 from pathlib import Path
 
 from django.conf import settings
@@ -9,7 +10,7 @@ from django.db import connection, transaction
 from main_app.models import Country
 
 
-def read_catalogue():
+def read_catalogue() -> Iterator[Country]:
     seen = set()
     with (Path(settings.BASE_DIR) / "countries.csv").open(
         encoding="utf-8", newline=""
@@ -38,7 +39,7 @@ def read_catalogue():
             )
 
 
-def fill_missing(country, entry):
+def fill_missing(country: Country, entry: Country) -> None:
     known = country.normalized_names()
     if not (
         known & entry.normalized_names()
@@ -58,7 +59,7 @@ class Command(BaseCommand):
     help = "Add the curated countries and fill missing RISM codes, aliases, and authority IDs."
 
     @transaction.atomic
-    def handle(self, *args, **options):
+    def handle(self, *args, **options) -> None:
         # Serialize the import with inserts, including the first import into an empty table.
         table = Country._meta.db_table
         with connection.cursor() as cursor:
@@ -72,8 +73,7 @@ class Command(BaseCommand):
         added = []
         try:
             for country in countries.values():
-                # Upgrade recognized links from the earlier draft, including local rows.
-                country.normalize_fields(legacy_urls=True)
+                country.normalize_fields()
             for country in read_catalogue():
                 country.normalize_fields()
                 if country.pk in countries:
