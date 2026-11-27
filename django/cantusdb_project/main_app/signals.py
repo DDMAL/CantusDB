@@ -1,8 +1,11 @@
+import json
 import operator
 from functools import reduce
 
 import reversion
+from reversion.signals import pre_revision_commit
 
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.search import SearchVector
 from django.db import models
 from django.db.models import Value
@@ -13,10 +16,32 @@ from typing import Optional
 
 import re
 
-from main_app.models import Chant
+from main_app.models import Chant, Country, Institution
 from main_app.models import Sequence
 from main_app.models import Feast
 from main_app.models import Source
+
+
+@receiver(pre_revision_commit)
+def record_institution_country_names(sender, versions, **kwargs):
+    # Keep new snapshots readable under either schema after a rollback. The
+    # old model reads country as text; the current model restores by stable ID.
+    institution_type = ContentType.objects.get_for_model(Institution)
+    snapshots = []
+    for version in versions:
+        if version.content_type_id == institution_type.pk:
+            data = json.loads(version.serialized_data)
+            snapshots.append((version, data, data[0]["fields"]["country"]))
+
+    if snapshots:
+        country_ids = {pk for _, _, pk in snapshots if pk is not None}
+        names = dict(
+            Country.objects.filter(pk__in=country_ids).values_list("pk", "name")
+        )
+        names[None] = "[No Country]"
+        for version, data, pk in snapshots:
+            data[0]["fields"].update(country_id=pk, country=names[pk])
+            version.serialized_data = json.dumps(data)
 
 
 @receiver(post_save, sender=Chant)

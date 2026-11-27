@@ -6,7 +6,7 @@ from django.conf import settings
 from django.core.management import call_command
 from django.test import TestCase
 
-from main_app.countries import import_rism_country
+from main_app.management.country_import import import_rism_country
 from main_app.management.commands.import_cantorales import parse_centuries
 from main_app.models import Country, Institution, Source, SourceURL
 from main_app.tests.make_fakes import (

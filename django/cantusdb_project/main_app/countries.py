@@ -15,7 +15,7 @@ def find_country(name: str, *, reject_ambiguous: bool = False) -> Country | None
     matches = [
         country
         for country in Country.objects.only("name", "aliases", "rism_code")
-        if label in country.lookup_names()
+        if label in country.normalized_names()
     ]
     if len(matches) == 1:
         return matches[0]
@@ -26,25 +26,14 @@ def find_country(name: str, *, reject_ambiguous: bool = False) -> Country | None
     return None
 
 
-def import_rism_country(code: str) -> Country | None:
-    if not code.strip():
-        return None
-    try:
-        return Country.objects.get(rism_code__iexact=code.strip())
-    except Country.DoesNotExist:
-        raise ValidationError(
-            f"Unrecognized RISM country code: {code!r}. Check the Country admin."
-        ) from None
-
-
-def import_country(name: str | None) -> Country | None:
+def import_country(name: str | None, *, create_unknown: bool = True) -> Country | None:
     label = (name or "").strip()
     if label.casefold() in ("", "[no country]", "not recorded"):
         return None
     country = find_country(label, reject_ambiguous=True)
     if country is not None:
         return country
-    if label.casefold() in ("[unknown country]", "unknown"):
+    if create_unknown and label.casefold() in ("[unknown country]", "unknown"):
         # Legacy rebuilds distinguish an explicit unknown from the blank used for prints.
         country, _ = Country.objects.get_or_create(
             name__iexact="Unknown", defaults={"name": "Unknown"}
@@ -53,32 +42,6 @@ def import_country(name: str | None) -> Country | None:
     raise ValidationError(
         f"Unrecognized country: {name!r}. Add the country or its alias in the admin."
     )
-
-
-def legacy_rism_code(siglum: str, known_codes: set[str]) -> str:
-    prefix, separator, _ = siglum.partition("-")
-    if not prefix.isascii() or not prefix.isalpha() or not prefix.isupper():
-        return ""
-    # These two prefixes occur in the old source records.
-    code = {"SA": "ZA", "T": "RC"}.get(prefix, prefix)
-    if separator or code == "XX" or code in known_codes:
-        return code
-    return ""
-
-
-def stored_rism_codes() -> set[str]:
-    return {
-        code.upper()
-        for code in Country.objects.exclude(rism_code=None).values_list(
-            "rism_code", flat=True
-        )
-    }
-
-
-def import_legacy_rism_country(code: str) -> Country | None:
-    if code == "XX":
-        return import_country("Unknown")
-    return import_rism_country(code)
 
 
 def matching_countries(query: str, *, prefix: bool = False) -> QuerySet[Country]:

@@ -24,50 +24,38 @@ def read_catalogue():
                     f"Catalogue IDs must be positive and unique. Found {pk}."
                 )
             seen.add(pk)
-            urls = {"Getty TGN": row["getty_tgn"], "Wikidata": row["wikidata"]}
+            ids = {"Getty TGN": row["getty_tgn"], "Wikidata": row["wikidata"]}
             yield Country(
                 pk=pk,
                 name=row["name"].strip(),
                 aliases="\n".join(row["aliases"].split("|")),
                 rism_code=row["rism_code"].strip() or None,
                 authorities={
-                    label: url.strip()
-                    for label, url in urls.items()
-                    if url and url.strip()
+                    label: code.strip()
+                    for label, code in ids.items()
+                    if code and code.strip()
                 },
             )
 
 
 def fill_missing(country, entry):
-    known = country.lookup_names()
+    known = country.normalized_names()
     if not (
-        known & entry.lookup_names()
-        or set(country.authorities.values()).intersection(entry.authorities.values())
+        known & entry.normalized_names()
+        or country.authority_ids() & entry.authority_ids()
     ):
         raise CommandError(
             f"Catalogue ID {entry.pk} ({entry.name}) is occupied by {country.name}. "
             "Check the ID and country identity before retrying."
         )
-    before = (country.rism_code, country.aliases, country.authorities)
     country.rism_code = country.rism_code or entry.rism_code
-    known = country.lookup_names()
-    aliases = country.aliases.splitlines()
-    for name in (entry.name, *entry.aliases.splitlines()):
-        if name and name.casefold() not in known:
-            aliases.append(name)
-            known.add(name.casefold())
-    country.aliases = "\n".join(aliases)
-    labels = {label.casefold() for label in country.authorities}
-    country.authorities = country.authorities | {
-        label: url
-        for label, url in entry.authorities.items()
-        if label.casefold() not in labels and url not in country.authorities.values()
-    }
-    return before != (country.rism_code, country.aliases, country.authorities)
+    # normalize_fields() keeps the first spelling of each alias after the merge.
+    country.aliases = "\n".join((country.aliases, entry.name, entry.aliases))
+    country.authorities = entry.authorities | country.authorities
 
 
 class Command(BaseCommand):
-    help = "Add the curated countries and fill missing RISM codes, aliases, and authority URLs."
+    help = "Add the curated countries and fill missing RISM codes, aliases, and authority IDs."
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -78,21 +66,35 @@ class Command(BaseCommand):
                 f"LOCK TABLE {connection.ops.quote_name(table)} IN SHARE ROW EXCLUSIVE MODE"
             )
         countries = Country.objects.in_bulk()
-        added, updated = [], []
-        for entry in read_catalogue():
-            country = countries.get(entry.pk)
-            if country is None:
-                country = countries[entry.pk] = entry
-                added.append(country)
-            elif fill_missing(country, entry):
-                updated.append(country)
-            try:
+        original = {
+            pk: (c.rism_code, c.aliases, c.authorities) for pk, c in countries.items()
+        }
+        added = []
+        try:
+            for country in countries.values():
+                # Upgrade recognized links from the earlier draft, including local rows.
+                country.normalize_fields(legacy_urls=True)
+            for country in read_catalogue():
+                country.normalize_fields()
+                if country.pk in countries:
+                    fill_missing(countries[country.pk], country)
+                else:
+                    countries[country.pk] = country
+                    added.append(country)
+            for country in countries.values():
                 country.clean_fields()
                 country.validate_country(countries.values())
-            except ValidationError as exc:
-                raise CommandError(
-                    f"Country {entry.pk} ({entry.name}): {' '.join(exc.messages)}"
-                ) from exc
+        except ValidationError as exc:
+            raise CommandError(
+                f"Country {country.pk} ({country.name}): {' '.join(exc.messages)}"
+            ) from exc
+        updated = [
+            country
+            for pk, country in countries.items()
+            if pk in original
+            and original[pk]
+            != (country.rism_code, country.aliases, country.authorities)
+        ]
         Country.objects.bulk_create(added)
         Country.objects.bulk_update(updated, ["rism_code", "aliases", "authorities"])
         if countries:

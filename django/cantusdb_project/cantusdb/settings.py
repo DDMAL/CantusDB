@@ -89,6 +89,8 @@ MIDDLEWARE = [
     "reversion.middleware.RevisionMiddleware",
 ]
 
+SERIALIZATION_MODULES = {"json": "main_app.revision_json"}
+
 ROOT_URLCONF = "cantusdb.urls"
 
 TEMPLATES = [

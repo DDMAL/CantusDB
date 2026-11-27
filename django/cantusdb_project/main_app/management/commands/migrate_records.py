@@ -5,7 +5,7 @@ import requests
 from django.core.management import BaseCommand
 from django.db import transaction
 
-from main_app.countries import (
+from main_app.management.country_import import (
     import_legacy_rism_country,
     legacy_rism_code,
     stored_rism_codes,

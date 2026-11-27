@@ -40,7 +40,7 @@ class Migration(migrations.Migration):
                     models.JSONField(
                         blank=True,
                         default=dict,
-                        help_text="Enter a JSON object of database names and full record URLs.",
+                        help_text='Enter authority names and record IDs, for example {"Wikidata": "Q16"}.',
                     ),
                 ),
             ],

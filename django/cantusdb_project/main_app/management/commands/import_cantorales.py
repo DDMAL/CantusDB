@@ -23,7 +23,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 import reversion  # type: ignore[import-untyped]
 
-from main_app.countries import import_rism_country
+from main_app.management.country_import import import_rism_country
 from main_app.models import (
     Century,
     Institution,

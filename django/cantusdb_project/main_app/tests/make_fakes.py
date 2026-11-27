@@ -470,7 +470,7 @@ def make_fake_institution(
             name__iexact=country_name, defaults={"name": country_name}
         )
 
-    inst = Institution.objects.create(
+    return Institution.objects.create(
         name=name,
         siglum=siglum,
         city=city,
@@ -478,9 +478,6 @@ def make_fake_institution(
         country=country,
         is_private_collector=is_private_collector,
     )
-    inst.save()
-
-    return inst
 
 
 def make_cantus_fallback_institutions() -> Dict[str, Optional[Institution]]:
@@ -543,10 +540,10 @@ def make_fake_source(**kwargs: Any) -> Source:
         else:
             kwargs["segment"] = [make_fake_segment()]
     segments = kwargs.pop("segment")
-    kwargs["holding_institution"] = kwargs.get(
-        "holding_institution", make_fake_institution()
-    )
-    kwargs["provenance"] = kwargs.get("provenance", make_fake_provenance())
+    if "holding_institution" not in kwargs and "holding_institution_id" not in kwargs:
+        kwargs["holding_institution"] = make_fake_institution()
+    if "provenance" not in kwargs and "provenance_id" not in kwargs:
+        kwargs["provenance"] = make_fake_provenance()
     kwargs["full_source"] = kwargs.get("full_source", True)
     kwargs["source_completeness"] = kwargs.get(
         "source_completeness", Source.SourceCompletenessChoices.FULL_SOURCE
@@ -581,7 +578,7 @@ def make_fake_source(**kwargs: Any) -> Source:
 
     # Remove the "century" and "current_editors" keys from kwargs.
     # As a many-to-many fields, these are handled after instance creation.
-    century = kwargs.pop("century", make_fake_century())
+    century = kwargs.pop("century") if "century" in kwargs else make_fake_century()
     current_editors = kwargs.pop("current_editors", [])
 
     source = Source.objects.create(**kwargs)

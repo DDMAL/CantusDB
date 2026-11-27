@@ -1,36 +1,6 @@
-"""Link legacy institution country text and saved revisions to the loaded catalogue."""
-
-import json
+"""Link live institutions to the country catalogue."""
 
 from django.db import migrations, models
-
-
-def convert_versions(apps, db, convert):
-    versions = (
-        apps.get_model("reversion", "Version")
-        .objects.using(db)
-        .filter(content_type__app_label="main_app", content_type__model="institution")
-    )
-    batch = []
-    for version in versions.iterator():
-        objects = json.loads(version.serialized_data)
-        changed = False
-        for obj in objects:
-            fields = obj["fields"]
-            if obj["model"] == "main_app.institution" and "country" in fields:
-                old = fields["country"]
-                new = convert(old)
-                if old != new:
-                    fields["country"] = new
-                    changed = True
-        if changed:
-            version.serialized_data = json.dumps(objects)
-            batch.append(version)
-        if len(batch) == 500:
-            versions.bulk_update(batch, ["serialized_data"])
-            batch.clear()
-    if batch:
-        versions.bulk_update(batch, ["serialized_data"])
 
 
 def from_text(apps, schema_editor):
@@ -71,11 +41,10 @@ def from_text(apps, schema_editor):
     values = institutions.order_by().values_list("country_text", flat=True).distinct()
     for value in list(values):
         institutions.filter(country_text=value).update(country_id=country_id(value))
-    convert_versions(apps, db, country_id)
     if missing:
         labels = ", ".join(repr(label) for label in sorted(missing))
         raise ValueError(
-            f"Unmatched institution countries in records or revisions: {labels}. Add the missing countries or aliases and run migrate again."
+            f"Unmatched institution countries in records: {labels}. Add the missing countries or aliases and run migrate again."
         )
     # PostgreSQL must finish deferred FK checks before changing this table again.
     schema_editor.connection.check_constraints()
@@ -89,17 +58,11 @@ def to_text(apps, schema_editor):
     names[None] = "[No Country]"
     for pk, name in names.items():
         institutions.filter(country_id=pk).update(country_text=name)
-    convert_versions(
-        apps, db, lambda value: names[int(value) if value is not None else None]
-    )
     schema_editor.connection.check_constraints()
 
 
 class Migration(migrations.Migration):
-    dependencies = [
-        ("main_app", "0048_create_country"),
-        ("reversion", "0002_add_index_on_version_for_content_type_and_db"),
-    ]
+    dependencies = [("main_app", "0048_create_country")]
     operations = [
         migrations.RenameField("institution", "country", "country_text"),
         migrations.AddField(

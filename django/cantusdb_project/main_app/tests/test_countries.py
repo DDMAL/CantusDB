@@ -16,9 +16,9 @@ from django.urls import reverse
 from main_app.countries import (
     find_country,
     import_country,
-    import_rism_country,
     matching_countries,
 )
+from main_app.management.country_import import import_rism_country
 from main_app.models import Country, Institution, Source
 from main_app.tests.make_fakes import (
     make_fake_institution,
@@ -35,7 +35,7 @@ class CountryLoaderTests(TestCase):
             name="Dominion of Canada",
             aliases="Local spelling",
             rism_code="CDN",
-            authorities={"Wikidata": "https://example.org/local-record"},
+            authorities={"Wikidata": "Q1234"},
         )
         with CaptureQueriesContext(connection) as queries:
             call_command("load_countries", stdout=StringIO())
@@ -48,8 +48,8 @@ class CountryLoaderTests(TestCase):
         self.assertEqual(
             canada.authorities,
             {
-                "Wikidata": "https://example.org/local-record",
-                "Getty TGN": "https://vocab.getty.edu/tgn/7005685",
+                "Wikidata": "Q1234",
+                "Getty TGN": "7005685",
             },
         )
         self.assertEqual(import_rism_country("RC").name, "Taiwan")
@@ -68,22 +68,59 @@ class CountryLoaderTests(TestCase):
             Country.objects.create(name="Next local territory").pk, issued
         )
 
-    def test_loader_skips_blank_authority_urls(self):
+    def test_loader_skips_blank_authority_ids(self):
         with TemporaryDirectory() as directory, self.settings(BASE_DIR=directory):
             (Path(directory) / "countries.csv").write_text(
                 "id,name,rism_code,aliases,getty_tgn,wikidata\n"
-                "6,Canada,CDN,, ,https://www.wikidata.org/wiki/Q16\n"
-                "20,Japan,J,,https://vocab.getty.edu/tgn/1000120,\n"
+                "6,Canada,CDN,, ,Q16\n"
+                "20,Japan,J,,1000120,\n"
             )
             call_command("load_countries", stdout=StringIO())
         canada = Country.objects.get(name="Canada")
-        self.assertEqual(
-            canada.authorities, {"Wikidata": "https://www.wikidata.org/wiki/Q16"}
-        )
+        self.assertEqual(canada.authorities, {"Wikidata": "Q16"})
         self.assertEqual(
             Country.objects.get(pk=20).authorities,
-            {"Getty TGN": "https://vocab.getty.edu/tgn/1000120"},
+            {"Getty TGN": "1000120"},
         )
+
+    def test_loader_converts_known_draft_urls_and_preserves_unrecognized_ones_on_error(
+        self,
+    ):
+        canada = Country.objects.create(pk=6, name="Canada")
+        local = Country.objects.create(pk=1000, name="Local territory")
+        Country.objects.filter(pk=canada.pk).update(
+            authorities={"Wikidata": "http://www.wikidata.org/entity/Q16"},
+            aliases="Dominion\n dominion ",
+        )
+        wrong_url = "https://example.org/wiki/Q100"
+        Country.objects.filter(pk=local.pk).update(authorities={"Wikidata": wrong_url})
+        with self.assertRaisesMessage(CommandError, wrong_url):
+            call_command("load_countries")
+        canada.refresh_from_db()
+        self.assertEqual(
+            canada.authorities["Wikidata"], "http://www.wikidata.org/entity/Q16"
+        )
+        self.assertEqual(Country.objects.count(), 2)
+        Country.objects.filter(pk=local.pk).update(
+            authorities={"GeoNames": "https://www.geonames.org/7005685/"}
+        )
+        call_command("load_countries", stdout=StringIO())
+        canada.refresh_from_db()
+        local.refresh_from_db()
+        self.assertEqual(
+            canada.authorities, {"Wikidata": "Q16", "Getty TGN": "7005685"}
+        )
+        self.assertEqual(local.authorities, {"GeoNames": "7005685"})
+        self.assertEqual(canada.aliases.splitlines().count("Dominion"), 1)
+        self.assertNotIn("dominion", canada.aliases.splitlines())
+
+    def test_loader_rejects_id_match_from_a_different_authority(self):
+        Country.objects.create(
+            pk=6, name="Local territory", authorities={"GeoNames": "7005685"}
+        )
+        with self.assertRaisesMessage(CommandError, "is occupied by Local territory"):
+            call_command("load_countries")
+        self.assertEqual(Country.objects.count(), 1)
 
     def test_catalogue_can_grow_and_cannot_overwrite_a_local_country(self):
         with TemporaryDirectory() as directory, self.settings(BASE_DIR=directory):
@@ -120,9 +157,9 @@ class CountryLoaderTests(TestCase):
         local = Country.objects.create(
             pk=1000,
             name="Nippon",
-            authorities={"Local label": "https://www.wikidata.org/wiki/Q17"},
+            authorities={"Wikidata": "Q17"},
         )
-        with self.assertRaisesMessage(CommandError, "already belongs to Nippon"):
+        with self.assertRaisesRegex(CommandError, r"Nippon.*Japan|Japan.*Nippon"):
             call_command("load_countries")
         self.assertFalse(Country.objects.filter(name="Japan").exists())
         self.assertEqual(Country.objects.count(), 1)
@@ -139,13 +176,13 @@ class CountryTests(TestCase):
         )
         cls.canada = Country.objects.create(name="Canada", rism_code="CDN")
 
-    def test_admin_validates_authority_urls_and_aliases(self):
+    def test_admin_validates_authority_ids_and_aliases(self):
         self.client.force_login(make_fake_user(is_superuser=True))
         data = {
             "name": "Dominion of Canada",
             "rism_code": "cdn",
-            "aliases": "Canada\r\n  Nouvelle-France  ",
-            "authorities": '{"Wikidata":"http://www.wikidata.org/entity/Q16","GeoNames":"https://www.geonames.org/6251999/"}',
+            "aliases": "Canada\r\n  Nouvelle-France  \n CANADA \ncdn\nDominion of Canada",
+            "authorities": '{" wikidata ":"Q16","GeoNames":6251999}',
         }
         response = self.client.post(
             reverse("admin:main_app_country_change", args=[self.canada.pk]), data
@@ -153,14 +190,23 @@ class CountryTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.canada.refresh_from_db()
         self.assertEqual(self.canada.rism_code, "CDN")
-        self.assertEqual(
-            self.canada.authorities["Wikidata"], "https://www.wikidata.org/wiki/Q16"
-        )
+        self.assertEqual(self.canada.authorities["Wikidata"], "Q16")
+        self.assertEqual(self.canada.aliases, "Canada\nNouvelle-France")
+        self.assertEqual(self.canada.authorities["GeoNames"], "6251999")
+        response = self.client.get(reverse("admin:main_app_country_changelist"))
+        self.assertContains(response, 'href="https://www.wikidata.org/wiki/Q16"')
+        self.assertContains(response, 'href="https://www.geonames.org/6251999/"')
         self.assertEqual(import_country("nouvelle-france"), self.canada)
         url = reverse("admin:main_app_country_add")
         for bad in (
             {"authorities": '["Q30"]'},
-            {"authorities": '{"Wikidata":"Q30"}'},
+            {"authorities": '{"Wikidata":"https://www.wikidata.org/wiki/Q30"}'},
+            {"authorities": '{"Wikidata":"Q30?lang=en"}'},
+            {"authorities": '{"Wikidata":"1234"}'},
+            {"authorities": '{"Wikidata":"Q16"}'},
+            {"authorities": '{"Wikidata":"Q30","wikidata":"Q31"}'},
+            {"authorities": '{"Getty TGN":"Q30"}'},
+            {"authorities": '{"GeoNames":"6251999"}'},
             {"authorities": '{"GeoNames":"https://www.geonames.org/6251999/"}'},
             {"aliases": "nouvelle-france"},
             {"aliases": "CDN"},
@@ -171,6 +217,27 @@ class CountryTests(TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertTrue(response.context["adminform"].form.errors)
         self.assertFalse(Country.objects.filter(name="Test country").exists())
+
+    def test_source_factory_creates_only_the_requested_institutions(self):
+        institution = make_fake_institution(country=self.canada)
+        cases = (
+            ({"holding_institution": institution}, institution.pk),
+            ({"holding_institution_id": institution.pk}, institution.pk),
+            ({"holding_institution": None}, None),
+        )
+        for supplied, expected in cases:
+            with self.subTest(supplied=supplied):
+                with CaptureQueriesContext(connection) as queries:
+                    source = make_fake_source(**supplied)
+                self.assertEqual(source.holding_institution_id, expected)
+                inserts = [
+                    q["sql"]
+                    for q in queries
+                    if 'INSERT INTO "main_app_institution"' in q["sql"]
+                ]
+                self.assertEqual(inserts, [])
+        self.assertIsNotNone(make_fake_source().holding_institution_id)
+        self.assertEqual(Institution.objects.count(), 2)
 
     def test_rism_codes_match_only_in_full(self):
         country = Country.objects.create(
@@ -211,23 +278,30 @@ class CountryTests(TestCase):
         self.assertNotIn(None, response.context["countries"])
 
     def test_country_queries_stay_constant_as_lists_grow(self):
-        def query_count(url):
+        def query_count(url, rows):
             with CaptureQueriesContext(connection) as queries:
-                self.assertContains(self.client.get(url), "Canada")
+                response = self.client.get(url)
+                self.assertContains(response, "Canada")
+                self.assertEqual(len(response.context["object_list"]), rows)
             return sum('"main_app_country"' in q["sql"] for q in queries)
 
+        self.client.force_login(make_fake_user(is_superuser=True))
         make_fake_source(
             holding_institution=make_fake_institution(country=self.canada),
-            published=True,
+            source_status=Source.PROOFREAD_PENDING_STATUS,
         )
-        urls = [reverse("institution-list"), reverse("source-list")]
-        counts = [query_count(url) for url in urls]
+        urls = [
+            reverse("institution-list"),
+            reverse("source-list"),
+            reverse("proofread-overview") + "?inactive=submitted",
+        ]
+        counts = [query_count(url, 1) for url in urls]
         for _ in range(4):
             make_fake_source(
                 holding_institution=make_fake_institution(country=self.usa),
-                published=True,
+                source_status=Source.PROOFREAD_PENDING_STATUS,
             )
-        self.assertEqual(counts, [query_count(url) for url in urls])
+        self.assertEqual(counts, [query_count(url, 5) for url in urls])
 
     def test_ambiguous_alias_cannot_select_the_wrong_country(self):
         Country.objects.filter(pk=self.canada.pk).update(aliases="USA")
