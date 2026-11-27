@@ -21,63 +21,20 @@ Usage:
 import argparse
 import csv
 from collections import defaultdict
-from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from django.core.management.base import BaseCommand, CommandError
 
 from cantusindex import get_merged_cantus_ids
-from main_app.models import Chant, Sequence, Source
 
-# The list is about 170 KB; Cantus Index can take a while to send it.
-FETCH_TIMEOUT = 60
-
-
-@dataclass
-class Merge:
-    old: str
-    # the ID(s) Cantus Index merged `old` into, with the date of each merge
-    new: dict[str, str] = field(default_factory=dict)
-
-    @property
-    def ambiguous(self) -> bool:
-        return len(self.new) > 1
-
-
-def read_merges(events: list[Any]) -> dict[str, Merge]:
-    """Group Cantus Index's merge events by old Cantus ID."""
-    merges: dict[str, Merge] = {}
-    for event in events:
-        if not isinstance(event, dict):
-            continue
-        old = str(event.get("old") or "").strip()
-        new = str(event.get("new") or "").strip()
-        if not old or not new or old == new:
-            continue
-        merge = merges.setdefault(old, Merge(old))
-        merge.new[new] = str(event.get("date") or "")
-    return merges
-
-
-def follow(old: str, merges: dict[str, Merge]) -> tuple[list[str], str]:
-    """
-    Follow `old` through later merges to the ID it ends up as.
-
-    Returns the chain of IDs (starting with `old`) and a note: "" when the
-    chain ends at a single ID, otherwise why it stops early (an ID merged into
-    more than one ID, or a loop).
-    """
-    chain = [old]
-    while chain[-1] in merges:
-        merge = merges[chain[-1]]
-        if merge.ambiguous:
-            options = ", ".join(sorted(merge.new))
-            return chain, f"{merge.old} was merged into more than one ID ({options})"
-        (next_id,) = merge.new
-        if next_id in chain:
-            return chain, "the merges form a loop"
-        chain.append(next_id)
-    return chain, ""
+# the shared code also used by the weekly data checks (#2197)
+from main_app.cantus_id_merges import (  # noqa: F401 (follow is used by tests)
+    FETCH_TIMEOUT,
+    Merge,
+    follow,
+    read_merges,
+    records_using,
+)
 
 
 class Command(BaseCommand):
@@ -117,45 +74,8 @@ class Command(BaseCommand):
     def _collect(
         self, merges: dict[str, Merge], source_id: Optional[int]
     ) -> list[dict[str, Any]]:
-        rows = []
-        for model, kind, order_field in (
-            (Chant, "chant", "c_sequence"),
-            (Sequence, "sequence", "s_sequence"),
-        ):
-            records = model.objects.filter(cantus_id__in=list(merges))
-            if source_id is not None:
-                records = records.filter(source_id=source_id)
-            for record in records.values(
-                "id", "cantus_id", "folio", order_field, "incipit", "source_id"
-            ):
-                chain, note = follow(record["cantus_id"], merges)
-                rows.append(
-                    {
-                        "kind": kind,
-                        "id": record["id"],
-                        "source_id": record["source_id"],
-                        "folio": record["folio"] or "",
-                        "order": record[order_field] or "",
-                        "incipit": record["incipit"] or "",
-                        "cantus_id": record["cantus_id"],
-                        # the ID to change to; blank when someone has to choose
-                        "new_cantus_id": "" if note else chain[-1],
-                        "chain": " → ".join(chain),
-                        "note": note,
-                    }
-                )
-
-        sources = Source.objects.select_related("holding_institution").in_bulk(
-            {row["source_id"] for row in rows}
-        )
-        for row in rows:
-            source = sources.get(row["source_id"])
-            row["source"] = source.short_heading if source else ""
-            row["published"] = bool(source and source.published)
-        rows.sort(
-            key=lambda row: (row["cantus_id"], row["source"], row["kind"], row["id"])
-        )
-        return rows
+        # the report lists sequences too, whatever the data checks do
+        return records_using(merges, include_sequences=True, source_id=source_id)
 
     def _report(self, rows: list[dict[str, Any]], merges: dict[str, Merge]) -> None:
         if not rows:
@@ -228,6 +148,7 @@ class Command(BaseCommand):
             "cantus_id",
             "new_cantus_id",
             "chain",
+            "merged",
             "note",
         ]
         with open(path, "w", newline="", encoding="utf-8") as csv_file:

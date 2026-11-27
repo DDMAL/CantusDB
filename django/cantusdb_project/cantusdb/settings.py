@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
+from datetime import date
 from celery.schedules import crontab
 from django.contrib.messages import constants as messages
 
@@ -268,6 +269,14 @@ DATA_CHECKS_ENABLED = (
     ).lower()
     == "true"
 )
+
+# The data checks replace Cantus IDs that Cantus Index has merged into another
+# one, but only for merges made on or after this date: earlier merges are left
+# for the editors, as some old IDs were reused on purpose (#2197).
+CANTUS_ID_MERGES_SINCE = date(2026, 11, 25)
+# Sequences (the Clavis Sequentiarum) get the same treatment, from the same
+# date (#2197). Set to False to leave them out.
+CANTUS_ID_MERGES_INCLUDE_SEQUENCES = True
 
 CELERY_BEAT_SCHEDULE = {
     "run-data-checks": {
