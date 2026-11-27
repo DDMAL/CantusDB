@@ -242,6 +242,8 @@ RESERVED_CANTUS_IDS = {
     # no chant text or music survives in the (fragmented) source, but a rubric
     # or another clue (such as a differentia) refers to one
     "000000",
+    # a placeholder for a gap (lacuna) in the manuscript (#2264)
+    "LACUNA",
 }
 
 # Records migrated from OldCantus are attributed to this generic account
