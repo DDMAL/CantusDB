@@ -64,6 +64,14 @@ class SetLacunaCantusIdsTest(TestCase):
             chant.refresh_from_db()
             self.assertEqual(chant.cantus_id, cantus_id, "nothing is changed")
 
+    def test_dry_run_lists_every_chant_that_would_change(self):
+        plain = self.lacuna()
+        odd = self.lacuna(manuscript_full_text="Exaltare dominum")
+        output = self.run_audit()
+        self.assertIn(f"chant {plain.id} in", output)
+        self.assertNotIn(f"check: chant {plain.id} ", output)
+        self.assertIn(f"check: chant {odd.id} in", output)
+
     def test_a_latin_sentence_using_the_word_is_left_alone(self):
         make_fake_chant(incipit="Ecce lacuna maris", cantus_id=None)
         output = self.run_audit()

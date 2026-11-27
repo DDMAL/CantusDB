@@ -179,9 +179,11 @@ class Command(BaseCommand):
                     "  feasts: "
                     + ", ".join(f"{name} {n}" for name, n in feasts.most_common(6))
                 )
+                # every chant that would change, so the dry run can be
+                # reviewed in full; rows worth a second look are marked
                 for row in group:
-                    if row["note"]:
-                        self.stdout.write(f"  check: {self._describe(row)}")
+                    prefix = "check: " if row["note"] else ""
+                    self.stdout.write(f"  {prefix}{self._describe(row)}")
             elif action != REAL_CHANT:
                 for row in group:
                     self.stdout.write(f"  {self._describe(row)}")
