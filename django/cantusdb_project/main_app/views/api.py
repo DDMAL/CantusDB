@@ -632,7 +632,7 @@ NODE_ID_CUTOFF = 1_000_000
 
 def json_node_export(request: HttpRequest, id: int) -> HttpResponse:
     """
-    returns all fields of the chant/sequence/source/indexer with the specified `id`
+    Return public node data for the specified OldCantus ID.
     """
 
     # all IDs above this value are created in NewCantus and thus could have conflicts between types.
@@ -659,11 +659,14 @@ def json_node_export(request: HttpRequest, id: int) -> HttpResponse:
         elif rec_type in (Chant, Sequence):
             this_rec_qs = this_rec_qs.filter(source__published=True)
 
-        if not this_rec_qs.exists():
-            continue
-
-        vals = dict(*this_rec_qs.values())
-        return JsonResponse(vals)
+        # GABC transcriptions are for segment-specific data entry only (#1734).
+        fields = [
+            field.attname
+            for field in rec_type._meta.concrete_fields
+            if field.name != "gabc"
+        ]
+        if node := this_rec_qs.values(*fields).first():
+            return JsonResponse(node)
 
     return HttpResponseNotFound()
 
@@ -764,6 +767,12 @@ def cid_concordances(request: HttpRequest) -> JsonResponse:
     if not cantus_id:
         return JsonResponse({"error": "No Cantus ID provided."}, status=400)
     concordances_dict = get_json_from_ci_api(f"/json-cid/{cantus_id}")
+    if concordances_dict is None:
+        # Cantus Index didn't answer (e.g. busy or rate-limiting); report it so
+        # the page can say so instead of showing no concordances (#2366).
+        return JsonResponse(
+            {"error": "Could not load concordances from Cantus Index."}, status=502
+        )
     # If no concordances are found, the API returns an empty list.
     if concordances_dict == []:
         concordances_dict = {"databases": {}, "chants": {}}

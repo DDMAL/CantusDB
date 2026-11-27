@@ -135,6 +135,30 @@ function concordanceDetailToggleText(event) {
     }
 }
 
+// Shown when Cantus Index doesn't answer (e.g. it is busy or rate-limiting),
+// so readers don't take a failed load for "no concordances" (#2366).
+function showConcordancesLoadError(cantusID) {
+    const concordancesDiv = document.getElementById("concordancesDiv");
+    const message = document.createElement("p");
+    message.id = "concordancesLoadError";
+    message.textContent = "Unable to load concordances from Cantus Index right now. ";
+    const retry = document.createElement("a");
+    retry.href = "#";
+    retry.textContent = "Try again";
+    retry.addEventListener("click", event => {
+        event.preventDefault();
+        // Removing the message removes the focused link, so keep keyboard
+        // focus in this section by moving it to the Concordances heading.
+        const heading = document.getElementById("concordances");
+        heading.setAttribute("tabindex", "-1");
+        heading.focus();
+        message.remove();
+        getConcordances(cantusID);
+    });
+    message.appendChild(retry);
+    concordancesDiv.appendChild(message);
+}
+
 function getConcordances(cantusID) {
     // Remove the concordance button
     const concordanceButton = document.getElementById("concordanceButton");
@@ -152,6 +176,10 @@ function getConcordances(cantusID) {
         // Remove the concordance loading status
         const concordancesLoadingStatus = document.getElementById("concordancesLoadingStatus");
         concordancesLoadingStatus.classList.add("d-none");
+        if (this.status !== 200) {
+            showConcordancesLoadError(cantusID);
+            return;
+        }
         const concordancesData = JSON.parse(this.response);
         if (Object.keys(concordancesData.databases).length === 0) {
             const noConcordances = document.createElement("p");
@@ -266,10 +294,8 @@ function getConcordances(cantusID) {
         concordancesTableDiv.appendChild(concordancesTable);
     }
     xhttp.onerror = function () {
-        concordancesLoadingStatus.innerHTML = "";
-        const concordancesLoadError = document.createElement("p");
-        concordancesLoadError.innerHTML = `Cantus Database encountered an error while loading concordances (Cantus ID <b><a href="http://cantusindex.org/id/${cantusID}" target="_blank" title="${cantusID} on Cantus Index"> ${cantusID} </a></b>).`;
-        concordancesLoadingStatus.appendChild(concordancesLoadError);
+        concordancesLoadingStatus.classList.add("d-none");
+        showConcordancesLoadError(cantusID);
     }
     xhttp.send();
 }
