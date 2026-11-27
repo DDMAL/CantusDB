@@ -31,6 +31,169 @@ function jumpToFolio(sourceId) {
 }
 
 
+// Values from our database and from Cantus Index are added to the page as
+// text, never as HTML, and links only go to http(s) addresses (#2384).
+
+/**
+ * The address to link to, or "" if it isn't a web address. Our own links
+ * are relative ("/chant/123"); links from Cantus Index must be absolute.
+ */
+function safeHref(value, allowRelative = false) {
+    if (value === null || value === undefined || value === "") {
+        return "";
+    }
+    try {
+        const url = allowRelative
+            ? new URL(String(value), window.location.origin)
+            : new URL(String(value));
+        return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+    } catch (e) {
+        return "";
+    }
+}
+
+function appendText(parent, text) {
+    if (text !== null && text !== undefined && text !== "") {
+        parent.appendChild(document.createTextNode(String(text)));
+    }
+}
+
+function appendBold(parent, text) {
+    const bold = document.createElement("b");
+    appendText(bold, text);
+    parent.appendChild(bold);
+    return bold;
+}
+
+/** A link opening in a new tab, or plain text if the address isn't safe. */
+function appendLink(parent, text, href, allowRelative = false) {
+    const safe = safeHref(href, allowRelative);
+    const element = document.createElement(safe ? "a" : "span");
+    if (safe) {
+        element.setAttribute("href", safe);
+        element.setAttribute("target", "_blank");
+        element.setAttribute("rel", "noopener");
+    }
+    appendText(element, text);
+    parent.appendChild(element);
+    return element;
+}
+
+/** One row of the melodies table, from our ajax melody list. */
+function melodyRow(chant) {
+    const row = document.createElement("tr");
+
+    // the first cell contains chant information
+    const chantCell = document.createElement("td");
+    chantCell.classList.add("text-wrap");
+    if (chant.siglum) {
+        if (chant.source_link) {
+            appendLink(chantCell, chant.siglum, chant.source_link, true);
+        } else {
+            appendText(chantCell, chant.siglum);
+        }
+    }
+    chantCell.appendChild(document.createElement("br"));
+    if (chant.folio) { appendText(chantCell, `${chant.folio} | `); }
+    if (chant.service__name) { appendText(chantCell, `${chant.service__name} `); }
+    if (chant.genre__name) { appendBold(chantCell, `${chant.genre__name} `); }
+    if (chant.position) { appendText(chantCell, chant.position); }
+    chantCell.appendChild(document.createElement("br"));
+    if (chant.feast__name) { appendText(chantCell, chant.feast__name); }
+    chantCell.appendChild(document.createElement("br"));
+    appendText(chantCell, "Cantus ID: ");
+    appendLink(chantCell, chant.cantus_id, chant.ci_link, true);
+    row.appendChild(chantCell);
+
+    // the second cell contains the volpiano and text
+    const melodyCell = document.createElement("td");
+    const volpiano = document.createElement("div");
+    volpiano.setAttribute("class", "font-volpiano text-nowrap");
+    appendText(volpiano, chant.volpiano);
+    melodyCell.appendChild(volpiano);
+    melodyCell.appendChild(document.createElement("br"));
+    if (chant.mode) {
+        appendText(melodyCell, "M:");
+        appendBold(melodyCell, `${chant.mode} `);
+    }
+    if (chant.manuscript_full_text_std_spelling) {
+        const textDiv = document.createElement("div");
+        textDiv.classList.add("text-nowrap");
+        appendLink(textDiv, chant.manuscript_full_text_std_spelling, chant.chant_link, true);
+        melodyCell.appendChild(textDiv);
+    }
+    row.appendChild(melodyCell);
+    return row;
+}
+
+function renderMelodies(melodyDiv, data) {
+    melodyDiv.textContent = "";
+    appendText(melodyDiv, "Displaying ");
+    appendBold(melodyDiv, data.concordance_count);
+    appendText(melodyDiv, " melodies from the following databases: ");
+
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("table-responsive");
+    const table = document.createElement("table");
+    table.id = "melodyTable";
+    table.setAttribute("class", "table table-bordered table-sm small w-100");
+    const head = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    for (const [label, className] of [["Chant", "text-wrap w-25"], ["Melody", "text-wrap"]]) {
+        const cell = document.createElement("th");
+        cell.setAttribute("scope", "col");
+        cell.setAttribute("class", className);
+        appendText(cell, label);
+        headRow.appendChild(cell);
+    }
+    head.appendChild(headRow);
+    table.appendChild(head);
+    const body = document.createElement("tbody");
+    for (const chant of data.concordances) {
+        body.appendChild(melodyRow(chant));
+    }
+    table.appendChild(body);
+    wrapper.appendChild(table);
+    melodyDiv.appendChild(wrapper);
+}
+
+/** One row of the concordance details table, from Cantus Index. */
+function concordanceRow(concordance) {
+    const row = document.createElement("tr");
+
+    const sourceCell = document.createElement("td");
+    appendLink(sourceCell, concordance.siglum, concordance.srclink);
+    const folio = document.createElement("span");
+    appendText(folio, ", ");
+    appendBold(folio, concordance.folio);
+    sourceCell.appendChild(folio);
+    // Some concordance image links are invalid urls (e.g. "0")
+    const image = safeHref(concordance.image);
+    if (image) {
+        sourceCell.appendChild(document.createElement("br"));
+        const imageLink = document.createElement("a");
+        imageLink.setAttribute("href", image);
+        imageLink.setAttribute("target", "_blank");
+        imageLink.setAttribute("rel", "noopener");
+        imageLink.classList.add("bi-camera-fill");
+        sourceCell.appendChild(imageLink);
+    }
+    row.appendChild(sourceCell);
+
+    const incipitCell = document.createElement("td");
+    appendLink(incipitCell, concordance.incipit, concordance.chantlink);
+    row.appendChild(incipitCell);
+
+    const details = [concordance.office, concordance.genre, concordance.position]
+        .map(value => (value === null || value === undefined ? "" : value));
+    for (const text of [details.join(" | "), concordance.feast, concordance.mode, concordance.db]) {
+        const cell = document.createElement("td");
+        appendText(cell, text);
+        row.appendChild(cell);
+    }
+    return row;
+}
+
 function loadMelodies(cantusId) {
     const melodyDiv = document.getElementById('melodyDiv');
     const loadingPrompt = document.getElementById("melodyLoadingPrompt");
@@ -42,81 +205,14 @@ function loadMelodies(cantusId) {
 
     xhttp.open("GET", url);
     xhttp.onload = function () {
-        const data = JSON.parse(this.response);
-        melodyDiv.innerHTML = `Displaying <b>${data.concordance_count}</b> melodies from the following databases: `;
-        melodyDiv.innerHTML += `<div class="table-responsive">
-                                    <table id="melodyTable" class="table table-bordered table-sm small w-100">
-                                        <thead>
-                                            <tr>
-                                                <th scope="col" class="text-wrap w-25">Chant</th>
-                                                <th scope="col" class="text-wrap">Melody</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                        </tbody>
-                                    </table>
-                                    </div>`;
-
-        const table = document.getElementById("melodyTable").getElementsByTagName("tbody")[0];
-
-        data.concordances.map(chant => {
-            const newRow = table.insertRow(table.rows.length);
-            if (chant.siglum) {
-                // if the chant has a siglum, display it
-                if (chant.source_link) {
-                    // if the chant has a source, display the siglum as a hyperlink to the source page
-                    newRow.innerHTML += `<td class="text-wrap"><a href="${chant.source_link}" target="_blank">${chant.siglum}</a></td>`;
-                } else {
-                    // if the chant does not have a source, display the siglum as plain text
-                    newRow.innerHTML += `<td class="text-wrap">${chant.siglum}</td>`;
-                }
-            } else {
-                newRow.innerHTML += '<td class="text-wrap"></td>';
-            }
-
-            // the first cell contains chant information
-            const chantCell = newRow.getElementsByTagName("td")[0];
-            chantCell.innerHTML += '<br>';
-            if (chant.folio) { chantCell.innerHTML += `${chant.folio} | ` } else { chantCell.innerHTML += '' }
-            if (chant.service__name) { chantCell.innerHTML += `${chant.service__name} ` } else { chantCell.innerHTML += '' }
-            if (chant.genre__name) { chantCell.innerHTML += `<b>${chant.genre__name} </b>` } else { chantCell.innerHTML += '' }
-            if (chant.position) { chantCell.innerHTML += `${chant.position}` } else { chantCell.innerHTML += '' }
-            chantCell.innerHTML += '<br>';
-            if (chant.feast__name) { chantCell.innerHTML += `${chant.feast__name}` } else { chantCell.innerHTML += '' }
-            chantCell.innerHTML += '<br>';
-            chantCell.innerHTML += `Cantus ID: <a href="${chant.ci_link}" target="_blank">${chant.cantus_id}</a>`
-
-            // add the second cell to the row
-            newRow.innerHTML += `<td>
-                                    <div class="font-volpiano text-nowrap">
-                                        ${chant.volpiano}
-                                    </div>
-                                    <br>
-                                </td>`;
-            // the second cell contains the volpiano and text
-            const melodyCell = newRow.getElementsByTagName("td")[1];
-            if (chant.mode) {
-                melodyCell.innerHTML += `M:<b>${chant.mode} </b>`;
-            } else {
-                melodyCell.innerHTML += "";
-            }
-            if (chant.manuscript_full_text_std_spelling) {
-                melodyCell.innerHTML += `<div class="text-nowrap">
-                                            <a href="${chant.chant_link}" target="_blank">
-                                                ${chant.manuscript_full_text_std_spelling}
-                                            </a>
-                                        </div>`;
-            } else {
-                melodyCell.innerHTML += ""
-            }
-        });
+        renderMelodies(melodyDiv, JSON.parse(this.response));
         // hide the "loading results" prompt after loading the data
         loadingPrompt.style.display = "none";
     }
 
     xhttp.onerror = function () {
         // handle errors
-        melodyDiv.innerHTML = "ajax error";
+        melodyDiv.textContent = "ajax error";
     }
 
     xhttp.send();
@@ -183,7 +279,14 @@ function getConcordances(cantusID) {
         const concordancesData = JSON.parse(this.response);
         if (Object.keys(concordancesData.databases).length === 0) {
             const noConcordances = document.createElement("p");
-            noConcordances.innerHTML = `No concordances found for Cantus ID <b><a href="http://cantusindex.org/id/${cantusID}" target="_blank" title="${cantusID} on Cantus Index"> ${cantusID}</a></b>.`;
+            appendText(noConcordances, "No concordances found for Cantus ID ");
+            const idLink = appendLink(
+                appendBold(noConcordances, ""),
+                cantusID,
+                `https://cantusindex.org/id/${encodeURIComponent(cantusID)}`,
+            );
+            idLink.setAttribute("title", `${cantusID} on Cantus Index`);
+            appendText(noConcordances, ".");
             concordancesDiv.appendChild(noConcordances);
             return;
         }
@@ -207,7 +310,7 @@ function getConcordances(cantusID) {
             // and initialism with a link to the database home page
             const dbNameCell = newRow.insertCell();
             const dbNameLink = document.createElement("a");
-            dbNameLink.setAttribute("href", dbSummary.url);
+            dbNameLink.setAttribute("href", safeHref(dbSummary.url));
             dbNameLink.setAttribute("target", "_blank");
             const dbNameLinkText = document.createTextNode(`${dbSummary.name} (${initialism})`);
             dbNameLink.appendChild(dbNameLinkText);
@@ -216,7 +319,7 @@ function getConcordances(cantusID) {
             // linked to the results url on the database
             const concordanceCountCell = newRow.insertCell();
             const concordanceCountLink = document.createElement("a");
-            concordanceCountLink.setAttribute("href", dbSummary.url_cid);
+            concordanceCountLink.setAttribute("href", safeHref(dbSummary.url_cid));
             concordanceCountLink.setAttribute("target", "_blank");
             if (dbSummary.count > 1) {
                 concordanceCountLink.appendChild(document.createTextNode(`${dbSummary.count} concordances`));
@@ -255,39 +358,11 @@ function getConcordances(cantusID) {
         }
         var concordancesDetail = Object.values(concordancesData.chants);
         concordancesDetail.sort((a, b) => {
-            return a.siglum.localeCompare(b.siglum);
+            return (a.siglum || "").localeCompare(b.siglum || "");
         });
         const concordancesTableBody = concordancesTable.createTBody();
         for (const concordance of concordancesDetail) {
-            const newRow = concordancesTableBody.insertRow();
-            const sourceLink = document.createElement("a");
-            sourceLink.setAttribute("href", concordance.srclink);
-            sourceLink.setAttribute("target", "_blank");
-            sourceLink.innerHTML = `${concordance.siglum}`;
-            const folio = document.createElement("span");
-            folio.innerHTML = `, <b>${concordance.folio}</b>`;
-            // Some concordance image links are invalid urls (e.g. "0")
-            // so we need to check both that the link is not empty and that it is
-            // a valid url before creating the image link
-            try {
-                const url = new URL(concordance.image);
-                var imageLink = document.createElement("a");
-                imageLink.setAttribute("href", url.href);
-                imageLink.setAttribute("target", "_blank");
-                imageLink.classList.add("bi-camera-fill");
-                newRow.insertCell().innerHTML = sourceLink.outerHTML + folio.outerHTML + "<br>" + imageLink.outerHTML;
-            } catch (e) {
-                newRow.insertCell().innerHTML = sourceLink.outerHTML + folio.outerHTML;
-            }
-            const chantLink = document.createElement("a");
-            chantLink.setAttribute("href", concordance.chantlink);
-            chantLink.setAttribute("target", "_blank");
-            chantLink.innerHTML = concordance.incipit;
-            newRow.insertCell().innerHTML = chantLink.outerHTML;
-            newRow.insertCell().innerHTML = `${concordance.office} | ${concordance.genre} | ${concordance.position}`;
-            newRow.insertCell().innerHTML = concordance.feast;
-            newRow.insertCell().innerHTML = concordance.mode;
-            newRow.insertCell().innerHTML = concordance.db;
+            concordancesTableBody.appendChild(concordanceRow(concordance));
         }
         const concordancesTableDiv = document.getElementById("concordancesTableDiv");
         concordancesTableDiv.appendChild(collapseLink);
